@@ -8,3 +8,4 @@
 8. Write code that is modular and reuses components.
 9. Add proper test cases for all the logics.
 10. Add proper readme and documentation for each class and module.
+11. Human code readability, maintainability and ease of extending the code is the top priority.
