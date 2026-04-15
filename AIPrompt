@@ -1,7 +1,10 @@
 1. User login and signup using oauth google sso.
 2. Roles assignment.
-3. Inventory is the critical componnent. It should have paginated table view. Searching and filtering. A data entry page. Tranxaction entry page should be very very simple and minimal.
+3. Inventory is the critical componnent. It should have paginated table view for transactions. Table view for itemwise inward and outward entries to get current stock. Searching and filtering. A data entry page. Tranxaction entry page should be very very simple, intuituve and minimal.
 4. Searchable Drop down should be used wherever possible for easier data entry.
 5. A destination (location, party) (rows) - item(cols) table view should be there to view entire data.
 6. Data export button.
 7. Dashboard with summary stats. 
+8. Write code that is modular and reuses components.
+9. Add proper test cases for all the logics.
+10. Add proper readme and documentation for each class and module.
