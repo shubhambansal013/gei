@@ -1,0 +1,7 @@
+1. User login and signup using oauth google sso.
+2. Roles assignment.
+3. Inventory is the critical componnent. It should have paginated table view. Searching and filtering. A data entry page. Tranxaction entry page should be very very simple and minimal.
+4. Searchable Drop down should be used wherever possible for easier data entry.
+5. A destination (location, party) (rows) - item(cols) table view should be there to view entire data.
+6. Data export button.
+7. Dashboard with summary stats. 
