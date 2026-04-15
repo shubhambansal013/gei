@@ -8,6 +8,135 @@
 -- Apply changes to live DB via ALTER statements in Supabase SQL Editor.
 -- =============================================================================
 
+-- =============================================================================
+-- AUTH & RBAC
+-- Supabase Auth manages signup/login via auth.users.
+-- profiles extends auth.users with role and status.
+-- site_user_access controls which sites each user can access.
+-- role_permissions defines what each role can do per module.
+-- can_user() is the single permission check function used everywhere.
+-- =============================================================================
+
+-- Roles — fixed hierarchy
+CREATE TABLE roles (
+  id          TEXT PRIMARY KEY,  -- 'SUPER_ADMIN', 'ADMIN', etc.
+  label       TEXT NOT NULL,
+  description TEXT,
+  level       INTEGER NOT NULL   -- 1=highest privilege, 5=lowest
+                                 -- prevents lower roles managing higher ones
+);
+
+INSERT INTO roles (id, label, level, description) VALUES
+  ('SUPER_ADMIN',   'Super Admin',   1, 'Full access to everything. Manages all sites and users.'),
+  ('ADMIN',         'Admin',         2, 'Full access on assigned sites. Can manage users on those sites.'),
+  ('STORE_MANAGER', 'Store Manager', 3, 'Inventory read/write on assigned sites.'),
+  ('SITE_ENGINEER', 'Site Engineer', 4, 'DPR read/write, inventory read on assigned sites.'),
+  ('VIEWER',        'Viewer',        5, 'Read-only on assigned sites and modules.');
+
+
+-- Modules — one row per feature area
+-- Add a new module here when you build it. Permissions follow automatically.
+CREATE TABLE modules (
+  id    TEXT PRIMARY KEY,  -- 'INVENTORY', 'DPR', 'LABOUR', 'LOCATION', 'REPORTS'
+  label TEXT NOT NULL
+);
+
+INSERT INTO modules (id, label) VALUES
+  ('INVENTORY', 'Inventory'),
+  ('DPR',       'Daily Progress Report'),
+  ('LABOUR',    'Labour Management'),
+  ('LOCATION',  'Location Master'),
+  ('REPORTS',   'Reports & Analytics');
+
+
+-- Actions — what operations are possible
+CREATE TABLE actions (
+  id    TEXT PRIMARY KEY,  -- 'VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT'
+  label TEXT NOT NULL
+);
+
+INSERT INTO actions (id, label) VALUES
+  ('VIEW',   'View'),
+  ('CREATE', 'Create'),
+  ('EDIT',   'Edit'),
+  ('DELETE', 'Delete'),
+  ('EXPORT', 'Export');
+
+
+-- Role permission matrix — global defaults per role × module × action
+-- Site-level overrides handled in site_user_permission_overrides
+CREATE TABLE role_permissions (
+  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  role_id   TEXT NOT NULL REFERENCES roles(id),
+  module_id TEXT NOT NULL REFERENCES modules(id),
+  action_id TEXT NOT NULL REFERENCES actions(id),
+
+  UNIQUE (role_id, module_id, action_id)
+);
+
+-- SUPER_ADMIN and ADMIN get everything
+INSERT INTO role_permissions (role_id, module_id, action_id)
+SELECT 'SUPER_ADMIN', m.id, a.id FROM modules m CROSS JOIN actions a;
+
+INSERT INTO role_permissions (role_id, module_id, action_id)
+SELECT 'ADMIN', m.id, a.id FROM modules m CROSS JOIN actions a;
+
+-- STORE_MANAGER
+INSERT INTO role_permissions (role_id, module_id, action_id) VALUES
+  ('STORE_MANAGER', 'INVENTORY', 'VIEW'),
+  ('STORE_MANAGER', 'INVENTORY', 'CREATE'),
+  ('STORE_MANAGER', 'INVENTORY', 'EDIT'),
+  ('STORE_MANAGER', 'INVENTORY', 'EXPORT'),
+  ('STORE_MANAGER', 'REPORTS',   'VIEW');
+
+-- SITE_ENGINEER
+INSERT INTO role_permissions (role_id, module_id, action_id) VALUES
+  ('SITE_ENGINEER', 'DPR',       'VIEW'),
+  ('SITE_ENGINEER', 'DPR',       'CREATE'),
+  ('SITE_ENGINEER', 'DPR',       'EDIT'),
+  ('SITE_ENGINEER', 'INVENTORY', 'VIEW'),
+  ('SITE_ENGINEER', 'LABOUR',    'VIEW'),
+  ('SITE_ENGINEER', 'REPORTS',   'VIEW');
+
+-- VIEWER gets VIEW on all modules
+INSERT INTO role_permissions (role_id, module_id, action_id)
+SELECT 'VIEWER', m.id, 'VIEW' FROM modules m;
+
+
+-- =============================================================================
+-- USER PROFILES
+-- Extends Supabase auth.users. One row per user.
+-- Never modify auth.users directly — Supabase owns that table.
+-- =============================================================================
+
+CREATE TABLE profiles (
+  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name   TEXT NOT NULL,
+  phone       TEXT,
+  role_id     TEXT NOT NULL REFERENCES roles(id) DEFAULT 'VIEWER',
+  is_active   BOOLEAN DEFAULT true,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Auto-create profile row when a new user signs up
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO profiles (id, full_name, role_id)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
+    'VIEWER'  -- default role; admin assigns correct role after signup
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
 
 -- =============================================================================
 -- ENUMS
@@ -272,7 +401,7 @@ CREATE TABLE inventory_transactions (
   to_type           txn_party_type NOT NULL,
   to_party_id       UUID REFERENCES parties(id),
   to_location_id    UUID REFERENCES location_references(id),
-  to_site_id        UUID REFERENCES sites(id),Z
+  to_site_id        UUID REFERENCES sites(id),
 
   remarks           TEXT,
   entry_date        DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -462,137 +591,6 @@ CREATE INDEX idx_txn_to_party
 CREATE INDEX idx_txn_to_location
   ON inventory_transactions(to_location_id);
 
-
--- =============================================================================
--- AUTH & RBAC
--- Supabase Auth manages signup/login via auth.users.
--- profiles extends auth.users with role and status.
--- site_user_access controls which sites each user can access.
--- role_permissions defines what each role can do per module.
--- can_user() is the single permission check function used everywhere.
--- =============================================================================
-
--- Roles — fixed hierarchy
-CREATE TABLE roles (
-  id          TEXT PRIMARY KEY,  -- 'SUPER_ADMIN', 'ADMIN', etc.
-  label       TEXT NOT NULL,
-  description TEXT,
-  level       INTEGER NOT NULL   -- 1=highest privilege, 5=lowest
-                                 -- prevents lower roles managing higher ones
-);
-
-INSERT INTO roles (id, label, level, description) VALUES
-  ('SUPER_ADMIN',   'Super Admin',   1, 'Full access to everything. Manages all sites and users.'),
-  ('ADMIN',         'Admin',         2, 'Full access on assigned sites. Can manage users on those sites.'),
-  ('STORE_MANAGER', 'Store Manager', 3, 'Inventory read/write on assigned sites.'),
-  ('SITE_ENGINEER', 'Site Engineer', 4, 'DPR read/write, inventory read on assigned sites.'),
-  ('VIEWER',        'Viewer',        5, 'Read-only on assigned sites and modules.');
-
-
--- Modules — one row per feature area
--- Add a new module here when you build it. Permissions follow automatically.
-CREATE TABLE modules (
-  id    TEXT PRIMARY KEY,  -- 'INVENTORY', 'DPR', 'LABOUR', 'LOCATION', 'REPORTS'
-  label TEXT NOT NULL
-);
-
-INSERT INTO modules (id, label) VALUES
-  ('INVENTORY', 'Inventory'),
-  ('DPR',       'Daily Progress Report'),
-  ('LABOUR',    'Labour Management'),
-  ('LOCATION',  'Location Master'),
-  ('REPORTS',   'Reports & Analytics');
-
-
--- Actions — what operations are possible
-CREATE TABLE actions (
-  id    TEXT PRIMARY KEY,  -- 'VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT'
-  label TEXT NOT NULL
-);
-
-INSERT INTO actions (id, label) VALUES
-  ('VIEW',   'View'),
-  ('CREATE', 'Create'),
-  ('EDIT',   'Edit'),
-  ('DELETE', 'Delete'),
-  ('EXPORT', 'Export');
-
-
--- Role permission matrix — global defaults per role × module × action
--- Site-level overrides handled in site_user_permission_overrides
-CREATE TABLE role_permissions (
-  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  role_id   TEXT NOT NULL REFERENCES roles(id),
-  module_id TEXT NOT NULL REFERENCES modules(id),
-  action_id TEXT NOT NULL REFERENCES actions(id),
-
-  UNIQUE (role_id, module_id, action_id)
-);
-
--- SUPER_ADMIN and ADMIN get everything
-INSERT INTO role_permissions (role_id, module_id, action_id)
-SELECT 'SUPER_ADMIN', m.id, a.id FROM modules m CROSS JOIN actions a;
-
-INSERT INTO role_permissions (role_id, module_id, action_id)
-SELECT 'ADMIN', m.id, a.id FROM modules m CROSS JOIN actions a;
-
--- STORE_MANAGER
-INSERT INTO role_permissions (role_id, module_id, action_id) VALUES
-  ('STORE_MANAGER', 'INVENTORY', 'VIEW'),
-  ('STORE_MANAGER', 'INVENTORY', 'CREATE'),
-  ('STORE_MANAGER', 'INVENTORY', 'EDIT'),
-  ('STORE_MANAGER', 'INVENTORY', 'EXPORT'),
-  ('STORE_MANAGER', 'REPORTS',   'VIEW');
-
--- SITE_ENGINEER
-INSERT INTO role_permissions (role_id, module_id, action_id) VALUES
-  ('SITE_ENGINEER', 'DPR',       'VIEW'),
-  ('SITE_ENGINEER', 'DPR',       'CREATE'),
-  ('SITE_ENGINEER', 'DPR',       'EDIT'),
-  ('SITE_ENGINEER', 'INVENTORY', 'VIEW'),
-  ('SITE_ENGINEER', 'LABOUR',    'VIEW'),
-  ('SITE_ENGINEER', 'REPORTS',   'VIEW');
-
--- VIEWER gets VIEW on all modules
-INSERT INTO role_permissions (role_id, module_id, action_id)
-SELECT 'VIEWER', m.id, 'VIEW' FROM modules m;
-
-
--- =============================================================================
--- USER PROFILES
--- Extends Supabase auth.users. One row per user.
--- Never modify auth.users directly — Supabase owns that table.
--- =============================================================================
-
-CREATE TABLE profiles (
-  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  full_name   TEXT NOT NULL,
-  phone       TEXT,
-  role_id     TEXT NOT NULL REFERENCES roles(id) DEFAULT 'VIEWER',
-  is_active   BOOLEAN DEFAULT true,
-  created_at  TIMESTAMPTZ DEFAULT now(),
-  updated_at  TIMESTAMPTZ DEFAULT now()
-);
-
--- Auto-create profile row when a new user signs up
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO profiles (id, full_name, role_id)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
-    'VIEWER'  -- default role; admin assigns correct role after signup
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
-
-
 -- =============================================================================
 -- SITE ACCESS CONTROL
 -- Controls which sites a user can access and at what role level.
@@ -755,6 +753,7 @@ CREATE INDEX idx_site_access_site
 
 CREATE INDEX idx_overrides_access
   ON site_user_permission_overrides(access_id);
+
 
 
 -- =============================================================================
