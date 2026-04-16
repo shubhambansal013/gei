@@ -5,7 +5,7 @@
 4. Searchable Drop down should be used wherever possible for easier data entry.
 5. PEople who enter the data aren't much educated. So keep the form very simple. Don't overload them with information. The more information they'll see the more confused they'll get. Just show inventory in and out and item, quantity and destination as location or party. Keep it very low effort. We can always increase once people get used to it.
 5. A destination (location, party) (rows) - item(cols) table view should be there to view entire data.
-6. Data export button.
+6. Data export and print buttons.
 7. Dashboard with summary stats. 
 8. Write code that is modular and reuses components.
 9. Add proper test cases for all the logics.
