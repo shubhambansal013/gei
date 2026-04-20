@@ -11,3 +11,4 @@
 9. Add proper test cases for all the logics.
 10. Add proper readme and documentation for each class and module.
 11. Human code readability, maintainability and ease of extending the code is the top priority.
+12. The multiple sites are NTK only. If someone doesn't have access then they shouldn't know other sites exist.
