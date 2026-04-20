@@ -1,7 +1,7 @@
 -- =============================================================================
 -- schema.sql
 -- GEI
--- Last updated: 2026-04-19
+-- Last updated: 2026-04-20
 --
 -- Single source of truth for current DB state.
 -- Update in-place. Apply changes to live DB via Supabase SQL Editor.
@@ -125,7 +125,7 @@ CREATE TABLE parties (
 -- =============================================================================
 -- ITEMS MASTER
 -- code = GEI_code (internal short code for fast entry)
--- unit = canonical issue unit
+-- unit = canonical stock unit
 -- =============================================================================
 
 CREATE TABLE items (
@@ -192,6 +192,9 @@ CREATE TABLE location_references (
 
 -- =============================================================================
 -- AUTH & RBAC
+-- Profiles extends auth.users (managed by Supabase).
+-- site_user_access controls per-site access.
+-- can_user() is the single permission check used by RLS and app code.
 -- =============================================================================
 
 CREATE TABLE roles (
@@ -318,6 +321,8 @@ CREATE TABLE site_user_permission_overrides (
 );
 
 
+-- can_user must be defined after profiles, site_user_access,
+-- site_user_permission_overrides, and role_permissions
 CREATE OR REPLACE FUNCTION can_user(
   p_user_id   UUID,
   p_site_id   UUID,
@@ -326,20 +331,23 @@ CREATE OR REPLACE FUNCTION can_user(
 )
 RETURNS BOOLEAN AS $$
 DECLARE
-  v_role_id   TEXT;
-  v_access_id UUID;
-  v_override  BOOLEAN;
-  v_permitted BOOLEAN;
+  v_global_role_id TEXT;
+  v_site_role_id   TEXT;
+  v_access_id      UUID;
+  v_override       BOOLEAN;
+  v_permitted      BOOLEAN;
 BEGIN
-  SELECT role_id INTO v_role_id
+  SELECT role_id INTO v_global_role_id
   FROM profiles
   WHERE id = p_user_id AND is_active = true;
-  IF NOT FOUND THEN RETURN false; END IF;
-  IF v_role_id = 'SUPER_ADMIN' THEN RETURN true; END IF;
 
-  SELECT id, role_id INTO v_access_id, v_role_id
+  IF NOT FOUND THEN RETURN false; END IF;
+  IF v_global_role_id = 'SUPER_ADMIN' THEN RETURN true; END IF;
+
+  SELECT id, role_id INTO v_access_id, v_site_role_id
   FROM site_user_access
   WHERE user_id = p_user_id AND site_id = p_site_id;
+
   IF NOT FOUND THEN RETURN false; END IF;
 
   SELECT granted INTO v_override
@@ -347,14 +355,16 @@ BEGIN
   WHERE access_id = v_access_id
     AND module_id = p_module_id
     AND action_id = p_action_id;
+
   IF FOUND THEN RETURN v_override; END IF;
 
   SELECT EXISTS (
     SELECT 1 FROM role_permissions
-    WHERE role_id   = v_role_id
+    WHERE role_id   = v_site_role_id
       AND module_id = p_module_id
       AND action_id = p_action_id
   ) INTO v_permitted;
+
   RETURN v_permitted;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -364,7 +374,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- PURCHASES
 -- Goods receipt / inward register.
 -- rate is per received_unit (matches supplier invoice).
--- stock_qty = received_qty × unit_conv_factor (in issue unit).
+-- stock_qty = received_qty x unit_conv_factor (in stock_unit).
 -- =============================================================================
 
 CREATE TABLE purchases (
@@ -405,44 +415,48 @@ CREATE TABLE purchases (
 -- =============================================================================
 -- ISSUES
 -- Material outward register.
--- qty always in stock_unit (items.unit).
--- issued_to = name of person who physically received material.
+-- qty is positive for issue, negative for return.
+-- party_id and location_ref_id can both be filled (contractor at a location).
+-- dest_site_id is mutually exclusive with the other two.
+-- issued_to = name of person who physically received the material.
 -- =============================================================================
 
 CREATE TABLE issues (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  site_id          UUID NOT NULL REFERENCES sites(id),
-  item_id          UUID NOT NULL REFERENCES items(id),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id         UUID NOT NULL REFERENCES sites(id),
+  item_id         UUID NOT NULL REFERENCES items(id),
 
-  qty              NUMERIC NOT NULL CHECK (qty != 0), -- Allow negative for returned issues.
-  unit             TEXT NOT NULL REFERENCES units(id),
+  qty             NUMERIC NOT NULL CHECK (qty != 0),
+  unit            TEXT NOT NULL REFERENCES units(id),
 
-  destination_type txn_party_type NOT NULL,
-  location_ref_id  UUID REFERENCES location_references(id),
-  party_id         UUID REFERENCES parties(id),
-  dest_site_id     UUID REFERENCES sites(id),
+  location_ref_id UUID REFERENCES location_references(id),
+  party_id        UUID REFERENCES parties(id),
+  dest_site_id    UUID REFERENCES sites(id),
 
-  issued_to        TEXT,
-  issue_date       DATE NOT NULL DEFAULT CURRENT_DATE,
-  remarks          TEXT,
-  created_at       TIMESTAMPTZ DEFAULT now(),
-  created_by       UUID REFERENCES profiles(id),
+  issued_to       TEXT,
+  issue_date      DATE NOT NULL DEFAULT CURRENT_DATE,
+  remarks         TEXT,
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  created_by      UUID REFERENCES profiles(id),
 
-  is_deleted       BOOLEAN DEFAULT false,
-  deleted_at       TIMESTAMPTZ,
-  deleted_by       UUID REFERENCES profiles(id),
-  delete_reason    TEXT,
+  is_deleted      BOOLEAN DEFAULT false,
+  deleted_at      TIMESTAMPTZ,
+  deleted_by      UUID REFERENCES profiles(id),
+  delete_reason   TEXT,
 
+  -- at least one destination must be filled
+  -- dest_site_id is mutually exclusive with location and party
   CONSTRAINT chk_issue_destination CHECK (
-    (destination_type = 'LOCATION'      AND location_ref_id IS NOT NULL
-                                        AND party_id IS NULL
-                                        AND dest_site_id IS NULL) OR
-    (destination_type = 'CONTRACTOR'    AND party_id IS NOT NULL
-                                        AND location_ref_id IS NULL
-                                        AND dest_site_id IS NULL) OR
-    (destination_type = 'EXTERNAL_SITE' AND dest_site_id IS NOT NULL
-                                        AND location_ref_id IS NULL
-                                        AND party_id IS NULL)
+    (
+      dest_site_id IS NULL
+      AND (location_ref_id IS NOT NULL OR party_id IS NOT NULL)
+    )
+    OR
+    (
+      dest_site_id IS NOT NULL
+      AND location_ref_id IS NULL
+      AND party_id IS NULL
+    )
   )
 );
 
@@ -455,20 +469,20 @@ CREATE VIEW stock_balance AS
 SELECT
   p.site_id,
   p.item_id,
-  i.name                             AS item_name,
-  i.code                             AS gei_code,
-  u.label                            AS unit,
-  COALESCE(SUM(p.stock_qty), 0)      AS total_received,
-  COALESCE(SUM(iss.qty), 0)          AS net_issued,  -- negative returns auto-subtract
+  i.name                              AS item_name,
+  i.code                              AS gei_code,
+  u.label                             AS unit,
+  COALESCE(SUM(p.stock_qty), 0)       AS total_received,
+  COALESCE(SUM(iss.qty), 0)           AS net_issued,
   COALESCE(SUM(p.stock_qty), 0)
-    - COALESCE(SUM(iss.qty), 0)      AS current_stock
+    - COALESCE(SUM(iss.qty), 0)       AS current_stock
 FROM purchases p
 JOIN items i ON i.id = p.item_id
 JOIN units u ON u.id = i.unit
 LEFT JOIN issues iss
-  ON iss.site_id = p.site_id
- AND iss.item_id = p.item_id
- AND iss.is_deleted = false
+       ON iss.site_id   = p.site_id
+      AND iss.item_id   = p.item_id
+      AND iss.is_deleted = false
 WHERE p.is_deleted = false
 GROUP BY p.site_id, p.item_id, i.name, i.code, u.label;
 
@@ -481,7 +495,7 @@ SELECT
     SUM(stock_qty * (rate / NULLIF(unit_conv_factor, 0)))
     / NULLIF(SUM(stock_qty), 0),
     2
-  ) AS wac_per_issue_unit
+  ) AS wac_per_stock_unit
 FROM purchases
 WHERE is_deleted = false
   AND rate IS NOT NULL
@@ -512,6 +526,7 @@ BEGIN
   SELECT * INTO v_unit
   FROM location_units
   WHERE site_id = p_site_id AND code = v_unit_code;
+
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Unit code % not found for this site', v_unit_code;
   END IF;
@@ -520,16 +535,20 @@ BEGIN
 
   FOR i IN 2..array_length(v_parts, 1) LOOP
     v_part := v_parts[i];
+
     SELECT id INTO v_node_id
     FROM location_template_nodes
     WHERE template_id = v_unit.template_id
       AND parent_id   IS NOT DISTINCT FROM v_node_id
       AND code        = v_part;
+
     IF NOT FOUND THEN
       RAISE EXCEPTION 'Node code % not found in template at level %', v_part, i;
     END IF;
+
     SELECT v_full_path || ' > ' || name INTO v_full_path
-    FROM location_template_nodes WHERE id = v_node_id;
+    FROM location_template_nodes
+    WHERE id = v_node_id;
   END LOOP;
 
   INSERT INTO location_references
@@ -540,8 +559,9 @@ BEGIN
   RETURNING id INTO v_ref_id;
 
   IF v_ref_id IS NULL THEN
-    SELECT id INTO v_ref_id FROM location_references
-    WHERE unit_id = v_unit.id
+    SELECT id INTO v_ref_id
+    FROM location_references
+    WHERE unit_id          = v_unit.id
       AND template_node_id IS NOT DISTINCT FROM v_node_id;
   END IF;
 
@@ -598,8 +618,8 @@ CREATE INDEX idx_purchases_deleted        ON purchases(is_deleted);
 
 CREATE INDEX idx_issues_site_item         ON issues(site_id, item_id);
 CREATE INDEX idx_issues_date              ON issues(issue_date);
-CREATE INDEX idx_issues_destination       ON issues(destination_type);
 CREATE INDEX idx_issues_location          ON issues(location_ref_id);
+CREATE INDEX idx_issues_party             ON issues(party_id);
 CREATE INDEX idx_issues_deleted           ON issues(is_deleted);
 
 CREATE INDEX idx_location_units_site      ON location_units(site_id);
