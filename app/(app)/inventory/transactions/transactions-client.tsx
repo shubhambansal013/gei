@@ -1,5 +1,7 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/data-grid';
@@ -7,8 +9,11 @@ import { ExportButton } from '@/components/export-button';
 import { PrintButton } from '@/components/print-button';
 import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
+import { softDeletePurchase, softDeleteIssue } from './actions';
 
 /**
  * A unified row shape that both purchases and issues flatten into.
@@ -19,6 +24,7 @@ type UnifiedRow = {
   id: string;
   type: 'IN' | 'OUT';
   date: string;
+  itemId: string;
   itemCode: string;
   itemName: string;
   qty: number;
@@ -55,14 +61,18 @@ type IssueRow = {
 type Props = { purchases: PurchaseRow[]; issues: IssueRow[] };
 
 export function TransactionsClient({ purchases, issues }: Props) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'IN' | 'OUT' } | null>(null);
 
   const rows = useMemo<UnifiedRow[]>(() => {
     const inRows: UnifiedRow[] = purchases.map((p) => ({
       id: p.id,
       type: 'IN',
       date: p.receipt_date,
+      itemId: p.item?.id ?? '',
       itemCode: p.item?.code ?? '',
       itemName: p.item?.name ?? '—',
       qty: p.received_qty,
@@ -78,6 +88,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
         id: i.id,
         type: 'OUT',
         date: i.issue_date,
+        itemId: i.item?.id ?? '',
         itemCode: i.item?.code ?? '',
         itemName: i.item?.name ?? '—',
         qty: i.qty,
@@ -131,7 +142,18 @@ export function TransactionsClient({ purchases, issues }: Props) {
       header: 'Code',
       cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue() ?? '')}</span>,
     },
-    { accessorKey: 'itemName', header: 'Item' },
+    {
+      accessorKey: 'itemName',
+      header: 'Item',
+      cell: ({ row }) => (
+        <Link
+          href={`/inventory/item/${row.original.itemId}`}
+          className="text-foreground hover:text-primary underline-offset-2 hover:underline"
+        >
+          {row.original.itemName}
+        </Link>
+      ),
+    },
     {
       accessorKey: 'qty',
       header: 'Qty',
@@ -153,6 +175,21 @@ export function TransactionsClient({ purchases, issues }: Props) {
           </span>
         );
       },
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <button
+          type="button"
+          onClick={() => setDeleteTarget({ id: row.original.id, type: row.original.type })}
+          className="text-muted-foreground hover:text-destructive print:hidden"
+          aria-label="Delete row"
+          title="Soft-delete (requires reason)"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      ),
     },
   ];
 
@@ -218,6 +255,29 @@ export function TransactionsClient({ purchases, issues }: Props) {
           </Link>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Soft-delete this transaction?"
+        description="The row will be hidden from all lists but kept in the database with your reason attached. Hard delete is never allowed."
+        destructive
+        requireReason
+        confirmLabel="Delete"
+        onConfirm={async (reason) => {
+          if (!deleteTarget || !reason) return;
+          const fn = deleteTarget.type === 'IN' ? softDeletePurchase : softDeleteIssue;
+          const res = await fn({ id: deleteTarget.id, reason });
+          if (res.ok) {
+            toast.success('Transaction deleted.');
+            startTransition(() => router.refresh());
+          } else {
+            toast.error(res.error);
+          }
+        }}
+      />
 
       {filtered.length === 0 ? (
         <EmptyState

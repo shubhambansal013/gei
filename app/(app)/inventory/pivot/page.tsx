@@ -1,19 +1,28 @@
-import { ComingSoon } from '@/components/coming-soon';
+import { supabaseServer } from '@/lib/supabase/server';
+import { PivotClient } from './pivot-client';
 
-export default function PivotPlaceholder() {
-  return (
-    <ComingSoon
-      title="Destination × Item pivot"
-      plan="Transactions plan"
-      planPath="docs/superpowers/plans/2026-04-20-gei-inventory-transactions.md"
-      description="Matrix view: rows are destinations (locations + parties + external sites), columns are items, cells are SUM(qty) over a date range."
-      features={[
-        'Date-range filter + item-category filter above the matrix',
-        'Full-bleed Excel styling (no cards) — sharp cells, tabular-nums',
-        'Totals row at bottom, totals column on the right',
-        'Export (XLSX) mirrors the pivot exactly; browser print fits-to-page',
-        'Backing query: a single SQL view grouping issues by (destination, item)',
-      ]}
-    />
-  );
+export const dynamic = 'force-dynamic';
+
+/**
+ * Destination × Item pivot. Fetches raw issues (with related item,
+ * party, location, and dest-site rows) and aggregates client-side
+ * into a matrix. Client-side is fine until the per-site issue volume
+ * exceeds ~10k rows; a dedicated SQL view (`destination_item_pivot`)
+ * is sketched in the Transactions plan for that upgrade.
+ */
+export default async function PivotPage() {
+  const sb = await supabaseServer();
+  const { data: issues } = await sb
+    .from('issues')
+    .select(
+      `id, site_id, qty, issue_date,
+       item:items(id, code, name, unit),
+       party:parties(id, name),
+       location:location_references(id, full_path, full_code),
+       dest:sites!issues_dest_site_id_fkey(id, code, name)`,
+    )
+    .eq('is_deleted', false)
+    .limit(5000);
+
+  return <PivotClient issues={issues ?? []} />;
 }
