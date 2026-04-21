@@ -123,17 +123,17 @@ docs/
 
 **Done on `feature/foundation`:**
 
-- [x] Next.js 16 + TS strict scaffold
-- [x] shadcn/ui (base-nova) + Tailwind v4 + Excel-feel utility classes
-- [x] Prettier + ESLint + Husky + lint-staged
-- [x] Vitest + React Testing Library
-- [x] Playwright config (spec added with the login page task)
+- [x] Task 1 — Next.js 16 + TS strict scaffold
+- [x] Task 2 — shadcn/ui (base-nova) + Tailwind v4 + Excel-feel utility classes
+- [x] Task 3 — Prettier + ESLint + Husky + lint-staged
+- [x] Task 4 — Vitest + React Testing Library
+- [x] Task 5 — Playwright config (spec added with the login page task)
+- [x] Task 6 — Supabase local + base schema migration (20 tables verified)
+- [x] Task 7 — Schema additions (`reorder_level`, `issues.rate`, `updated_at` triggers)
+- [x] Task 8 — `inventory_edit_log` + audit triggers (end-to-end verified: reason + JSONB snapshots captured)
 
 **In progress / pending (see plan file):**
 
-- [ ] Task 6 — Supabase local + base schema migration
-- [ ] Task 7 — Schema additions (`reorder_level`, `issues.rate`, `updated_at`)
-- [ ] Task 8 — Audit log table + triggers
 - [ ] Task 9 — Masters RLS policies
 - [ ] Task 10 — RLS test harness
 - [ ] Task 11 — Supabase client setup + middleware + typegen
