@@ -117,7 +117,11 @@ export function ItemsClient({ items, categories, units }: Props) {
   };
 
   return (
-    <>
+    <div className="space-y-4">
+      <header>
+        <h1 className="text-xl font-semibold tracking-tight">Items</h1>
+      </header>
+
       <MasterShell
         title="items"
         search={search}
@@ -178,6 +182,6 @@ export function ItemsClient({ items, categories, units }: Props) {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

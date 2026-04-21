@@ -11,7 +11,11 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Grid3x3,
-  Settings,
+  Package,
+  Users2,
+  Building2,
+  MapPin,
+  UserCog,
 } from 'lucide-react';
 
 const NAV = [
@@ -20,7 +24,11 @@ const NAV = [
   { href: '/inventory/inward/new', label: 'Inward', icon: ArrowDownToLine },
   { href: '/inventory/outward/new', label: 'Outward', icon: ArrowUpFromLine },
   { href: '/inventory/pivot', label: 'Pivot', icon: Grid3x3 },
-  { href: '/masters/items', label: 'Masters', icon: Settings },
+  { href: '/masters/items', label: 'Items', icon: Package },
+  { href: '/masters/parties', label: 'Parties', icon: Users2 },
+  { href: '/masters/sites', label: 'Sites', icon: Building2 },
+  { href: '/masters/locations', label: 'Locations', icon: MapPin },
+  { href: '/masters/users', label: 'Users', icon: UserCog },
 ] as const;
 
 /**

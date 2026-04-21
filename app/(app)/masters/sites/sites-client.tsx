@@ -102,7 +102,11 @@ export function SitesClient({ sites }: Props) {
   );
 
   return (
-    <>
+    <div className="space-y-4">
+      <header>
+        <h1 className="text-xl font-semibold tracking-tight">Sites</h1>
+      </header>
+
       <MasterShell
         title="Sites"
         search={search}
@@ -142,6 +146,6 @@ export function SitesClient({ sites }: Props) {
           </div>
         </SheetContent>
       </Sheet>
-    </>
+    </div>
   );
 }

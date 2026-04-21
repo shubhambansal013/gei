@@ -108,7 +108,11 @@ export function PartiesClient({ parties, partyTypes }: Props) {
   }
 
   return (
-    <>
+    <div className="space-y-4">
+      <header>
+        <h1 className="text-xl font-semibold tracking-tight">Parties</h1>
+      </header>
+
       <MasterShell
         title="Parties"
         search={search}
@@ -159,6 +163,6 @@ export function PartiesClient({ parties, partyTypes }: Props) {
           </div>
         </SheetContent>
       </Sheet>
-    </>
+    </div>
   );
 }
