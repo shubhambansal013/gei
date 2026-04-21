@@ -12,19 +12,27 @@ export const dynamic = 'force-dynamic';
  */
 export default async function UsersPage() {
   const sb = await supabaseServer();
-  const [{ data: profiles }, { data: access }, { data: sites }, { data: roles }] =
-    await Promise.all([
-      sb
-        .from('profiles')
-        .select('id, full_name, phone, role_id, is_active, created_at')
-        .order('created_at', { ascending: false }),
-      sb
-        .from('site_user_access')
-        .select('id, user_id, site_id, role_id, granted_at, site:sites(id, code, name)')
-        .order('granted_at', { ascending: false }),
-      sb.from('sites').select('id, code, name').order('code'),
-      sb.from('roles').select('id, label, level').order('level'),
-    ]);
+  const [
+    { data: profiles },
+    { data: access },
+    { data: sites },
+    { data: roles },
+    { data: overrides },
+  ] = await Promise.all([
+    sb
+      .from('profiles')
+      .select('id, full_name, phone, role_id, is_active, created_at')
+      .order('created_at', { ascending: false }),
+    sb
+      .from('site_user_access')
+      .select('id, user_id, site_id, role_id, granted_at, site:sites(id, code, name)')
+      .order('granted_at', { ascending: false }),
+    sb.from('sites').select('id, code, name').order('code'),
+    sb.from('roles').select('id, label, level').order('level'),
+    sb
+      .from('site_user_permission_overrides')
+      .select('id, access_id, module_id, action_id, granted'),
+  ]);
 
   return (
     <UsersClient
@@ -32,6 +40,7 @@ export default async function UsersPage() {
       access={access ?? []}
       sites={sites ?? []}
       roles={roles ?? []}
+      overrides={overrides ?? []}
     />
   );
 }

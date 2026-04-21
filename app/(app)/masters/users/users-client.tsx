@@ -13,8 +13,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/empty-state';
 import { SearchableSelect } from '@/components/searchable-select';
-import { Trash2, UserPlus } from 'lucide-react';
+import { Trash2, UserPlus, SlidersHorizontal } from 'lucide-react';
 import { updateUserRole, grantSiteAccess, revokeSiteAccess, toggleUserActive } from './actions';
+import { OverridesPanel } from './overrides-panel';
 
 type Profile = {
   id: string;
@@ -34,20 +35,29 @@ type Access = {
 };
 type Site = { id: string; code: string; name: string };
 type Role = { id: string; label: string; level: number };
+type Override = {
+  id: string;
+  access_id: string;
+  module_id: string;
+  action_id: string;
+  granted: boolean;
+};
 
 type Props = {
   profiles: Profile[];
   access: Access[];
   sites: Site[];
   roles: Role[];
+  overrides: Override[];
 };
 
-export function UsersClient({ profiles, access, sites, roles }: Props) {
+export function UsersClient({ profiles, access, sites, roles, overrides }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [grantingFor, setGrantingFor] = useState<string | null>(null);
   const [grantSiteId, setGrantSiteId] = useState<string | null>(null);
   const [grantRoleId, setGrantRoleId] = useState<string>('VIEWER');
+  const [overridesOpenFor, setOverridesOpenFor] = useState<string | null>(null);
 
   const roleBadgeTone = (roleId: string) => {
     if (roleId === 'SUPER_ADMIN') return 'bg-primary/10 text-primary border-primary/40';
@@ -227,26 +237,49 @@ export function UsersClient({ profiles, access, sites, roles }: Props) {
                         : 'No per-site access yet. Grant access above.'}
                     </p>
                   ) : (
-                    <ul className="flex flex-wrap gap-2">
-                      {userAccess.map((a) => (
-                        <li
-                          key={a.id}
-                          className="bg-muted/40 flex items-center gap-1.5 rounded-sm border px-2 py-1 text-xs"
-                        >
-                          <span className="font-mono">{a.site?.code ?? '—'}</span>
-                          <span className="text-muted-foreground">·</span>
-                          <span>{a.role_id}</span>
-                          <button
-                            type="button"
-                            onClick={() => onRevoke(a.id)}
-                            className="text-muted-foreground hover:text-destructive ml-1"
-                            aria-label="Revoke"
-                            disabled={pending}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </li>
-                      ))}
+                    <ul className="space-y-1.5">
+                      {userAccess.map((a) => {
+                        const accessOverrides = overrides.filter((o) => o.access_id === a.id);
+                        const isOpen = overridesOpenFor === a.id;
+                        return (
+                          <li key={a.id}>
+                            <div className="bg-muted/40 flex items-center gap-1.5 rounded-sm border px-2 py-1 text-xs">
+                              <span className="font-mono">{a.site?.code ?? '—'}</span>
+                              <span className="text-muted-foreground">·</span>
+                              <span>{a.role_id}</span>
+                              {accessOverrides.length > 0 && (
+                                <span className="bg-primary/10 text-primary ml-1 rounded-sm px-1 py-0.5 font-mono text-[10px]">
+                                  {accessOverrides.length} override
+                                  {accessOverrides.length === 1 ? '' : 's'}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setOverridesOpenFor((cur) => (cur === a.id ? null : a.id))
+                                }
+                                className="text-muted-foreground hover:text-foreground ml-auto"
+                                aria-label="Toggle overrides"
+                                title="Per-permission overrides"
+                              >
+                                <SlidersHorizontal className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onRevoke(a.id)}
+                                className="text-muted-foreground hover:text-destructive"
+                                aria-label="Revoke"
+                                disabled={pending}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                            {isOpen && (
+                              <OverridesPanel accessId={a.id} overrides={accessOverrides} />
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>
