@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { MasterShell } from '@/components/master-shell';
 import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
-import { supabaseBrowser } from '@/lib/supabase/browser';
-import { createCan } from '@/lib/permissions/can';
 import type { Tables } from '@/lib/supabase/types';
 import { SiteForm } from './site-form';
 
@@ -16,8 +14,6 @@ type Site = Tables<'sites'>;
 
 type Props = {
   sites: Site[];
-  /** Representative site id for the can_user() permission check. */
-  siteId: string;
 };
 
 const col = createColumnHelper<Site>();
@@ -57,28 +53,11 @@ const EXPORT_COLS = [
  * Client side of the /masters/sites page. Handles local search,
  * the create/edit sheet, and delegates grid rendering to DataGrid
  * and toolbar to MasterShell.
- *
- * `canCreate` is resolved against the DB's `can_user()` function via
- * the browser client — this is a UI hint only; RLS enforces the actual
- * boundary on every mutation.
  */
-export function SitesClient({ sites, siteId }: Props) {
+export function SitesClient({ sites }: Props) {
   const [search, setSearch] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Site | null>(null);
-  const [canCreate, setCanCreate] = useState(false);
-
-  useEffect(() => {
-    if (!siteId) return;
-    let alive = true;
-    const can = createCan(supabaseBrowser());
-    can({ siteId, module: 'INVENTORY', action: 'CREATE' }).then((v) => {
-      if (alive) setCanCreate(v);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [siteId]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -129,7 +108,7 @@ export function SitesClient({ sites, siteId }: Props) {
         search={search}
         onSearch={setSearch}
         onNew={openCreate}
-        canCreate={canCreate}
+        canCreate
         exportFile="sites"
         exportCols={EXPORT_COLS}
         exportRows={filtered}
@@ -139,11 +118,9 @@ export function SitesClient({ sites, siteId }: Props) {
             title="No accessible sites"
             description="Ask an admin to grant you access, or create a site if you're an admin."
             action={
-              canCreate ? (
-                <Button size="sm" onClick={openCreate}>
-                  + New site
-                </Button>
-              ) : null
+              <Button size="sm" onClick={openCreate}>
+                + New site
+              </Button>
             }
           />
         ) : (

@@ -13,10 +13,5 @@ export default async function SitesPage() {
   const sb = await supabaseServer();
   const { data: sites } = await sb.from('sites').select('*').order('code');
 
-  // Derive a representative site id from the user's accessible sites
-  // for the PermissionGate check. Falls back to empty string — the
-  // gate will resolve false, which is safe (VIEWER sees no create button).
-  const siteId = sites?.[0]?.id ?? '';
-
-  return <SitesClient sites={sites ?? []} siteId={siteId} />;
+  return <SitesClient sites={sites ?? []} />;
 }
