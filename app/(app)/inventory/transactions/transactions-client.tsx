@@ -1,0 +1,250 @@
+'use client';
+import { useMemo, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/data-grid';
+import { ExportButton } from '@/components/export-button';
+import { PrintButton } from '@/components/print-button';
+import { EmptyState } from '@/components/empty-state';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import type { ColumnDef } from '@tanstack/react-table';
+
+/**
+ * A unified row shape that both purchases and issues flatten into.
+ * `type: 'IN'` reads amber for inward, `'OUT'` reads green for outward
+ * (semantic use of accent vs. chart-3).
+ */
+type UnifiedRow = {
+  id: string;
+  type: 'IN' | 'OUT';
+  date: string;
+  itemCode: string;
+  itemName: string;
+  qty: number;
+  unit: string;
+  party: string;
+  destination: string;
+  ref: string; // invoice or issued-to
+  amount: number | null;
+};
+
+type PurchaseRow = {
+  id: string;
+  receipt_date: string;
+  received_qty: number;
+  stock_qty: number | null;
+  total_amount: number | null;
+  invoice_no: string | null;
+  item: { id: string; code: string | null; name: string; unit: string } | null;
+  vendor: { id: string; name: string } | null;
+};
+
+type IssueRow = {
+  id: string;
+  issue_date: string;
+  qty: number;
+  unit: string;
+  issued_to: string | null;
+  item: { id: string; code: string | null; name: string; unit: string } | null;
+  party: { id: string; name: string } | null;
+  location: { id: string; full_path: string; full_code: string } | null;
+  dest: { id: string; code: string; name: string } | null;
+};
+
+type Props = { purchases: PurchaseRow[]; issues: IssueRow[] };
+
+export function TransactionsClient({ purchases, issues }: Props) {
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
+
+  const rows = useMemo<UnifiedRow[]>(() => {
+    const inRows: UnifiedRow[] = purchases.map((p) => ({
+      id: p.id,
+      type: 'IN',
+      date: p.receipt_date,
+      itemCode: p.item?.code ?? '',
+      itemName: p.item?.name ?? '—',
+      qty: p.received_qty,
+      unit: p.item?.unit ?? '',
+      party: p.vendor?.name ?? '',
+      destination: p.vendor?.name ?? '',
+      ref: p.invoice_no ?? '',
+      amount: p.total_amount,
+    }));
+    const outRows: UnifiedRow[] = issues.map((i) => {
+      const dest = i.location?.full_path ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : '—');
+      return {
+        id: i.id,
+        type: 'OUT',
+        date: i.issue_date,
+        itemCode: i.item?.code ?? '',
+        itemName: i.item?.name ?? '—',
+        qty: i.qty,
+        unit: i.unit,
+        party: i.party?.name ?? '',
+        destination: dest,
+        ref: i.issued_to ?? '',
+        amount: null,
+      };
+    });
+    return [...inRows, ...outRows].sort((a, b) => b.date.localeCompare(a.date));
+  }, [purchases, issues]);
+
+  const filtered = useMemo(() => {
+    const lower = search.toLowerCase();
+    return rows.filter((r) => {
+      if (typeFilter !== 'ALL' && r.type !== typeFilter) return false;
+      if (!search.trim()) return true;
+      return (
+        r.itemCode.toLowerCase().includes(lower) ||
+        r.itemName.toLowerCase().includes(lower) ||
+        r.destination.toLowerCase().includes(lower) ||
+        r.ref.toLowerCase().includes(lower)
+      );
+    });
+  }, [rows, search, typeFilter]);
+
+  const columns: ColumnDef<UnifiedRow, unknown>[] = [
+    { accessorKey: 'date', header: 'Date' },
+    {
+      accessorKey: 'type',
+      header: 'Type',
+      cell: ({ getValue }) => {
+        const v = getValue() as 'IN' | 'OUT';
+        return (
+          <Badge
+            variant="outline"
+            className={
+              v === 'IN'
+                ? 'border-primary/50 text-primary bg-primary/5'
+                : 'border-emerald-500/50 bg-emerald-500/5 text-emerald-700'
+            }
+          >
+            {v}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'itemCode',
+      header: 'Code',
+      cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue() ?? '')}</span>,
+    },
+    { accessorKey: 'itemName', header: 'Item' },
+    {
+      accessorKey: 'qty',
+      header: 'Qty',
+      cell: ({ getValue }) => (
+        <span className="block text-right tabular-nums">{String(getValue() ?? '')}</span>
+      ),
+    },
+    { accessorKey: 'unit', header: 'Unit' },
+    { accessorKey: 'destination', header: 'Party / Location' },
+    { accessorKey: 'ref', header: 'Ref' },
+    {
+      accessorKey: 'amount',
+      header: 'Amount (₹)',
+      cell: ({ getValue }) => {
+        const v = getValue() as number | null;
+        return (
+          <span className="block text-right tabular-nums">
+            {v != null ? v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—'}
+          </span>
+        );
+      },
+    },
+  ];
+
+  const exportCols: { key: keyof UnifiedRow; header: string; numFmt?: string }[] = [
+    { key: 'date', header: 'Date' },
+    { key: 'type', header: 'Type' },
+    { key: 'itemCode', header: 'Code' },
+    { key: 'itemName', header: 'Item' },
+    { key: 'qty', header: 'Qty', numFmt: '#,##0.00' },
+    { key: 'unit', header: 'Unit' },
+    { key: 'destination', header: 'Party / Location' },
+    { key: 'ref', header: 'Ref' },
+    { key: 'amount', header: 'Amount', numFmt: '₹#,##,##0.00' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <header className="print:hide flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Transactions</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {rows.length.toLocaleString('en-IN')} total · {filtered.length.toLocaleString('en-IN')}{' '}
+            shown
+          </p>
+        </div>
+      </header>
+
+      <div className="print:hide flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Search item, code, destination, ref…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-xs"
+        />
+        <div className="flex gap-1 rounded-sm border p-0.5">
+          {(['ALL', 'IN', 'OUT'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTypeFilter(t)}
+              className={`rounded-sm px-2.5 py-1 text-xs font-medium transition-colors ${
+                typeFilter === t
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <ExportButton filename="transactions" columns={exportCols} rows={filtered} />
+          <PrintButton />
+          <Link href="/inventory/inward/new">
+            <Button size="sm" variant="outline" type="button">
+              + Inward
+            </Button>
+          </Link>
+          <Link href="/inventory/outward/new">
+            <Button size="sm" type="button">
+              + Outward
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={rows.length === 0 ? 'No transactions yet' : 'Nothing matches your filters'}
+          description={
+            rows.length === 0
+              ? 'Record your first inward or outward to see rows here.'
+              : 'Try clearing the search or changing the type filter.'
+          }
+          action={
+            rows.length === 0 ? (
+              <div className="flex gap-2">
+                <Link href="/inventory/inward/new">
+                  <Button variant="outline" type="button">
+                    + Inward
+                  </Button>
+                </Link>
+                <Link href="/inventory/outward/new">
+                  <Button type="button">+ Outward</Button>
+                </Link>
+              </div>
+            ) : null
+          }
+        />
+      ) : (
+        <DataGrid columns={columns} data={filtered} showRowNumbers />
+      )}
+    </div>
+  );
+}

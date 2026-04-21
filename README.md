@@ -148,7 +148,15 @@ docs/
 - [x] Task 23 — GitHub Actions CI (lint/typecheck/unit + rls + e2e)
 - [x] Task 24 — Verification (see commit log)
 
-**Foundation plan complete.** Two follow-up plans still to write and execute:
+**Foundation + Masters + Transactions (partial) all shipped:**
+
+- [x] Foundation plan — 24/24 tasks
+- [x] Masters plan — items · parties · sites · **locations** (simplified two-panel: templates + units; tree UI deferred)
+- [x] Transactions (first pass) — **inward form**, **outward form** (4-field, grouped-destination), **unified transactions list** (search, IN/OUT filter, export, print)
+- [ ] Transactions plan outstanding tasks (see `docs/superpowers/plans/2026-04-20-gei-inventory-transactions.md`): inline edit with audit, soft delete, item ledger, pivot view, golden-path e2e
+- [ ] Phase 2 dashboard — live KPIs once transactions have real data
+
+Two follow-up plans still to write and execute:
 
 - `docs/superpowers/plans/2026-04-20-gei-inventory-masters.md` (items,
   parties, sites, locations screens)

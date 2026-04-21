@@ -1,19 +1,41 @@
-import { ComingSoon } from '@/components/coming-soon';
+import { supabaseServer } from '@/lib/supabase/server';
+import { InwardForm } from './inward-form';
+import { EmptyState } from '@/components/empty-state';
 
-export default function InwardNewPlaceholder() {
+/**
+ * Goods-received entry screen. Loads the current user's accessible
+ * sites + all items + suppliers in parallel, then renders the form.
+ *
+ * Site selection: we pick the first accessible site as default, same
+ * as the SiteSwitcher does. A future improvement passes the
+ * user-selected site from the Zustand store via a client wrapper.
+ */
+export default async function InwardNewPage() {
+  const sb = await supabaseServer();
+  const [{ data: sites }, { data: items }, { data: parties }] = await Promise.all([
+    sb.from('sites').select('id, name, code').order('name'),
+    sb.from('items').select('id, name, code, unit').order('code'),
+    sb.from('parties').select('id, name, type').eq('type', 'SUPPLIER').order('name'),
+  ]);
+
+  if (!sites || sites.length === 0) {
+    return (
+      <EmptyState
+        title="No accessible sites"
+        description="Ask an admin for site access before recording inward."
+      />
+    );
+  }
+
   return (
-    <ComingSoon
-      title="Inward entry"
-      plan="Transactions plan"
-      planPath="docs/superpowers/plans/2026-04-20-gei-inventory-transactions.md"
-      description="Goods-received form. Two modes: simple (5 fields for clerks) and detailed (all purchase columns for managers)."
-      features={[
-        'Simple mode: item, qty, unit, supplier, invoice# — 5 fields, big tap targets',
-        'Detailed mode toggle adds rate, received_unit vs stock_unit + conv factor, HSN, manufacturer, part#, dates',
-        'SearchableSelect for item and supplier (cmdk typeahead) with recent picks pinned',
-        'Writes to purchases; generated columns stock_qty and total_amount populate automatically',
-        'Optimistic UI with rollback on server error; toast on success',
-      ]}
-    />
+    <div className="max-w-xl space-y-4">
+      <header>
+        <h1 className="text-xl font-semibold tracking-tight">New inward</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Record goods received from a supplier. Fields marked * are required.
+        </p>
+      </header>
+      <InwardForm sites={sites} items={items ?? []} suppliers={parties ?? []} />
+    </div>
   );
 }

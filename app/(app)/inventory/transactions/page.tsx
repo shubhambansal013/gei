@@ -1,20 +1,46 @@
-import { ComingSoon } from '@/components/coming-soon';
+import { supabaseServer } from '@/lib/supabase/server';
+import { TransactionsClient } from './transactions-client';
 
-export default function TransactionsPlaceholder() {
-  return (
-    <ComingSoon
-      title="Transactions"
-      plan="Transactions plan"
-      planPath="docs/superpowers/plans/2026-04-20-gei-inventory-transactions.md"
-      description="Unified paginated view of every inward + outward movement on the current site."
-      features={[
-        'Paginated table (50 rows/page, 25/50/100 options) with Excel styling',
-        'Filters: date range, item, party, type (IN/OUT), text search',
-        'Columns: # · Date · Type · Item · Qty · Unit · Party/Location · Issued-to · By · Amount',
-        'Inline edit for INVENTORY.EDIT roles (double-click cell → reason-capture dialog → server action sets SET LOCAL app.edit_reason)',
-        'Soft-delete with required reason (RLS blocks hard DELETE via policy)',
-        'Export (CSV + XLSX) and browser print respect current filters',
-      ]}
-    />
-  );
+export const dynamic = 'force-dynamic';
+
+/**
+ * Unified view of inward (purchases) + outward (issues). Fetched as
+ * two parallel queries then merged client-side. RLS scopes the rows
+ * to sites the current user has `INVENTORY.VIEW` on, so the browser
+ * only ever sees what it's allowed to see.
+ *
+ * Soft-deleted rows are filtered out. Date bounds are unconstrained
+ * by default; the client applies filters in-memory because the
+ * volume is small enough (< 10k rows per site) and it keeps the
+ * interaction instant.
+ */
+export default async function TransactionsPage() {
+  const sb = await supabaseServer();
+
+  const [{ data: purchases }, { data: issues }] = await Promise.all([
+    sb
+      .from('purchases')
+      .select(
+        `id, site_id, item_id, received_qty, stock_qty, rate, total_amount, receipt_date, invoice_no,
+         item:items(id, code, name, unit),
+         vendor:parties(id, name)`,
+      )
+      .eq('is_deleted', false)
+      .order('receipt_date', { ascending: false })
+      .limit(500),
+    sb
+      .from('issues')
+      .select(
+        `id, site_id, item_id, qty, unit, issue_date, issued_to,
+         item:items(id, code, name, unit),
+         party:parties(id, name),
+         location:location_references(id, full_path, full_code),
+         dest:sites!issues_dest_site_id_fkey(id, code, name)`,
+      )
+      .eq('is_deleted', false)
+      .order('issue_date', { ascending: false })
+      .limit(500),
+  ]);
+
+  return <TransactionsClient purchases={purchases ?? []} issues={issues ?? []} />;
 }
