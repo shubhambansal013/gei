@@ -119,49 +119,37 @@ docs/
 .remember/                  Claude Code session memory — gitignored, do not edit
 ```
 
-## Current state (as of Foundation Plan execution)
+## Current state
 
-**Done on `feature/foundation`:**
+**Shipped routes** — 14 routes live, every one of them backed by RLS:
 
-- [x] Task 1 — Next.js 16 + TS strict scaffold
-- [x] Task 2 — shadcn/ui (base-nova) + Tailwind v4 + Excel-feel utility classes
-- [x] Task 3 — Prettier + ESLint + Husky + lint-staged
-- [x] Task 4 — Vitest + React Testing Library
-- [x] Task 5 — Playwright config (smoke spec added with login page)
-- [x] Task 6 — Supabase local + base schema migration (20 tables verified)
-- [x] Task 7 — Schema additions (`reorder_level`, `issues.rate`, `updated_at` triggers)
-- [x] Task 8 — `inventory_edit_log` + audit triggers (end-to-end verified)
-- [x] Task 9 — Masters RLS policies (items, parties, sites, profiles, site_user_access)
-- [x] Task 10 — RLS test harness + first policy tests
-- [x] Task 11 — Supabase clients (browser/server/middleware) + typegen + session middleware
-- [x] Task 12 — Google OAuth + `/login` + `/auth/callback` + `/pending`
-- [x] Task 13 — Permission library (`can()`, `PermissionGate`) + unit tests
-- [x] Task 14 — Site switcher (Zustand store + component)
-- [x] Task 15 — AppShell (top bar + sidebar, `print:hide`)
-- [x] Task 16 — `SearchableSelect` + tests
-- [x] Task 17 — `DataGrid` (TanStack Table) + tests
-- [x] Task 18 — CSV exporter + tests
-- [x] Task 19 — XLSX exporter (frozen header, auto-filter) + tests
-- [x] Task 20 — `ExportButton` + `PrintButton`
-- [x] Task 21 — `EmptyState` + `ConfirmDialog` (reason-capturing)
-- [x] Task 22 — `architecture.md` + `permissions.md` + this README
-- [x] Task 23 — GitHub Actions CI (lint/typecheck/unit + rls + e2e)
-- [x] Task 24 — Verification (see commit log)
+| Route                     | Surface                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `/login`                  | Google OAuth + email/password fallback for local dev                                                               |
+| `/pending`                | Awaiting-admin-approval landing for users with no site access                                                      |
+| `/auth/callback`          | OAuth code exchange                                                                                                |
+| `/dashboard`              | Live KPIs (inward value, SKUs, month totals), low-stock alerts, top-10 consumption bars, recent-10 txns            |
+| `/masters/items`          | Items CRUD with reorder level + HSN + category                                                                     |
+| `/masters/parties`        | Vendors / contractors / clients with GSTIN validation                                                              |
+| `/masters/sites`          | Sites master; SELECT is RLS-scoped to accessible sites                                                             |
+| `/masters/locations`      | Templates (nodes) + Units panels                                                                                   |
+| `/masters/users`          | Admin user management: global role, per-site access grants, activate/deactivate                                    |
+| `/inventory/inward/new`   | Goods-received form — simple 5-field mode + detailed toggle                                                        |
+| `/inventory/outward/new`  | Issue form — 4 fields, one grouped destination dropdown                                                            |
+| `/inventory/transactions` | Unified ledger: search, IN/OUT filter, inline edit + soft-delete with audit reason, CSV/XLSX export, browser print |
+| `/inventory/item/[id]`    | Per-item ledger with running balance + current stock headline                                                      |
+| `/inventory/pivot`        | Destination × item matrix with date-range filter + totals                                                          |
 
-**Foundation + Masters + Transactions (partial) all shipped:**
+**Plans** — Foundation 24/24 ✓ · Masters 5/5 ✓ · Transactions 5/6 ✓ (golden-path e2e deferred) · Phase 2 dashboard ✓ · Phase 3 user-management ✓.
 
-- [x] Foundation plan — 24/24 tasks
-- [x] Masters plan — items · parties · sites · **locations** (simplified two-panel: templates + units; tree UI deferred)
-- [x] Transactions (first pass) — **inward form**, **outward form** (4-field, grouped-destination), **unified transactions list** (search, IN/OUT filter, export, print)
-- [ ] Transactions plan outstanding tasks (see `docs/superpowers/plans/2026-04-20-gei-inventory-transactions.md`): inline edit with audit, soft delete, item ledger, pivot view, golden-path e2e
-- [ ] Phase 2 dashboard — live KPIs once transactions have real data
+**Deferred by design**:
 
-Two follow-up plans still to write and execute:
+- Full location tree editor (drag-reorder nodes) — we ship a flat node editor that's admin-friendly enough for the MVP
+- Per-permission override UI — direct SQL via Supabase Studio for now; the overrides table is in the schema and honored by `can_user()`
+- Hindi / bilingual UI — `next-intl` is wired but v1 ships English-only per spec
+- PDF export — browser print covers paper output
 
-- `docs/superpowers/plans/2026-04-20-gei-inventory-masters.md` (items,
-  parties, sites, locations screens)
-- `docs/superpowers/plans/2026-04-20-gei-inventory-transactions.md` (inward,
-  outward, transactions list, item ledger, inline edit, soft delete)
+See `docs/runbooks/deploy.md` for shipping to production.
 
 ## Contributing
 

@@ -8,6 +8,7 @@ const TABS = [
   { href: '/masters/parties', label: 'Parties' },
   { href: '/masters/sites', label: 'Sites' },
   { href: '/masters/locations', label: 'Locations' },
+  { href: '/masters/users', label: 'Users' },
 ];
 
 /**

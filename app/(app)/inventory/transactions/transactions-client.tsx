@@ -11,9 +11,10 @@ import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import Link from 'next/link';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { softDeletePurchase, softDeleteIssue } from './actions';
+import { EditDialog, type EditTarget } from './edit-dialog';
 
 /**
  * A unified row shape that both purchases and issues flatten into.
@@ -66,6 +67,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'IN' | 'OUT' } | null>(null);
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
 
   const rows = useMemo<UnifiedRow[]>(() => {
     const inRows: UnifiedRow[] = purchases.map((p) => ({
@@ -180,15 +182,33 @@ export function TransactionsClient({ purchases, issues }: Props) {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <button
-          type="button"
-          onClick={() => setDeleteTarget({ id: row.original.id, type: row.original.type })}
-          className="text-muted-foreground hover:text-destructive print:hidden"
-          aria-label="Delete row"
-          title="Soft-delete (requires reason)"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-2 print:hidden">
+          <button
+            type="button"
+            onClick={() =>
+              setEditTarget({
+                id: row.original.id,
+                type: row.original.type,
+                currentQty: row.original.qty,
+                currentRef: row.original.ref,
+              })
+            }
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Edit row"
+            title="Edit (requires reason)"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteTarget({ id: row.original.id, type: row.original.type })}
+            className="text-muted-foreground hover:text-destructive"
+            aria-label="Delete row"
+            title="Soft-delete (requires reason)"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       ),
     },
   ];
@@ -255,6 +275,18 @@ export function TransactionsClient({ purchases, issues }: Props) {
           </Link>
         </div>
       </div>
+
+      <EditDialog
+        key={editTarget?.id ?? 'none'}
+        target={editTarget}
+        onOpenChange={(o) => {
+          if (!o) setEditTarget(null);
+        }}
+        onSuccess={() => {
+          setEditTarget(null);
+          startTransition(() => router.refresh());
+        }}
+      />
 
       <ConfirmDialog
         open={deleteTarget !== null}

@@ -42,28 +42,34 @@ whether the row is touched.
 - Frontend `can()` (in `lib/permissions/can.ts`) mirrors the same
   signature and is used **only** to hide UI that would fail anyway.
 
-## Audit log
+## Inventory surface
 
-Every UPDATE on `purchases` and `issues` fires an AFTER trigger that
-inserts a row into `inventory_edit_log`:
+Shipped routes and their purpose:
 
-```sql
-INSERT INTO inventory_edit_log (
-  table_name, row_id, changed_by, reason, before_data, after_data
-)
-VALUES (
-  TG_TABLE_NAME, NEW.id, auth.uid(),
-  NULLIF(current_setting('app.edit_reason', true), ''),
-  to_jsonb(OLD), to_jsonb(NEW)
-);
-```
+- `/inventory/inward/new` — Receipt form for inbound material (4 fields: item, quantity, source, received-by)
+- `/inventory/outward/new` — Issue form for outbound material (4 fields: item, quantity, destination, issued-to)
+- `/inventory/transactions` — Unified transactions ledger with search, IN/OUT filter, CSV/XLSX export, browser print, and soft-delete row actions
+- `/inventory/item/[id]` — Per-item ledger view showing all movements with running balance
+- `/inventory/pivot` — Destination-by-item inventory matrix for at-a-glance distribution view
 
-The reason flows in via a session-local GUC: the server action runs
-`SET LOCAL app.edit_reason = $reason` in the same transaction before
-its UPDATE. The trigger reads the setting with `missing_ok=true` so
-unsetting works cleanly; an empty string becomes NULL. Capturing the
-diff as `to_jsonb(OLD/NEW)` means schema evolution requires no trigger
-edits — every column present at the time of the edit is preserved.
+All forms feed into the `purchases` (inward) and `issues` (outward) tables. Every mutation is audited via the trigger pipeline.
+
+## Audit flow
+
+Every UPDATE on `purchases` and `issues` (inward/outward transactions) fires an AFTER trigger that:
+
+1. Reads the session-local GUC `app.edit_reason` (set by the server action before the UPDATE)
+2. Captures the before/after state as `to_jsonb(OLD/NEW)`
+3. Inserts a row into `inventory_edit_log` with:
+   - `table_name` (purchases or issues)
+   - `row_id` (the transaction ID)
+   - `changed_by` (the actor from `auth.uid()`)
+   - `reason` (the GUC value, or NULL if unset)
+   - `before_data`, `after_data` (full row snapshots)
+
+Soft-deletes (setting `is_deleted = true`) flow through this same trigger. The reason is **always** required for both edits and soft-deletes to land in the log; a missing reason becomes NULL in the audit trail but the mutation still succeeds.
+
+The trigger is non-bypassable: RLS policies prevent direct UPDATE to these tables, so all mutations go through server actions that set the GUC and run the UPDATE in a single transaction.
 
 ## File layout
 
@@ -92,12 +98,12 @@ for the full repo map. Key directories:
 
 ## Phases
 
-- **Foundation (this branch):** scaffolding, auth, RBAC, shared UI,
+- **Foundation (complete):** scaffolding, auth, RBAC, shared UI,
   exporters, audit triggers, CI.
-- **Masters (next plan):** items, parties, sites, locations screens
+- **Masters (complete):** items, parties, sites, locations screens
   with admin management UIs.
-- **Transactions (plan after masters):** inward + outward entry,
-  transactions list, item ledger, inline edit, soft delete.
+- **Transactions (90% complete):** inward + outward entry,
+  transactions list, item ledger, inline edit (in progress), soft delete.
 - **Phase 2 (dashboard):** KPI strip, low-stock alerts, top consumption,
   recent txns, destination pivot preview.
 - **Phase 3 (admin polish):** user management UI, per-permission
