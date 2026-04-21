@@ -1,0 +1,170 @@
+'use client';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createColumnHelper } from '@tanstack/react-table';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { MasterShell } from '@/components/master-shell';
+import { DataGrid } from '@/components/data-grid';
+import { EmptyState } from '@/components/empty-state';
+import { supabaseBrowser } from '@/lib/supabase/browser';
+import { createCan } from '@/lib/permissions/can';
+import type { Tables } from '@/lib/supabase/types';
+import { SiteForm } from './site-form';
+
+type Site = Tables<'sites'>;
+
+type Props = {
+  sites: Site[];
+  /** Representative site id for the can_user() permission check. */
+  siteId: string;
+};
+
+const col = createColumnHelper<Site>();
+
+const STATIC_COLS = [
+  col.accessor('code', {
+    header: 'Code',
+    cell: (info) => <span className="font-mono tracking-wide uppercase">{info.getValue()}</span>,
+  }),
+  col.accessor('name', { header: 'Name' }),
+  col.accessor('type', {
+    header: 'Type',
+    cell: (info) => info.getValue() ?? '—',
+  }),
+  col.accessor('address', {
+    header: 'Address',
+    cell: (info) => {
+      const v = info.getValue();
+      if (!v) return '—';
+      return (
+        <span className="block max-w-xs truncate" title={v}>
+          {v}
+        </span>
+      );
+    },
+  }),
+];
+
+const EXPORT_COLS = [
+  { key: 'code' as keyof Site, header: 'Code' },
+  { key: 'name' as keyof Site, header: 'Name' },
+  { key: 'type' as keyof Site, header: 'Type' },
+  { key: 'address' as keyof Site, header: 'Address' },
+];
+
+/**
+ * Client side of the /masters/sites page. Handles local search,
+ * the create/edit sheet, and delegates grid rendering to DataGrid
+ * and toolbar to MasterShell.
+ *
+ * `canCreate` is resolved against the DB's `can_user()` function via
+ * the browser client — this is a UI hint only; RLS enforces the actual
+ * boundary on every mutation.
+ */
+export function SitesClient({ sites, siteId }: Props) {
+  const [search, setSearch] = useState('');
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<Site | null>(null);
+  const [canCreate, setCanCreate] = useState(false);
+
+  useEffect(() => {
+    if (!siteId) return;
+    let alive = true;
+    const can = createCan(supabaseBrowser());
+    can({ siteId, module: 'INVENTORY', action: 'CREATE' }).then((v) => {
+      if (alive) setCanCreate(v);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [siteId]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return sites;
+    return sites.filter(
+      (s) =>
+        s.code.toLowerCase().includes(q) ||
+        s.name.toLowerCase().includes(q) ||
+        (s.type ?? '').toLowerCase().includes(q),
+    );
+  }, [sites, search]);
+
+  const openEdit = useCallback((site: Site) => {
+    setEditing(site);
+    setSheetOpen(true);
+  }, []);
+
+  function openCreate() {
+    setEditing(null);
+    setSheetOpen(true);
+  }
+
+  function closeSheet() {
+    setSheetOpen(false);
+    setEditing(null);
+  }
+
+  const columns = useMemo(
+    (): ColumnDef<Site, unknown>[] => [
+      ...(STATIC_COLS as ColumnDef<Site, unknown>[]),
+      {
+        id: 'actions',
+        header: '',
+        cell: (info) => (
+          <Button variant="ghost" size="sm" onClick={() => openEdit(info.row.original)}>
+            Edit
+          </Button>
+        ),
+      },
+    ],
+    [openEdit],
+  );
+
+  return (
+    <>
+      <MasterShell
+        title="Sites"
+        search={search}
+        onSearch={setSearch}
+        onNew={openCreate}
+        canCreate={canCreate}
+        exportFile="sites"
+        exportCols={EXPORT_COLS}
+        exportRows={filtered}
+      >
+        {filtered.length === 0 ? (
+          <EmptyState
+            title="No accessible sites"
+            description="Ask an admin to grant you access, or create a site if you're an admin."
+            action={
+              canCreate ? (
+                <Button size="sm" onClick={openCreate}>
+                  + New site
+                </Button>
+              ) : null
+            }
+          />
+        ) : (
+          <DataGrid columns={columns} data={filtered} showRowNumbers />
+        )}
+      </MasterShell>
+
+      <Sheet open={sheetOpen} onOpenChange={closeSheet}>
+        <SheetContent side="right" className="w-full overflow-y-auto p-6 sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{editing ? 'Edit site' : 'New site'}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {editing ? (
+              <SiteForm key={editing.id} mode="edit" site={editing} onSuccess={closeSheet} />
+            ) : (
+              <SiteForm key="create" mode="create" onSuccess={closeSheet} />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}

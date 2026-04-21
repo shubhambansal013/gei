@@ -44,3 +44,4 @@ next-env.d.ts
 
 # session memory (Claude Code harness-local, not project source)
 .remember/
+.gstack/
