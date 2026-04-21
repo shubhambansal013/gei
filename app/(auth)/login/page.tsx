@@ -7,13 +7,12 @@ import { Separator } from '@/components/ui/separator';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
 /**
- * Primary sign-in path is Google OAuth. Because enabling Google
- * locally requires creating a Google Cloud OAuth client, an email /
- * password fallback is wired in so the app can be smoke-tested
- * immediately against local Supabase.
+ * Primary sign-in is Google OAuth. An email/password fallback is wired
+ * in below the Google button so the app can be smoke-tested immediately
+ * against local Supabase without creating a Google Cloud OAuth client.
  *
  * Production hides the email form by setting
- * `NEXT_PUBLIC_ENABLE_EMAIL_SIGNIN=false`.
+ * `NEXT_PUBLIC_ENABLE_EMAIL_SIGNIN=false` at build time.
  */
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -43,12 +42,13 @@ export default function LoginPage() {
       if (mode === 'sign-up') {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setMsg('Account created. You can sign in now.');
+        setMsg('Account created. Sign in with the same credentials.');
         setMode('sign-in');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        window.location.href = '/dashboard';
+        // Full reload so middleware re-runs with the fresh session cookie.
+        window.location.assign('/dashboard');
       }
     } catch (err) {
       setMsg(err instanceof Error ? err.message : String(err));
@@ -58,25 +58,33 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="grid min-h-screen place-items-center bg-gray-50">
-      <div className="w-[400px] rounded-lg border bg-white p-8 shadow-sm">
-        <h1 className="mb-2 text-xl font-semibold">GEI Inventory</h1>
-        <p className="mb-6 text-sm text-gray-600">Sign in to continue.</p>
+    <main className="bg-muted/30 grid min-h-screen place-items-center p-6">
+      <div className="bg-card w-full max-w-[420px] rounded-md border p-8 shadow-sm">
+        {/* Brand lockup — monospace wordmark doing double duty as a logo. */}
+        <div className="mb-8 flex items-baseline gap-2">
+          <span className="text-primary font-mono text-2xl font-bold tracking-tight">GEI</span>
+          <span className="text-muted-foreground text-sm font-medium">inventory</span>
+        </div>
+
+        <h1 className="mb-1 text-lg font-semibold">Sign in</h1>
+        <p className="text-muted-foreground mb-6 text-sm">
+          Continue to your assigned sites and inventory.
+        </p>
 
         <Button className="w-full" onClick={onGoogle}>
-          Sign in with Google
+          Continue with Google
         </Button>
 
         {enableEmail && (
           <>
-            <div className="my-5 flex items-center gap-3 text-xs text-gray-500">
+            <div className="text-muted-foreground my-5 flex items-center gap-3 text-xs tracking-wider uppercase">
               <Separator className="flex-1" />
               <span>or</span>
               <Separator className="flex-1" />
             </div>
 
             <form onSubmit={onEmail} className="space-y-3">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
@@ -87,7 +95,7 @@ export default function LoginPage() {
                   required
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
@@ -100,18 +108,18 @@ export default function LoginPage() {
                 />
               </div>
               <Button type="submit" variant="outline" className="w-full" disabled={busy}>
-                {mode === 'sign-up' ? 'Create account' : 'Sign in with email'}
+                {busy ? 'Working…' : mode === 'sign-up' ? 'Create account' : 'Sign in with email'}
               </Button>
             </form>
 
-            <p className="mt-3 text-center text-xs text-gray-500">
+            <p className="text-muted-foreground mt-4 text-center text-xs">
               {mode === 'sign-in' ? (
                 <>
                   New here?{' '}
                   <button
                     type="button"
                     onClick={() => setMode('sign-up')}
-                    className="text-blue-600 hover:underline"
+                    className="text-primary font-medium underline-offset-4 hover:underline"
                   >
                     Create an account
                   </button>
@@ -122,7 +130,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setMode('sign-in')}
-                    className="text-blue-600 hover:underline"
+                    className="text-primary font-medium underline-offset-4 hover:underline"
                   >
                     Sign in instead
                   </button>
@@ -133,11 +141,15 @@ export default function LoginPage() {
         )}
 
         {msg && (
-          <div className="mt-4 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+          <div className="border-destructive bg-destructive/5 text-destructive mt-4 rounded-sm border-l-2 px-3 py-2 text-xs">
             {msg}
           </div>
         )}
       </div>
+
+      <p className="text-muted-foreground mt-6 text-xs">
+        GEI Inventory · multi-site, role-scoped, audited
+      </p>
     </main>
   );
 }

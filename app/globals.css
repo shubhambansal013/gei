@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -48,39 +48,59 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * GEI Inventory — Industrial-minimal design tokens.
+ *
+ *  - Primary: construction amber (#C2410C). Rare in SaaS, industry-appropriate.
+ *    Used for brand, primary CTA, active nav state.
+ *  - Neutrals: warm grays (tinted slightly toward tan). Reads as "site office".
+ *  - Radius: hierarchical — sharp (0) for tables, 4px for inputs/buttons,
+ *    6px for cards, 8px for dialogs. Tables = data, chrome = app.
+ *  - Motion: functional only. 120ms hover, 150ms focus ring, 200ms dialog.
+ *
+ *  See docs/DESIGN.md for the full system.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.99 0.004 80);
+  --foreground: oklch(0.17 0.008 70);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.17 0.008 70);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.17 0.008 70);
+
+  /* Construction amber — #C2410C */
+  --primary: oklch(0.54 0.166 36);
+  --primary-foreground: oklch(0.99 0.005 80);
+
+  --secondary: oklch(0.96 0.006 75);
+  --secondary-foreground: oklch(0.25 0.008 70);
+  --muted: oklch(0.96 0.006 75);
+  --muted-foreground: oklch(0.48 0.01 70);
+  --accent: oklch(0.94 0.012 65);
+  --accent-foreground: oklch(0.28 0.04 40);
+  --destructive: oklch(0.55 0.2 27);
+
+  --border: oklch(0.9 0.008 70);
+  --input: oklch(0.9 0.008 70);
+  --ring: oklch(0.54 0.166 36);
+
+  /* Chart palette — amber / earth / sky, muted */
+  --chart-1: oklch(0.66 0.14 45);
+  --chart-2: oklch(0.55 0.09 220);
+  --chart-3: oklch(0.68 0.1 140);
+  --chart-4: oklch(0.62 0.12 85);
+  --chart-5: oklch(0.5 0.1 300);
+
+  --radius: 0.375rem; /* 6px base: 4px inputs, 6px cards, 8px dialogs */
+
+  --sidebar: oklch(0.985 0.006 80);
+  --sidebar-foreground: oklch(0.22 0.01 70);
+  --sidebar-primary: oklch(0.54 0.166 36);
+  --sidebar-primary-foreground: oklch(0.99 0.005 80);
+  --sidebar-accent: oklch(0.94 0.012 65);
+  --sidebar-accent-foreground: oklch(0.28 0.04 40);
+  --sidebar-border: oklch(0.9 0.008 70);
+  --sidebar-ring: oklch(0.54 0.166 36);
 }
 
 .dark {
@@ -129,25 +149,47 @@
   }
 }
 
-/* Excel grid feel */
-.excel-grid { @apply font-mono text-sm; }
+/*
+ * Excel-feel tables. These classes make any <table> look like a
+ * spreadsheet — dense, monospace numbers, 1px warm-neutral gridlines,
+ * striped rows, sticky header + first column. Border-radius stays 0
+ * because workers reading data for hours prefer sharp corners — it
+ * reads as "data", not "dashboard card".
+ */
+.excel-grid {
+  @apply font-mono text-[13px];
+  font-variant-numeric: tabular-nums;
+}
 .excel-grid th,
 .excel-grid td {
-  @apply border border-gray-300 px-2 py-1;
+  @apply border-border border px-2 py-1;
 }
 .excel-grid thead th {
-  @apply bg-gray-100 sticky top-0 z-10 font-semibold text-left;
+  @apply bg-muted text-foreground sticky top-0 z-10 text-left font-semibold;
 }
 .excel-grid tbody tr:nth-child(even) {
-  @apply bg-gray-50;
+  @apply bg-muted/40;
 }
-.excel-grid tbody tr:hover { @apply bg-blue-50; }
+.excel-grid tbody tr:hover {
+  @apply bg-accent/60;
+}
 .excel-grid .row-num {
-  @apply bg-gray-100 text-gray-500 text-right sticky left-0 z-10;
+  @apply bg-muted text-muted-foreground sticky left-0 z-10 text-right;
 }
 
+/*
+ * Print styles. When the user hits Cmd+P we hide chrome (nav, top bar,
+ * filters) via .print:hide and tighten the grid to fit more rows per
+ * page. Header row repeats across pages for multi-page tables.
+ */
 @media print {
-  .print\:hide { display: none !important; }
-  .excel-grid { font-size: 10px; }
-  .excel-grid thead { display: table-header-group; }
+  .print\:hide {
+    display: none !important;
+  }
+  .excel-grid {
+    font-size: 10px;
+  }
+  .excel-grid thead {
+    display: table-header-group;
+  }
 }
