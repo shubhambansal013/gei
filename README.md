@@ -127,31 +127,28 @@ docs/
 - [x] Task 2 — shadcn/ui (base-nova) + Tailwind v4 + Excel-feel utility classes
 - [x] Task 3 — Prettier + ESLint + Husky + lint-staged
 - [x] Task 4 — Vitest + React Testing Library
-- [x] Task 5 — Playwright config (spec added with the login page task)
+- [x] Task 5 — Playwright config (smoke spec added with login page)
 - [x] Task 6 — Supabase local + base schema migration (20 tables verified)
 - [x] Task 7 — Schema additions (`reorder_level`, `issues.rate`, `updated_at` triggers)
-- [x] Task 8 — `inventory_edit_log` + audit triggers (end-to-end verified: reason + JSONB snapshots captured)
+- [x] Task 8 — `inventory_edit_log` + audit triggers (end-to-end verified)
+- [x] Task 9 — Masters RLS policies (items, parties, sites, profiles, site_user_access)
+- [x] Task 10 — RLS test harness + first policy tests
+- [x] Task 11 — Supabase clients (browser/server/middleware) + typegen + session middleware
+- [x] Task 12 — Google OAuth + `/login` + `/auth/callback` + `/pending`
+- [x] Task 13 — Permission library (`can()`, `PermissionGate`) + unit tests
+- [x] Task 14 — Site switcher (Zustand store + component)
+- [x] Task 15 — AppShell (top bar + sidebar, `print:hide`)
+- [x] Task 16 — `SearchableSelect` + tests
+- [x] Task 17 — `DataGrid` (TanStack Table) + tests
+- [x] Task 18 — CSV exporter + tests
+- [x] Task 19 — XLSX exporter (frozen header, auto-filter) + tests
+- [x] Task 20 — `ExportButton` + `PrintButton`
+- [x] Task 21 — `EmptyState` + `ConfirmDialog` (reason-capturing)
+- [x] Task 22 — `architecture.md` + `permissions.md` + this README
+- [x] Task 23 — GitHub Actions CI (lint/typecheck/unit + rls + e2e)
+- [x] Task 24 — Verification (see commit log)
 
-**In progress / pending (see plan file):**
-
-- [ ] Task 9 — Masters RLS policies
-- [ ] Task 10 — RLS test harness
-- [ ] Task 11 — Supabase client setup + middleware + typegen
-- [ ] Task 12 — Google OAuth + login + pending screens
-- [ ] Task 13 — Permission library (`can()`, `PermissionGate`)
-- [ ] Task 14 — Site switcher store + component
-- [ ] Task 15 — AppShell
-- [ ] Task 16 — `SearchableSelect`
-- [ ] Task 17 — `DataGrid`
-- [ ] Task 18 — CSV exporter
-- [ ] Task 19 — XLSX exporter
-- [ ] Task 20 — `ExportButton` + `PrintButton`
-- [ ] Task 21 — `EmptyState` + `ConfirmDialog`
-- [ ] Task 22 — README (this file, final version) + `architecture.md` + `permissions.md`
-- [ ] Task 23 — GitHub Actions CI
-- [ ] Task 24 — Verification checkpoint
-
-After Foundation lands, two follow-up plans:
+**Foundation plan complete.** Two follow-up plans still to write and execute:
 
 - `docs/superpowers/plans/2026-04-20-gei-inventory-masters.md` (items,
   parties, sites, locations screens)
