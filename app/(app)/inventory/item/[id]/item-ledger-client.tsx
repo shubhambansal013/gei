@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/empty-state';
 import { ChevronLeft } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-type Item = { id: string; name: string; code: string | null; unit: string };
+type Item = { id: string; name: string; code: string | null; stock_unit: string };
 
 type PurchaseRow = {
   id: string;
@@ -29,10 +29,12 @@ type IssueRow = {
   unit: string;
   rate: number | null;
   remarks: string | null;
-  issued_to: string | null;
+  issued_to_legacy: string | null;
+  worker_id: string | null;
   party: { id: string; name: string } | null;
   location: { id: string; full_path: string; full_code: string } | null;
   dest: { id: string; code: string; name: string } | null;
+  worker: { id: string; code: string; full_name: string } | null;
 };
 
 type LedgerRow = {
@@ -84,7 +86,11 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
       balance: 0,
       party: i.location?.full_path ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : ''),
       rate: i.rate,
-      remarks: i.issued_to ? `To ${i.issued_to}` : (i.remarks ?? ''),
+      remarks: i.worker
+        ? `To ${i.worker.full_name} (${i.worker.code})`
+        : i.issued_to_legacy
+          ? `To ${i.issued_to_legacy}`
+          : (i.remarks ?? ''),
     }));
     const combined = [...ins, ...outs].sort((a, b) => a.date.localeCompare(b.date));
 
@@ -180,7 +186,7 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{item.name}</h1>
           <p className="text-muted-foreground mt-0.5 text-xs">
-            <span className="font-mono">{item.code ?? '—'}</span> · stock unit {item.unit}
+            <span className="font-mono">{item.code ?? '—'}</span> · stock unit {item.stock_unit}
           </p>
         </div>
         <div className="text-right">
@@ -188,7 +194,8 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
             Current stock
           </div>
           <div className="font-mono text-2xl font-semibold tabular-nums">
-            {currentStock.toLocaleString('en-IN')} <span className="text-sm">{item.unit}</span>
+            {currentStock.toLocaleString('en-IN')}{' '}
+            <span className="text-sm">{item.stock_unit}</span>
           </div>
         </div>
       </header>
@@ -205,16 +212,16 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
       {rows.length === 0 ? (
         <EmptyState
           title="No movements yet"
-          description="Record an inward or outward for this item to see the ledger."
+          description="Record a purchase or issue for this item to see the ledger."
           action={
             <div className="flex gap-2">
               <Link href="/inventory/inward/new">
                 <Button variant="outline" type="button">
-                  + Inward
+                  + Purchase
                 </Button>
               </Link>
               <Link href="/inventory/outward/new">
-                <Button type="button">+ Outward</Button>
+                <Button type="button">+ Issue</Button>
               </Link>
             </div>
           }

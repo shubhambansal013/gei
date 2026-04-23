@@ -1,5 +1,5 @@
 import { supabaseServer } from '@/lib/supabase/server';
-import { OutwardForm } from './outward-form';
+import { IssueForm } from './outward-form';
 import { EmptyState } from '@/components/empty-state';
 
 /**
@@ -10,21 +10,31 @@ import { EmptyState } from '@/components/empty-state';
  * parallel, flattens them into a single grouped SearchableSelect so
  * the worker picks from ONE dropdown regardless of destination type.
  */
-export default async function OutwardNewPage() {
+export default async function IssueNewPage() {
   const sb = await supabaseServer();
-  const [{ data: sites }, { data: items }, { data: parties }, { data: locations }] =
-    await Promise.all([
-      sb.from('sites').select('id, name, code').order('name'),
-      sb.from('items').select('id, name, code, unit').order('code'),
-      sb.from('parties').select('id, name, type').order('name'),
-      sb.from('location_references').select('id, full_path, full_code, site_id').order('full_code'),
-    ]);
+  const [
+    { data: sites },
+    { data: items },
+    { data: parties },
+    { data: locations },
+    { data: workers },
+  ] = await Promise.all([
+    sb.from('sites').select('id, name, code').order('name'),
+    sb.from('items').select('id, name, code, stock_unit').order('code'),
+    sb.from('parties').select('id, name, type').order('name'),
+    sb.from('location_references').select('id, full_path, full_code, site_id').order('full_code'),
+    sb
+      .from('workers')
+      .select('id, code, full_name, current_site_id')
+      .eq('is_active', true)
+      .order('full_name'),
+  ]);
 
   if (!sites || sites.length === 0) {
     return (
       <EmptyState
         title="No accessible sites"
-        description="Ask an admin for site access before recording outward."
+        description="Ask an admin for site access before recording an issue."
       />
     );
   }
@@ -32,16 +42,17 @@ export default async function OutwardNewPage() {
   return (
     <div className="max-w-xl space-y-4">
       <header>
-        <h1 className="text-xl font-semibold tracking-tight">New outward</h1>
+        <h1 className="text-xl font-semibold tracking-tight">New issue</h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Issue material from stock. Pick an item, a quantity, and where it&rsquo;s going.
         </p>
       </header>
-      <OutwardForm
+      <IssueForm
         sites={sites}
         items={items ?? []}
         parties={parties ?? []}
         locations={locations ?? []}
+        workers={workers ?? []}
       />
     </div>
   );

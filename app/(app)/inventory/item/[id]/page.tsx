@@ -15,7 +15,7 @@ export default async function ItemLedgerPage({ params }: { params: Promise<{ id:
   const sb = await supabaseServer();
 
   const [{ data: item }, { data: purchases }, { data: issues }] = await Promise.all([
-    sb.from('items').select('id, name, code, unit').eq('id', id).maybeSingle(),
+    sb.from('items').select('id, name, code, stock_unit').eq('id', id).maybeSingle(),
     sb
       .from('purchases')
       .select(
@@ -29,10 +29,11 @@ export default async function ItemLedgerPage({ params }: { params: Promise<{ id:
     sb
       .from('issues')
       .select(
-        `id, issue_date, qty, unit, rate, remarks, issued_to,
+        `id, issue_date, qty, unit, rate, remarks, issued_to_legacy, worker_id,
          party:parties(id, name),
          location:location_references(id, full_path, full_code),
-         dest:sites!issues_dest_site_id_fkey(id, code, name)`,
+         dest:sites!issues_dest_site_id_fkey(id, code, name),
+         worker:workers(id, code, full_name)`,
       )
       .eq('item_id', id)
       .eq('is_deleted', false)

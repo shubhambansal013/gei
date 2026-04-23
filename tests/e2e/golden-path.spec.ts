@@ -25,7 +25,7 @@ const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const skip = !URL || !ANON || !SERVICE;
 
-test.describe('golden path — inward → outward → ledger balance', () => {
+test.describe('golden path — purchase → issue → ledger balance', () => {
   test.skip(
     skip,
     'Requires NEXT_PUBLIC_SUPABASE_URL, ANON_KEY, SERVICE_ROLE_KEY env vars + supabase local running',
@@ -94,10 +94,10 @@ test.describe('golden path — inward → outward → ledger balance', () => {
     await expect(page.locator('nav').getByText('Transactions')).toBeVisible();
   });
 
-  test('records an inward transaction', async ({ page }) => {
+  test('records a purchase transaction', async ({ page }) => {
     await signIn(page);
     await page.goto('/inventory/inward/new');
-    await expect(page.getByRole('heading', { name: 'New inward' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New purchase' })).toBeVisible();
 
     // Site is auto-selected (first accessible) — just verify it's populated
     // Item: open the combobox, pick the seeded item
@@ -115,7 +115,7 @@ test.describe('golden path — inward → outward → ledger balance', () => {
 
     await page.getByLabel('Invoice #').fill(`INV-${unique}`);
 
-    await page.getByRole('button', { name: 'Record inward' }).click();
+    await page.getByRole('button', { name: 'Record purchase' }).click();
     await page.waitForURL(/\/inventory\/transactions/, { timeout: 15_000 });
 
     // The new row appears — first row should be our IN transaction
@@ -123,10 +123,10 @@ test.describe('golden path — inward → outward → ledger balance', () => {
     await expect(page.locator('span').filter({ hasText: /^IN$/ }).first()).toBeVisible();
   });
 
-  test('records an outward transaction', async ({ page }) => {
+  test('records an issue transaction', async ({ page }) => {
     await signIn(page);
     await page.goto('/inventory/outward/new');
-    await expect(page.getByRole('heading', { name: 'New outward' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New issue' })).toBeVisible();
 
     const itemCombo = page.locator('button[role="combobox"]').nth(1);
     await itemCombo.click();
@@ -143,7 +143,7 @@ test.describe('golden path — inward → outward → ledger balance', () => {
 
     await page.getByLabel('Issued to').fill('E2E QA foreman');
 
-    await page.getByRole('button', { name: 'Record outward' }).click();
+    await page.getByRole('button', { name: 'Record issue' }).click();
     await page.waitForURL(/\/inventory\/transactions/, { timeout: 15_000 });
 
     await expect(page.locator('span').filter({ hasText: /^OUT$/ }).first()).toBeVisible();

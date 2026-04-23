@@ -115,27 +115,39 @@ CREATE TABLE parties (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name       TEXT NOT NULL,
   type       TEXT NOT NULL REFERENCES party_types(id),
+  short_code TEXT,
   gstin      TEXT,
   phone      TEXT,
   address    TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT parties_short_code_fmt
+    CHECK (short_code IS NULL OR short_code ~ '^[A-Z0-9]{2,8}$')
 );
+
+CREATE UNIQUE INDEX parties_short_code_uk
+  ON parties(short_code)
+  WHERE short_code IS NOT NULL;
 
 
 -- =============================================================================
 -- ITEMS MASTER
--- code = GEI_code (internal short code for fast entry)
--- unit = canonical stock unit
+-- code              = GEI_code (internal short code for fast entry)
+-- stock_unit        = canonical unit stock is tracked and issued in
+-- stock_conv_factor = default "stock units per received unit" multiplier
+--                     used when a purchase row does not override it
+--                     (e.g. 100m of wire per received roll). Defaults
+--                     to 1 when received unit equals stock unit.
 -- =============================================================================
 
 CREATE TABLE items (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        TEXT NOT NULL,
-  code        TEXT UNIQUE,
-  category_id TEXT REFERENCES item_categories(id),
-  unit        TEXT NOT NULL REFERENCES units(id),
-  hsn_code    TEXT,
-  created_at  TIMESTAMPTZ DEFAULT now()
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name              TEXT NOT NULL,
+  code              TEXT UNIQUE,
+  category_id       TEXT REFERENCES item_categories(id),
+  stock_unit        TEXT NOT NULL REFERENCES units(id),
+  stock_conv_factor NUMERIC NOT NULL DEFAULT 1 CHECK (stock_conv_factor > 0),
+  hsn_code          TEXT,
+  created_at        TIMESTAMPTZ DEFAULT now()
 );
 
 
@@ -208,7 +220,7 @@ INSERT INTO roles (id, label, level, description) VALUES
   ('SUPER_ADMIN',   'Super Admin',   1, 'Full access to everything.'),
   ('ADMIN',         'Admin',         2, 'Full access on assigned sites.'),
   ('STORE_MANAGER', 'Store Manager', 3, 'Inventory read/write on assigned sites.'),
-  ('SITE_ENGINEER', 'Site Engineer', 4, 'DPR read/write, inventory read.'),
+  ('SITE_ENGINEER', 'Site Engineer', 4, 'Workers read, inventory read.'),
   ('VIEWER',        'Viewer',        5, 'Read-only on assigned sites.');
 
 
@@ -219,8 +231,7 @@ CREATE TABLE modules (
 
 INSERT INTO modules (id, label) VALUES
   ('INVENTORY', 'Inventory'),
-  ('DPR',       'Daily Progress Report'),
-  ('LABOUR',    'Labour Management'),
+  ('WORKERS',   'Workers'),
   ('LOCATION',  'Location Master'),
   ('REPORTS',   'Reports & Analytics');
 
@@ -258,12 +269,13 @@ INSERT INTO role_permissions (role_id, module_id, action_id) VALUES
   ('STORE_MANAGER', 'INVENTORY', 'CREATE'),
   ('STORE_MANAGER', 'INVENTORY', 'EDIT'),
   ('STORE_MANAGER', 'INVENTORY', 'EXPORT'),
+  ('STORE_MANAGER', 'WORKERS',   'VIEW'),
+  ('STORE_MANAGER', 'WORKERS',   'CREATE'),
+  ('STORE_MANAGER', 'WORKERS',   'EDIT'),
+  ('STORE_MANAGER', 'WORKERS',   'EXPORT'),
   ('STORE_MANAGER', 'REPORTS',   'VIEW'),
-  ('SITE_ENGINEER', 'DPR',       'VIEW'),
-  ('SITE_ENGINEER', 'DPR',       'CREATE'),
-  ('SITE_ENGINEER', 'DPR',       'EDIT'),
   ('SITE_ENGINEER', 'INVENTORY', 'VIEW'),
-  ('SITE_ENGINEER', 'LABOUR',    'VIEW'),
+  ('SITE_ENGINEER', 'WORKERS',   'VIEW'),
   ('SITE_ENGINEER', 'REPORTS',   'VIEW');
 
 INSERT INTO role_permissions (role_id, module_id, action_id)
@@ -271,27 +283,34 @@ SELECT 'VIEWER', m.id, 'VIEW' FROM modules m;
 
 
 CREATE TABLE profiles (
-  id         UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  full_name  TEXT NOT NULL,
-  phone      TEXT,
-  role_id    TEXT NOT NULL REFERENCES roles(id) DEFAULT 'VIEWER',
-  is_active  BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name   TEXT NOT NULL,
+  phone       TEXT,
+  role_id     TEXT NOT NULL REFERENCES roles(id) DEFAULT 'VIEWER',
+  -- New signups are inactive until admin approval. See
+  -- 20260423000002_signup_approval.sql.
+  is_active   BOOLEAN DEFAULT false,
+  approved_at TIMESTAMPTZ,
+  approved_by UUID REFERENCES profiles(id),
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  updated_at  TIMESTAMPTZ DEFAULT now()
 );
 
+-- Create the profile inactive — an admin flips the bit via the
+-- approveUser server action. See 20260423000002_signup_approval.sql.
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, full_name, role_id)
+  INSERT INTO profiles (id, full_name, role_id, is_active)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
-    'VIEWER'
+    'VIEWER',
+    false
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -418,31 +437,38 @@ CREATE TABLE purchases (
 -- qty is positive for issue, negative for return.
 -- party_id and location_ref_id can both be filled (contractor at a location).
 -- dest_site_id is mutually exclusive with the other two.
--- issued_to = name of person who physically received the material.
+--
+-- worker_id        = structured FK to the worker who received the material
+--                    (post-workforce cutover).
+-- issued_to_legacy = pre-workforce free-text name of receiver. Kept so
+--                    historical rows remain readable + exportable. New
+--                    rows route through `worker_id` instead.
+-- chk_issue_recipient: at least one of the two must be set.
 -- =============================================================================
 
 CREATE TABLE issues (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  site_id         UUID NOT NULL REFERENCES sites(id),
-  item_id         UUID NOT NULL REFERENCES items(id),
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id           UUID NOT NULL REFERENCES sites(id),
+  item_id           UUID NOT NULL REFERENCES items(id),
 
-  qty             NUMERIC NOT NULL CHECK (qty != 0),
-  unit            TEXT NOT NULL REFERENCES units(id),
+  qty               NUMERIC NOT NULL CHECK (qty != 0),
+  unit              TEXT NOT NULL REFERENCES units(id),
 
-  location_ref_id UUID REFERENCES location_references(id),
-  party_id        UUID REFERENCES parties(id),
-  dest_site_id    UUID REFERENCES sites(id),
+  location_ref_id   UUID REFERENCES location_references(id),
+  party_id          UUID REFERENCES parties(id),
+  dest_site_id      UUID REFERENCES sites(id),
 
-  issued_to       TEXT,
-  issue_date      DATE NOT NULL DEFAULT CURRENT_DATE,
-  remarks         TEXT,
-  created_at      TIMESTAMPTZ DEFAULT now(),
-  created_by      UUID REFERENCES profiles(id),
+  worker_id         UUID REFERENCES workers(id),
+  issued_to_legacy  TEXT,
+  issue_date        DATE NOT NULL DEFAULT CURRENT_DATE,
+  remarks           TEXT,
+  created_at        TIMESTAMPTZ DEFAULT now(),
+  created_by        UUID REFERENCES profiles(id),
 
-  is_deleted      BOOLEAN DEFAULT false,
-  deleted_at      TIMESTAMPTZ,
-  deleted_by      UUID REFERENCES profiles(id),
-  delete_reason   TEXT,
+  is_deleted        BOOLEAN DEFAULT false,
+  deleted_at        TIMESTAMPTZ,
+  deleted_by        UUID REFERENCES profiles(id),
+  delete_reason     TEXT,
 
   -- at least one destination must be filled
   -- dest_site_id is mutually exclusive with location and party
@@ -457,6 +483,11 @@ CREATE TABLE issues (
       AND location_ref_id IS NULL
       AND party_id IS NULL
     )
+  ),
+
+  -- at least one recipient pointer (structured or legacy text) must exist
+  CONSTRAINT chk_issue_recipient CHECK (
+    worker_id IS NOT NULL OR issued_to_legacy IS NOT NULL
   )
 );
 
@@ -602,6 +633,89 @@ CREATE POLICY "location_units_select" ON location_units
 CREATE POLICY "location_refs_select" ON location_references
   FOR SELECT USING (can_user(auth.uid(), site_id, 'LOCATION', 'VIEW'));
 
+-- location_units / location_references writes: admins only. See
+-- migration 20260423000001_write_policies.sql. `is_admin_anywhere` is
+-- defined in 20260420000004_masters_rls.sql (mirrored below).
+CREATE POLICY "location_units_insert_admin" ON location_units
+  FOR INSERT WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "location_units_update_admin" ON location_units
+  FOR UPDATE USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "location_units_delete_admin" ON location_units
+  FOR DELETE USING (is_admin_anywhere(auth.uid()));
+
+CREATE POLICY "location_refs_insert_admin" ON location_references
+  FOR INSERT WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "location_refs_update_admin" ON location_references
+  FOR UPDATE USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "location_refs_delete_admin" ON location_references
+  FOR DELETE USING (is_admin_anywhere(auth.uid()));
+
+-- site_user_permission_overrides: RLS enabled by
+-- 20260423000001_write_policies.sql.
+ALTER TABLE site_user_permission_overrides ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "overrides_select_self_or_admin" ON site_user_permission_overrides
+  FOR SELECT USING (
+    is_admin_anywhere(auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM site_user_access sua
+      WHERE sua.id = site_user_permission_overrides.access_id
+        AND sua.user_id = auth.uid()
+    )
+  );
+CREATE POLICY "overrides_insert_admin" ON site_user_permission_overrides
+  FOR INSERT WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "overrides_update_admin" ON site_user_permission_overrides
+  FOR UPDATE USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "overrides_delete_admin" ON site_user_permission_overrides
+  FOR DELETE USING (is_admin_anywhere(auth.uid()));
+
+-- -----------------------------------------------------------------------
+-- Masters SELECT policies, post-Security-Wave-1 (20260423000002):
+-- authenticated AND is_active=true. Keeps the pre-approval pipeline
+-- from leaking the item / party catalog to new signups.
+-- -----------------------------------------------------------------------
+CREATE POLICY "items_select_all" ON items
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND is_active = true
+    )
+  );
+
+CREATE POLICY "parties_select_all" ON parties
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND is_active = true
+    )
+  );
+
+CREATE POLICY "sites_select_accessible" ON sites
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+       WHERE id = auth.uid()
+         AND role_id = 'SUPER_ADMIN'
+         AND is_active = true
+    )
+    OR (
+      EXISTS (
+        SELECT 1 FROM profiles
+         WHERE id = auth.uid() AND is_active = true
+      )
+      AND EXISTS (
+        SELECT 1 FROM site_user_access
+         WHERE user_id = auth.uid() AND site_id = sites.id
+      )
+    )
+  );
+
 
 -- =============================================================================
 -- INDEXES
@@ -620,6 +734,7 @@ CREATE INDEX idx_issues_site_item         ON issues(site_id, item_id);
 CREATE INDEX idx_issues_date              ON issues(issue_date);
 CREATE INDEX idx_issues_location          ON issues(location_ref_id);
 CREATE INDEX idx_issues_party             ON issues(party_id);
+CREATE INDEX idx_issues_worker            ON issues(worker_id);
 CREATE INDEX idx_issues_deleted           ON issues(is_deleted);
 
 CREATE INDEX idx_location_units_site      ON location_units(site_id);
@@ -637,6 +752,143 @@ CREATE INDEX idx_profiles_active          ON profiles(is_active);
 CREATE INDEX idx_site_access_user         ON site_user_access(user_id);
 CREATE INDEX idx_site_access_site         ON site_user_access(site_id);
 CREATE INDEX idx_overrides_access         ON site_user_permission_overrides(access_id);
+
+
+-- =============================================================================
+-- WORKFORCE DOMAIN (migration 20260423000005_workforce.sql)
+-- A Worker aggregate carries:
+--   * workers (the aggregate root; code minted by trigger, immutable)
+--   * worker_site_assignments (history of placements; no-overlap)
+--   * worker_affiliations (history of employment type; no-overlap)
+-- Invariants:
+--   * code is W-#### and immutable after mint (BEFORE UPDATE trigger)
+--   * DIRECT ⇔ no contractor_party_id; other types ⇔ contractor required
+--   * at most one OPEN site-assignment / affiliation (effective_to NULL)
+--     — enforced in the server action; EXCLUDE stops overlap
+-- =============================================================================
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+CREATE TYPE employment_type AS ENUM (
+  'DIRECT',
+  'CONTRACTOR_EMPLOYEE',
+  'SUBCONTRACTOR_LENT'
+);
+
+CREATE SEQUENCE worker_code_seq START 1;
+
+CREATE TABLE workers (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code            TEXT UNIQUE NOT NULL,
+  full_name       TEXT NOT NULL,
+  phone           TEXT,
+  home_city       TEXT,
+  current_site_id UUID NOT NULL REFERENCES sites(id),
+  is_active       BOOLEAN NOT NULL DEFAULT true,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by      UUID REFERENCES profiles(id),
+  CONSTRAINT workers_code_fmt CHECK (code ~ '^W-[0-9]{4,}$')
+);
+
+CREATE INDEX workers_current_site_idx ON workers(current_site_id);
+CREATE INDEX workers_full_name_idx    ON workers(full_name);
+CREATE INDEX workers_is_active_idx    ON workers(is_active);
+
+CREATE TABLE worker_site_assignments (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  worker_id      UUID NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
+  site_id        UUID NOT NULL REFERENCES sites(id),
+  effective_from DATE NOT NULL,
+  effective_to   DATE,
+  reason         TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by     UUID REFERENCES profiles(id),
+  CONSTRAINT wsa_date_order CHECK (effective_to IS NULL OR effective_to > effective_from),
+  CONSTRAINT wsa_no_overlap EXCLUDE USING gist (
+    worker_id WITH =,
+    daterange(effective_from, effective_to, '[)') WITH &&
+  )
+);
+
+CREATE INDEX wsa_worker_idx ON worker_site_assignments(worker_id);
+CREATE INDEX wsa_site_idx   ON worker_site_assignments(site_id);
+CREATE INDEX wsa_open_idx   ON worker_site_assignments(worker_id)
+  WHERE effective_to IS NULL;
+
+CREATE TABLE worker_affiliations (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  worker_id           UUID NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
+  employment_type     employment_type NOT NULL,
+  contractor_party_id UUID REFERENCES parties(id),
+  effective_from      DATE NOT NULL,
+  effective_to        DATE,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by          UUID REFERENCES profiles(id),
+  CONSTRAINT wa_date_order CHECK (effective_to IS NULL OR effective_to > effective_from),
+  CONSTRAINT wa_affiliation_party_rule CHECK (
+    (employment_type = 'DIRECT' AND contractor_party_id IS NULL)
+    OR
+    (employment_type <> 'DIRECT' AND contractor_party_id IS NOT NULL)
+  ),
+  CONSTRAINT wa_no_overlap EXCLUDE USING gist (
+    worker_id WITH =,
+    daterange(effective_from, effective_to, '[)') WITH &&
+  )
+);
+
+CREATE INDEX wa_worker_idx     ON worker_affiliations(worker_id);
+CREATE INDEX wa_contractor_idx ON worker_affiliations(contractor_party_id);
+CREATE INDEX wa_open_idx       ON worker_affiliations(worker_id)
+  WHERE effective_to IS NULL;
+
+-- Mint + freeze triggers (see migration for definitions).
+-- BEFORE INSERT: `code := 'W-' || lpad(nextval('worker_code_seq')::text, 4, '0')`
+-- BEFORE UPDATE: raise if NEW.code <> OLD.code.
+-- RLS policies follow the can_user(..., 'WORKERS', ...) pattern for
+-- writes; reads require is_active AND (admin-anywhere OR site access).
+
+
+-- =============================================================================
+-- RLS: units + role_permissions (Wave 6)
+-- =============================================================================
+--
+-- Mirrored from migrations 20260423000008 and 20260423000009 so the
+-- canonical schema stays in sync. Both tables are tenant-wide reference
+-- data: SELECT is open to every authenticated user; WRITE is restricted.
+
+ALTER TABLE units ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "units_select_all" ON units
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "units_write_admin" ON units
+  FOR ALL USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+
+ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "role_permissions_select_all" ON role_permissions
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+-- SUPER_ADMIN-only: a change here silently widens authority on every
+-- site. Site ADMINs must use `site_user_permission_overrides`.
+CREATE POLICY "role_permissions_write_super_admin" ON role_permissions
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+       WHERE id = auth.uid()
+         AND is_active = true
+         AND role_id = 'SUPER_ADMIN'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+       WHERE id = auth.uid()
+         AND is_active = true
+         AND role_id = 'SUPER_ADMIN'
+    )
+  );
 
 
 -- =============================================================================

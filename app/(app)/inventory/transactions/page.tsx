@@ -22,7 +22,7 @@ export default async function TransactionsPage() {
       .from('purchases')
       .select(
         `id, site_id, item_id, received_qty, stock_qty, rate, total_amount, receipt_date, invoice_no,
-         item:items(id, code, name, unit),
+         item:items(id, code, name, stock_unit),
          vendor:parties(id, name)`,
       )
       .eq('is_deleted', false)
@@ -31,11 +31,12 @@ export default async function TransactionsPage() {
     sb
       .from('issues')
       .select(
-        `id, site_id, item_id, qty, unit, issue_date, issued_to,
-         item:items(id, code, name, unit),
+        `id, site_id, item_id, qty, unit, issue_date, issued_to_legacy, worker_id,
+         item:items(id, code, name, stock_unit),
          party:parties(id, name),
          location:location_references(id, full_path, full_code),
-         dest:sites!issues_dest_site_id_fkey(id, code, name)`,
+         dest:sites!issues_dest_site_id_fkey(id, code, name),
+         worker:workers(id, code, full_name)`,
       )
       .eq('is_deleted', false)
       .order('issue_date', { ascending: false })

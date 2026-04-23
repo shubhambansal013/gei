@@ -34,6 +34,7 @@ type EditMode = {
     id: string;
     name: string;
     type: string;
+    short_code?: string | null;
     gstin?: string | null;
     phone?: string | null;
     address?: string | null;
@@ -57,6 +58,7 @@ export function PartyForm(props: Props) {
           id: props.defaultValues.id,
           name: props.defaultValues.name,
           type: props.defaultValues.type,
+          short_code: props.defaultValues.short_code ?? '',
           gstin: props.defaultValues.gstin ?? '',
           phone: props.defaultValues.phone ?? '',
           address: props.defaultValues.address ?? '',
@@ -65,6 +67,7 @@ export function PartyForm(props: Props) {
       : {
           name: '',
           type: '',
+          short_code: '',
           gstin: '',
           phone: '',
           address: '',
@@ -76,7 +79,16 @@ export function PartyForm(props: Props) {
   const typeOptions = props.partyTypes.map((pt) => ({ value: pt.id, label: pt.label }));
 
   async function onSubmit(values: PartyCreate | PartyUpdate) {
-    const res = isEdit ? await updateParty(values) : await createParty(values);
+    // Normalise the empty string UX-convenience to null so the
+    // validator (and DB CHECK) don't see '' and reject it.
+    const normalised = {
+      ...values,
+      short_code:
+        typeof values.short_code === 'string' && values.short_code.trim().length === 0
+          ? null
+          : values.short_code,
+    } as PartyCreate | PartyUpdate;
+    const res = isEdit ? await updateParty(normalised) : await createParty(normalised);
     if (!res.ok) {
       toast.error(res.error);
       return;
@@ -115,6 +127,27 @@ export function PartyForm(props: Props) {
                   value={(field.value as string) || null}
                   onChange={field.onChange}
                   placeholder="Select type"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="short_code"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Short code</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="2–8 letters/digits (e.g. ABC12)"
+                  maxLength={8}
+                  className="font-mono uppercase"
+                  {...field}
+                  value={(field.value as string) ?? ''}
+                  onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                 />
               </FormControl>
               <FormMessage />

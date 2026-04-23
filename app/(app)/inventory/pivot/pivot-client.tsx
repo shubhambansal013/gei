@@ -10,7 +10,7 @@ type IssueRow = {
   id: string;
   qty: number;
   issue_date: string;
-  item: { id: string; code: string | null; name: string; unit: string } | null;
+  item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   party: { id: string; name: string } | null;
   location: { id: string; full_path: string; full_code: string } | null;
   dest: { id: string; code: string; name: string } | null;
@@ -58,7 +58,7 @@ export function PivotClient({ issues }: Props) {
         const itemLabel = i.item?.name ?? '—';
         rowLabels.set(r.key, r.label);
         colLabels.set(itemId, itemLabel);
-        if (i.item?.unit) colUnit.set(itemId, i.item.unit);
+        if (i.item?.stock_unit) colUnit.set(itemId, i.item.stock_unit);
         const cellKey = `${r.key}|${itemId}`;
         cells.set(cellKey, (cells.get(cellKey) ?? 0) + i.qty);
         rowTotals.set(r.key, (rowTotals.get(r.key) ?? 0) + i.qty);
@@ -116,7 +116,7 @@ export function PivotClient({ issues }: Props) {
       <header className="print:hide">
         <h1 className="text-xl font-semibold tracking-tight">Destination × item pivot</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Sum of outward qty by destination (rows) and item (columns). Date-range filter applies to
+          Sum of issue qty by destination (rows) and item (columns). Date-range filter applies to
           `issue_date`.
         </p>
       </header>
@@ -159,10 +159,10 @@ export function PivotClient({ issues }: Props) {
 
       {rowKeys.length === 0 || colKeys.length === 0 ? (
         <EmptyState
-          title="No outward movements"
+          title="No issues yet"
           description={
             issues.length === 0
-              ? 'Record an outward first; the pivot fills in as you issue material.'
+              ? 'Record an issue first; the pivot fills in as you issue material.'
               : 'Try widening the date range.'
           }
         />

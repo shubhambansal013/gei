@@ -95,7 +95,7 @@ export type Database = {
           id: string;
           is_deleted: boolean | null;
           issue_date: string;
-          issued_to: string | null;
+          issued_to_legacy: string | null;
           item_id: string;
           location_ref_id: string | null;
           party_id: string | null;
@@ -105,6 +105,7 @@ export type Database = {
           site_id: string;
           unit: string;
           updated_at: string | null;
+          worker_id: string | null;
         };
         Insert: {
           created_at?: string | null;
@@ -116,7 +117,7 @@ export type Database = {
           id?: string;
           is_deleted?: boolean | null;
           issue_date?: string;
-          issued_to?: string | null;
+          issued_to_legacy?: string | null;
           item_id: string;
           location_ref_id?: string | null;
           party_id?: string | null;
@@ -126,6 +127,7 @@ export type Database = {
           site_id: string;
           unit: string;
           updated_at?: string | null;
+          worker_id?: string | null;
         };
         Update: {
           created_at?: string | null;
@@ -137,7 +139,7 @@ export type Database = {
           id?: string;
           is_deleted?: boolean | null;
           issue_date?: string;
-          issued_to?: string | null;
+          issued_to_legacy?: string | null;
           item_id?: string;
           location_ref_id?: string | null;
           party_id?: string | null;
@@ -147,6 +149,7 @@ export type Database = {
           site_id?: string;
           unit?: string;
           updated_at?: string | null;
+          worker_id?: string | null;
         };
         Relationships: [
           {
@@ -205,6 +208,13 @@ export type Database = {
             referencedRelation: 'units';
             referencedColumns: ['id'];
           },
+          {
+            foreignKeyName: 'issues_worker_id_fkey';
+            columns: ['worker_id'];
+            isOneToOne: false;
+            referencedRelation: 'workers';
+            referencedColumns: ['id'];
+          },
         ];
       };
       item_categories: {
@@ -231,7 +241,8 @@ export type Database = {
           id: string;
           name: string;
           reorder_level: number | null;
-          unit: string;
+          stock_conv_factor: number;
+          stock_unit: string;
         };
         Insert: {
           category_id?: string | null;
@@ -241,7 +252,8 @@ export type Database = {
           id?: string;
           name: string;
           reorder_level?: number | null;
-          unit: string;
+          stock_conv_factor?: number;
+          stock_unit: string;
         };
         Update: {
           category_id?: string | null;
@@ -251,7 +263,8 @@ export type Database = {
           id?: string;
           name?: string;
           reorder_level?: number | null;
-          unit?: string;
+          stock_conv_factor?: number;
+          stock_unit?: string;
         };
         Relationships: [
           {
@@ -262,8 +275,8 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'items_unit_fkey';
-            columns: ['unit'];
+            foreignKeyName: 'items_stock_unit_fkey';
+            columns: ['stock_unit'];
             isOneToOne: false;
             referencedRelation: 'units';
             referencedColumns: ['id'];
@@ -485,6 +498,7 @@ export type Database = {
           id: string;
           name: string;
           phone: string | null;
+          short_code: string | null;
           type: string;
         };
         Insert: {
@@ -494,6 +508,7 @@ export type Database = {
           id?: string;
           name: string;
           phone?: string | null;
+          short_code?: string | null;
           type: string;
         };
         Update: {
@@ -503,6 +518,7 @@ export type Database = {
           id?: string;
           name?: string;
           phone?: string | null;
+          short_code?: string | null;
           type?: string;
         };
         Relationships: [
@@ -532,6 +548,8 @@ export type Database = {
       };
       profiles: {
         Row: {
+          approved_at: string | null;
+          approved_by: string | null;
           created_at: string | null;
           full_name: string;
           id: string;
@@ -541,6 +559,8 @@ export type Database = {
           updated_at: string | null;
         };
         Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
           created_at?: string | null;
           full_name: string;
           id: string;
@@ -550,6 +570,8 @@ export type Database = {
           updated_at?: string | null;
         };
         Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
           created_at?: string | null;
           full_name?: string;
           id?: string;
@@ -559,6 +581,13 @@ export type Database = {
           updated_at?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'profiles_approved_by_fkey';
+            columns: ['approved_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'profiles_role_id_fkey';
             columns: ['role_id'];
@@ -913,6 +942,167 @@ export type Database = {
         };
         Relationships: [];
       };
+      workers: {
+        Row: {
+          code: string;
+          created_at: string;
+          created_by: string | null;
+          current_site_id: string;
+          full_name: string;
+          home_city: string | null;
+          id: string;
+          is_active: boolean;
+          phone: string | null;
+        };
+        Insert: {
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          current_site_id: string;
+          full_name: string;
+          home_city?: string | null;
+          id?: string;
+          is_active?: boolean;
+          phone?: string | null;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          current_site_id?: string;
+          full_name?: string;
+          home_city?: string | null;
+          id?: string;
+          is_active?: boolean;
+          phone?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'workers_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'workers_current_site_id_fkey';
+            columns: ['current_site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      worker_site_assignments: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          effective_from: string;
+          effective_to: string | null;
+          id: string;
+          reason: string | null;
+          site_id: string;
+          worker_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          effective_from: string;
+          effective_to?: string | null;
+          id?: string;
+          reason?: string | null;
+          site_id: string;
+          worker_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          effective_from?: string;
+          effective_to?: string | null;
+          id?: string;
+          reason?: string | null;
+          site_id?: string;
+          worker_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'worker_site_assignments_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'worker_site_assignments_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'worker_site_assignments_worker_id_fkey';
+            columns: ['worker_id'];
+            isOneToOne: false;
+            referencedRelation: 'workers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      worker_affiliations: {
+        Row: {
+          contractor_party_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          effective_from: string;
+          effective_to: string | null;
+          employment_type: Database['public']['Enums']['employment_type'];
+          id: string;
+          worker_id: string;
+        };
+        Insert: {
+          contractor_party_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          effective_from: string;
+          effective_to?: string | null;
+          employment_type: Database['public']['Enums']['employment_type'];
+          id?: string;
+          worker_id: string;
+        };
+        Update: {
+          contractor_party_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          effective_from?: string;
+          effective_to?: string | null;
+          employment_type?: Database['public']['Enums']['employment_type'];
+          id?: string;
+          worker_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'worker_affiliations_contractor_party_id_fkey';
+            columns: ['contractor_party_id'];
+            isOneToOne: false;
+            referencedRelation: 'parties';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'worker_affiliations_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'worker_affiliations_worker_id_fkey';
+            columns: ['worker_id'];
+            isOneToOne: false;
+            referencedRelation: 'workers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       item_weighted_avg_cost: {
@@ -984,6 +1174,7 @@ export type Database = {
       };
     };
     Enums: {
+      employment_type: 'DIRECT' | 'CONTRACTOR_EMPLOYEE' | 'SUBCONTRACTOR_LENT';
       txn_party_type: 'SITE_STORE' | 'LOCATION' | 'CONTRACTOR' | 'EXTERNAL_SITE' | 'SUPPLIER';
     };
     CompositeTypes: {
@@ -1113,6 +1304,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      employment_type: ['DIRECT', 'CONTRACTOR_EMPLOYEE', 'SUBCONTRACTOR_LENT'],
       txn_party_type: ['SITE_STORE', 'LOCATION', 'CONTRACTOR', 'EXTERNAL_SITE', 'SUPPLIER'],
     },
   },

@@ -10,7 +10,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { createPurchase } from './actions';
 
 type Site = { id: string; name: string; code: string };
-type Item = { id: string; name: string; code: string | null; unit: string };
+type Item = { id: string; name: string; code: string | null; stock_unit: string };
 type Party = { id: string; name: string; type: string };
 
 type Props = {
@@ -20,12 +20,12 @@ type Props = {
 };
 
 /**
- * Simple-mode inward entry form — 5 fields + a detailed-mode toggle
- * for rate, HSN, dates, manufacturer, part number. Uses native HTML
- * submit + useTransition to stream the server action and keep the
+ * Simple-mode purchase (inward) entry form — 5 fields + a detailed-mode
+ * toggle for rate, HSN, dates, manufacturer, part number. Uses native
+ * HTML submit + useTransition to stream the server action and keep the
  * button in a "Saving…" state until the response lands.
  */
-export function InwardForm({ sites, items, suppliers }: Props) {
+export function PurchaseForm({ sites, items, suppliers }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -56,8 +56,8 @@ export function InwardForm({ sites, items, suppliers }: Props) {
         site_id: siteId,
         item_id: itemId,
         received_qty: qty,
-        received_unit: selectedItem?.unit ?? '',
-        stock_unit: selectedItem?.unit ?? '',
+        received_unit: selectedItem?.stock_unit ?? '',
+        stock_unit: selectedItem?.stock_unit ?? '',
         unit_conv_factor: 1,
         vendor_id: supplierId ?? null,
         invoice_no: invoiceNo || null,
@@ -68,7 +68,7 @@ export function InwardForm({ sites, items, suppliers }: Props) {
         supplier_part_no: detailed ? partNo || null : null,
       });
       if (res.ok) {
-        toast.success('Inward recorded.');
+        toast.success('Purchase recorded.');
         router.push('/inventory/transactions');
       } else {
         toast.error(res.error);
@@ -80,7 +80,7 @@ export function InwardForm({ sites, items, suppliers }: Props) {
   const itemOptions = items.map((i) => ({
     value: i.id,
     label: i.name,
-    sub: i.code ? `${i.code} · ${i.unit}` : i.unit,
+    sub: i.code ? `${i.code} · ${i.stock_unit}` : i.stock_unit,
   }));
   const supplierOptions = suppliers.map((p) => ({ value: p.id, label: p.name }));
 
@@ -123,7 +123,7 @@ export function InwardForm({ sites, items, suppliers }: Props) {
         <div className="space-y-1.5">
           <Label>Unit</Label>
           <Input
-            value={selectedItem?.unit ?? ''}
+            value={selectedItem?.stock_unit ?? ''}
             readOnly
             className="bg-muted font-mono text-sm"
             tabIndex={-1}
@@ -208,7 +208,7 @@ export function InwardForm({ sites, items, suppliers }: Props) {
       )}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? 'Saving…' : 'Record inward'}
+        {pending ? 'Saving…' : 'Record purchase'}
       </Button>
     </form>
   );

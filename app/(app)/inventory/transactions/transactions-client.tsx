@@ -18,7 +18,7 @@ import { EditDialog, type EditTarget } from './edit-dialog';
 
 /**
  * A unified row shape that both purchases and issues flatten into.
- * `type: 'IN'` reads amber for inward, `'OUT'` reads green for outward
+ * `type: 'IN'` reads amber for purchases, `'OUT'` reads green for issues
  * (semantic use of accent vs. chart-3).
  */
 type UnifiedRow = {
@@ -43,7 +43,7 @@ type PurchaseRow = {
   stock_qty: number | null;
   total_amount: number | null;
   invoice_no: string | null;
-  item: { id: string; code: string | null; name: string; unit: string } | null;
+  item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   vendor: { id: string; name: string } | null;
 };
 
@@ -52,11 +52,13 @@ type IssueRow = {
   issue_date: string;
   qty: number;
   unit: string;
-  issued_to: string | null;
-  item: { id: string; code: string | null; name: string; unit: string } | null;
+  issued_to_legacy: string | null;
+  worker_id: string | null;
+  item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   party: { id: string; name: string } | null;
   location: { id: string; full_path: string; full_code: string } | null;
   dest: { id: string; code: string; name: string } | null;
+  worker: { id: string; code: string; full_name: string } | null;
 };
 
 type Props = { purchases: PurchaseRow[]; issues: IssueRow[] };
@@ -78,7 +80,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
       itemCode: p.item?.code ?? '',
       itemName: p.item?.name ?? '—',
       qty: p.received_qty,
-      unit: p.item?.unit ?? '',
+      unit: p.item?.stock_unit ?? '',
       party: p.vendor?.name ?? '',
       destination: p.vendor?.name ?? '',
       ref: p.invoice_no ?? '',
@@ -97,7 +99,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
         unit: i.unit,
         party: i.party?.name ?? '',
         destination: dest,
-        ref: i.issued_to ?? '',
+        ref: i.worker ? `${i.worker.full_name} (${i.worker.code})` : (i.issued_to_legacy ?? ''),
         amount: null,
       };
     });
@@ -265,12 +267,12 @@ export function TransactionsClient({ purchases, issues }: Props) {
           <PrintButton />
           <Link href="/inventory/inward/new">
             <Button size="sm" variant="outline" type="button">
-              + Inward
+              + Purchase
             </Button>
           </Link>
           <Link href="/inventory/outward/new">
             <Button size="sm" type="button">
-              + Outward
+              + Issue
             </Button>
           </Link>
         </div>
@@ -316,7 +318,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
           title={rows.length === 0 ? 'No transactions yet' : 'Nothing matches your filters'}
           description={
             rows.length === 0
-              ? 'Record your first inward or outward to see rows here.'
+              ? 'Record your first purchase or issue to see rows here.'
               : 'Try clearing the search or changing the type filter.'
           }
           action={
@@ -324,11 +326,11 @@ export function TransactionsClient({ purchases, issues }: Props) {
               <div className="flex gap-2">
                 <Link href="/inventory/inward/new">
                   <Button variant="outline" type="button">
-                    + Inward
+                    + Purchase
                   </Button>
                 </Link>
                 <Link href="/inventory/outward/new">
-                  <Button type="button">+ Outward</Button>
+                  <Button type="button">+ Issue</Button>
                 </Link>
               </div>
             ) : null

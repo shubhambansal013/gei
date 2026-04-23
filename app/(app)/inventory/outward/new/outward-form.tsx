@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/searchable-select';
 import type { SearchableOption } from '@/components/searchable-select';
+import { WorkerPicker, type WorkerOption } from '@/components/worker-picker';
 import { createIssue } from './actions';
 
 type Site = { id: string; name: string; code: string };
-type Item = { id: string; name: string; code: string | null; unit: string };
+type Item = { id: string; name: string; code: string | null; stock_unit: string };
 type Party = { id: string; name: string; type: string };
 type LocationRef = { id: string; full_path: string; full_code: string; site_id: string };
 
@@ -28,16 +29,22 @@ type Props = {
   items: Item[];
   parties: Party[];
   locations: LocationRef[];
+  workers: WorkerOption[];
 };
 
 /**
- * Four-field outward form. The destination dropdown is a single
+ * Four-field issue (outward) form. The destination dropdown is a single
  * SearchableSelect grouped by type (Locations · Parties · Sites) so
  * a worker only learns one interaction. Current-site filtering cuts
  * noise: locations are scoped to the current site; external sites
  * exclude the current one.
+ *
+ * Issued-to: a WorkerPicker (with inline "+ New worker") replaces the
+ * free-text field. If the current site has zero workers we fall back
+ * to the plain Input so a store worker can still complete the form;
+ * the server action writes that value to `issued_to_legacy`.
  */
-export function OutwardForm({ sites, items, parties, locations }: Props) {
+export function IssueForm({ sites, items, parties, locations, workers }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -45,7 +52,14 @@ export function OutwardForm({ sites, items, parties, locations }: Props) {
   const [itemId, setItemId] = useState<string | null>(null);
   const [qty, setQty] = useState('');
   const [destination, setDestination] = useState<DestValue | null>(null);
+  const [workerId, setWorkerId] = useState<string | null>(null);
   const [issuedTo, setIssuedTo] = useState('');
+
+  const siteWorkers = useMemo(
+    () => workers.filter((w) => w.current_site_id === siteId),
+    [workers, siteId],
+  );
+  const useLegacyInput = siteWorkers.length === 0;
 
   const selectedItem = items.find((i) => i.id === itemId);
 
@@ -84,7 +98,7 @@ export function OutwardForm({ sites, items, parties, locations }: Props) {
   const itemOptions = items.map((i) => ({
     value: i.id,
     label: i.name,
-    sub: i.code ? `${i.code} · ${i.unit}` : i.unit,
+    sub: i.code ? `${i.code} · ${i.stock_unit}` : i.stock_unit,
   }));
 
   const onSubmit = (e: React.FormEvent) => {
@@ -93,13 +107,23 @@ export function OutwardForm({ sites, items, parties, locations }: Props) {
       toast.error('Item, qty, and destination are required.');
       return;
     }
+    if (useLegacyInput) {
+      if (!issuedTo.trim()) {
+        toast.error('Issued-to name is required.');
+        return;
+      }
+    } else if (!workerId) {
+      toast.error('Pick the worker who received the material.');
+      return;
+    }
     const [kind, id] = destination.split(':', 2) as [DestKind, string];
     const base = {
       site_id: siteId,
       item_id: itemId,
       qty,
-      unit: selectedItem?.unit ?? '',
-      issued_to: issuedTo || null,
+      unit: selectedItem?.stock_unit ?? '',
+      worker_id: workerId,
+      issued_to_legacy: useLegacyInput ? issuedTo.trim() || null : null,
     };
     const payload =
       kind === 'location'
@@ -111,7 +135,7 @@ export function OutwardForm({ sites, items, parties, locations }: Props) {
     startTransition(async () => {
       const res = await createIssue(payload);
       if (res.ok) {
-        toast.success('Outward recorded.');
+        toast.success('Issue recorded.');
         router.push('/inventory/transactions');
       } else {
         toast.error(res.error);
@@ -158,7 +182,7 @@ export function OutwardForm({ sites, items, parties, locations }: Props) {
         <div className="space-y-1.5">
           <Label>Unit</Label>
           <Input
-            value={selectedItem?.unit ?? ''}
+            value={selectedItem?.stock_unit ?? ''}
             readOnly
             className="bg-muted font-mono text-sm"
             tabIndex={-1}
@@ -177,17 +201,26 @@ export function OutwardForm({ sites, items, parties, locations }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="issuedTo">Issued to</Label>
-        <Input
-          id="issuedTo"
-          value={issuedTo}
-          onChange={(e) => setIssuedTo(e.target.value)}
-          placeholder="Name of person who received (optional)"
-        />
+        <Label>Issued to {useLegacyInput ? '' : '*'}</Label>
+        {useLegacyInput ? (
+          <Input
+            id="issuedTo"
+            value={issuedTo}
+            onChange={(e) => setIssuedTo(e.target.value)}
+            placeholder="Name of person who received (no workers registered)"
+          />
+        ) : (
+          <WorkerPicker
+            workers={workers}
+            siteId={siteId ?? ''}
+            value={workerId}
+            onChange={setWorkerId}
+          />
+        )}
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? 'Saving…' : 'Record outward'}
+        {pending ? 'Saving…' : 'Record issue'}
       </Button>
     </form>
   );

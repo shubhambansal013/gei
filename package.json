@@ -21,6 +21,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:migrate": "supabase migration up --local",
+    "db:diff": "supabase db diff -f",
     "prepare": "husky"
   },
   "dependencies": {

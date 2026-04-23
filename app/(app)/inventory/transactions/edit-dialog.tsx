@@ -67,7 +67,7 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
             id: target.id,
             reason: reason.trim(),
             ...(qtyChanged ? { qty } : {}),
-            ...(refChanged ? { issued_to: ref || null } : {}),
+            ...(refChanged ? { issued_to_legacy: ref || null } : {}),
           };
       const res = isIn ? await editPurchase(payload) : await editIssue(payload);
       if (res.ok) {
@@ -83,7 +83,7 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit {isIn ? 'inward' : 'outward'} transaction</DialogTitle>
+          <DialogTitle>Edit {isIn ? 'purchase' : 'issue'} transaction</DialogTitle>
           <p className="text-muted-foreground text-sm">
             Only qty and {isIn ? 'invoice #' : 'issued-to'} can be edited inline. For destination
             changes, soft-delete and re-enter.

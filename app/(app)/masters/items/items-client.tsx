@@ -22,7 +22,8 @@ type ExportRow = {
   code: string;
   name: string;
   category: string;
-  unit: string;
+  stock_unit: string;
+  stock_conv_factor: number;
   reorder_level: number | null;
 };
 
@@ -62,8 +63,16 @@ export function ItemsClient({ items, categories, units }: Props) {
       accessorFn: (row) => row.category?.label ?? '—',
     },
     {
-      accessorKey: 'unit',
-      header: 'Unit',
+      accessorKey: 'stock_unit',
+      header: 'Stock unit',
+    },
+    {
+      accessorKey: 'stock_conv_factor',
+      header: 'Conv factor',
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <span className="block text-right tabular-nums">{v != null ? String(v) : '—'}</span>;
+      },
     },
     {
       accessorKey: 'reorder_level',
@@ -79,7 +88,8 @@ export function ItemsClient({ items, categories, units }: Props) {
     { key: 'code', header: 'Code' },
     { key: 'name', header: 'Name' },
     { key: 'category', header: 'Category' },
-    { key: 'unit', header: 'Unit' },
+    { key: 'stock_unit', header: 'Stock unit' },
+    { key: 'stock_conv_factor', header: 'Conv factor', numFmt: '#,##0.####' },
     { key: 'reorder_level', header: 'Reorder Level', numFmt: '#,##0' },
   ];
 
@@ -87,7 +97,8 @@ export function ItemsClient({ items, categories, units }: Props) {
     code: row.code ?? '',
     name: row.name,
     category: row.category?.label ?? '',
-    unit: row.unit,
+    stock_unit: row.stock_unit,
+    stock_conv_factor: row.stock_conv_factor,
     reorder_level: row.reorder_level,
   }));
 
@@ -135,7 +146,7 @@ export function ItemsClient({ items, categories, units }: Props) {
         {filtered.length === 0 && !search.trim() ? (
           <EmptyState
             title="No items yet"
-            description="Create your first item to start recording inward."
+            description="Create your first item to start recording purchases."
             action={<Button onClick={openCreate}>+ New item</Button>}
           />
         ) : (
