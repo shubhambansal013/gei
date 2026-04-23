@@ -34,7 +34,7 @@ const NAV = [
 /**
  * Persistent chrome for all signed-in routes.
  *
- * - Top bar: GEI wordmark + site switcher (left), sign-out (right).
+ * - Top bar: GEI brand mark + site switcher (left), sign-out (right).
  * - Sidebar: primary nav with icons. Active route gets the amber
  *   accent + a left border.
  * - Both header and sidebar carry `print:hide` so browser-print on any
@@ -54,9 +54,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="bg-muted/30 flex min-h-screen flex-col">
       <header className="print:hide bg-card sticky top-0 z-30 flex h-12 items-center justify-between border-b px-4">
         <div className="flex items-center gap-5">
-          <Link href="/dashboard" className="flex items-baseline gap-1.5">
+          <Link href="/dashboard" aria-label="GEI home" className="flex items-baseline gap-1.5">
             <span className="text-primary font-mono text-base font-bold tracking-tight">GEI</span>
-            <span className="text-muted-foreground text-xs font-medium">inventory</span>
           </Link>
           <SiteSwitcher />
         </div>
