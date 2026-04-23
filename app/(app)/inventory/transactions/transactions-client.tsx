@@ -18,7 +18,7 @@ import { EditDialog, type EditTarget } from './edit-dialog';
 
 /**
  * A unified row shape that both purchases and issues flatten into.
- * `type: 'IN'` reads amber for inward, `'OUT'` reads green for outward
+ * `type: 'IN'` reads amber for purchases, `'OUT'` reads green for issues
  * (semantic use of accent vs. chart-3).
  */
 type UnifiedRow = {
@@ -265,12 +265,12 @@ export function TransactionsClient({ purchases, issues }: Props) {
           <PrintButton />
           <Link href="/inventory/inward/new">
             <Button size="sm" variant="outline" type="button">
-              + Inward
+              + Purchase
             </Button>
           </Link>
           <Link href="/inventory/outward/new">
             <Button size="sm" type="button">
-              + Outward
+              + Issue
             </Button>
           </Link>
         </div>
@@ -316,7 +316,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
           title={rows.length === 0 ? 'No transactions yet' : 'Nothing matches your filters'}
           description={
             rows.length === 0
-              ? 'Record your first inward or outward to see rows here.'
+              ? 'Record your first purchase or issue to see rows here.'
               : 'Try clearing the search or changing the type filter.'
           }
           action={
@@ -324,11 +324,11 @@ export function TransactionsClient({ purchases, issues }: Props) {
               <div className="flex gap-2">
                 <Link href="/inventory/inward/new">
                   <Button variant="outline" type="button">
-                    + Inward
+                    + Purchase
                   </Button>
                 </Link>
                 <Link href="/inventory/outward/new">
-                  <Button type="button">+ Outward</Button>
+                  <Button type="button">+ Issue</Button>
                 </Link>
               </div>
             ) : null

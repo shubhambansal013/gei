@@ -126,7 +126,7 @@ export function PartiesClient({ parties, partyTypes }: Props) {
         {filtered.length === 0 && !search ? (
           <EmptyState
             title="No parties yet"
-            description="Add suppliers, contractors, and clients to start recording outward."
+            description="Add suppliers, contractors, and clients to start recording issues."
             action={
               <Button size="sm" onClick={openCreate}>
                 Add party

@@ -31,13 +31,13 @@ type Props = {
 };
 
 /**
- * Four-field outward form. The destination dropdown is a single
+ * Four-field issue (outward) form. The destination dropdown is a single
  * SearchableSelect grouped by type (Locations · Parties · Sites) so
  * a worker only learns one interaction. Current-site filtering cuts
  * noise: locations are scoped to the current site; external sites
  * exclude the current one.
  */
-export function OutwardForm({ sites, items, parties, locations }: Props) {
+export function IssueForm({ sites, items, parties, locations }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -111,7 +111,7 @@ export function OutwardForm({ sites, items, parties, locations }: Props) {
     startTransition(async () => {
       const res = await createIssue(payload);
       if (res.ok) {
-        toast.success('Outward recorded.');
+        toast.success('Issue recorded.');
         router.push('/inventory/transactions');
       } else {
         toast.error(res.error);
@@ -187,7 +187,7 @@ export function OutwardForm({ sites, items, parties, locations }: Props) {
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? 'Saving…' : 'Record outward'}
+        {pending ? 'Saving…' : 'Record issue'}
       </Button>
     </form>
   );
