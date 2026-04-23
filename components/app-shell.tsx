@@ -56,7 +56,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-5">
           <Link href="/dashboard" className="flex items-baseline gap-1.5">
             <span className="text-primary font-mono text-base font-bold tracking-tight">GEI</span>
-            <span className="text-muted-foreground text-xs font-medium">inventory</span>
           </Link>
           <SiteSwitcher />
         </div>

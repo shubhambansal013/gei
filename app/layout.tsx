@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'GEI Inventory',
-    template: '%s — GEI Inventory',
+    default: 'GEI',
+    template: '%s — GEI',
   },
-  description: 'Multi-site construction inventory management for GEI.',
+  description: 'Multi-site construction management for GEI.',
 };
 
 export default function RootLayout({

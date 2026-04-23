@@ -63,12 +63,11 @@ export default function LoginPage() {
         {/* Brand lockup — monospace wordmark doing double duty as a logo. */}
         <div className="mb-8 flex items-baseline gap-2">
           <span className="text-primary font-mono text-2xl font-bold tracking-tight">GEI</span>
-          <span className="text-muted-foreground text-sm font-medium">inventory</span>
         </div>
 
         <h1 className="mb-1 text-lg font-semibold">Sign in</h1>
         <p className="text-muted-foreground mb-6 text-sm">
-          Continue to your assigned sites and inventory.
+          Continue to your assigned sites.
         </p>
 
         <Button className="w-full" onClick={onGoogle}>
@@ -148,7 +147,7 @@ export default function LoginPage() {
       </div>
 
       <p className="text-muted-foreground mt-6 text-xs">
-        GEI Inventory · multi-site, role-scoped, audited
+        GEI · multi-site, role-scoped, audited
       </p>
     </main>
   );
