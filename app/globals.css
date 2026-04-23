@@ -46,6 +46,26 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /*
+   * Elevation + motion tokens (Material 3-leaning, not literal).
+   * Seeded for future use; screens should pick these over hard-coded
+   * shadow/easing values so elevation and timing feel consistent.
+   *   - --shadow-sm : 1dp  — raised chip / input focus halo
+   *   - --shadow-md : 3dp  — cards, popovers
+   *   - --shadow-lg : 6dp  — dialogs, overlays
+   *   - --ease-standard   : default easing for state transitions
+   *   - --ease-emphasized : reserved for hero / entrance transitions
+   *   - --duration-fast   : hover / focus (matches design brief: 120–150ms)
+   *   - --duration-medium : dialog / tray (matches design brief: 200–250ms)
+   */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 150ms;
+  --duration-medium: 250ms;
 }
 
 /*
