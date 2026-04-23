@@ -602,6 +602,46 @@ CREATE POLICY "location_units_select" ON location_units
 CREATE POLICY "location_refs_select" ON location_references
   FOR SELECT USING (can_user(auth.uid(), site_id, 'LOCATION', 'VIEW'));
 
+-- location_units / location_references writes: admins only. See
+-- migration 20260423000001_write_policies.sql. `is_admin_anywhere` is
+-- defined in 20260420000004_masters_rls.sql (mirrored below).
+CREATE POLICY "location_units_insert_admin" ON location_units
+  FOR INSERT WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "location_units_update_admin" ON location_units
+  FOR UPDATE USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "location_units_delete_admin" ON location_units
+  FOR DELETE USING (is_admin_anywhere(auth.uid()));
+
+CREATE POLICY "location_refs_insert_admin" ON location_references
+  FOR INSERT WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "location_refs_update_admin" ON location_references
+  FOR UPDATE USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "location_refs_delete_admin" ON location_references
+  FOR DELETE USING (is_admin_anywhere(auth.uid()));
+
+-- site_user_permission_overrides: RLS enabled by
+-- 20260423000001_write_policies.sql.
+ALTER TABLE site_user_permission_overrides ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "overrides_select_self_or_admin" ON site_user_permission_overrides
+  FOR SELECT USING (
+    is_admin_anywhere(auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM site_user_access sua
+      WHERE sua.id = site_user_permission_overrides.access_id
+        AND sua.user_id = auth.uid()
+    )
+  );
+CREATE POLICY "overrides_insert_admin" ON site_user_permission_overrides
+  FOR INSERT WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "overrides_update_admin" ON site_user_permission_overrides
+  FOR UPDATE USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "overrides_delete_admin" ON site_user_permission_overrides
+  FOR DELETE USING (is_admin_anywhere(auth.uid()));
+
 
 -- =============================================================================
 -- INDEXES
