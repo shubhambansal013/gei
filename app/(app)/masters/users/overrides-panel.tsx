@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
 import { upsertPermissionOverride, deletePermissionOverride } from './actions';
 
-const MODULES = ['INVENTORY', 'DPR', 'LABOUR', 'LOCATION', 'REPORTS'] as const;
+const MODULES = ['INVENTORY', 'WORKERS', 'LOCATION', 'REPORTS'] as const;
 const ACTIONS = ['VIEW', 'CREATE', 'EDIT', 'EXPORT'] as const;
 // DELETE intentionally omitted from the override grid — we never grant hard-delete;
 // soft-delete is handled via EDIT.

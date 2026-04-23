@@ -7,7 +7,7 @@ import { z } from 'zod';
  */
 export const permissionOverrideSchema = z.object({
   access_id: z.string().uuid(),
-  module_id: z.enum(['INVENTORY', 'DPR', 'LABOUR', 'LOCATION', 'REPORTS']),
+  module_id: z.enum(['INVENTORY', 'WORKERS', 'LOCATION', 'REPORTS']),
   action_id: z.enum(['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT']),
   granted: z.boolean(),
 });
