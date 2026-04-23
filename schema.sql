@@ -609,6 +609,9 @@ ALTER TABLE purchases           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE issues              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE location_units      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE location_references ENABLE ROW LEVEL SECURITY;
+ALTER TABLE location_templates      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE location_template_nodes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE location_types          ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "purchases_select" ON purchases
   FOR SELECT USING (can_user(auth.uid(), site_id, 'INVENTORY', 'VIEW'));
@@ -651,6 +654,45 @@ CREATE POLICY "location_refs_update_admin" ON location_references
   WITH CHECK (is_admin_anywhere(auth.uid()));
 CREATE POLICY "location_refs_delete_admin" ON location_references
   FOR DELETE USING (is_admin_anywhere(auth.uid()));
+
+-- -----------------------------------------------------------------------
+-- location_templates & nodes — tenant-wide masters
+-- -----------------------------------------------------------------------
+CREATE POLICY "location_templates_select" ON location_templates
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND is_active = true
+    )
+  );
+
+CREATE POLICY "location_templates_write_admin" ON location_templates
+  FOR ALL USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+
+CREATE POLICY "location_template_nodes_select" ON location_template_nodes
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND is_active = true
+    )
+  );
+
+CREATE POLICY "location_template_nodes_write_admin" ON location_template_nodes
+  FOR ALL USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+
+-- -----------------------------------------------------------------------
+-- location_types — reference data
+-- -----------------------------------------------------------------------
+CREATE POLICY "location_types_select" ON location_types
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "location_types_write_admin" ON location_types
+  FOR ALL USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
 
 -- site_user_permission_overrides: RLS enabled by
 -- 20260423000001_write_policies.sql.
