@@ -147,9 +147,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      <p className="text-muted-foreground mt-6 text-xs">
-        GEI Inventory · multi-site, role-scoped, audited
-      </p>
+      <p className="text-muted-foreground mt-6 text-xs">GEI · multi-site, role-scoped, audited</p>
     </main>
   );
 }

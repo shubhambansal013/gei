@@ -19,13 +19,13 @@ that protects inventory/location data.
 
 ## Role × module × action matrix (defaults)
 
-|               | INVENTORY  | DPR     | LABOUR | LOCATION | REPORTS |
-| ------------- | ---------- | ------- | ------ | -------- | ------- |
-| SUPER_ADMIN   | ALL        | ALL     | ALL    | ALL      | ALL     |
-| ADMIN         | ALL        | ALL     | ALL    | ALL      | ALL     |
-| STORE_MANAGER | V, C, E, X | –       | –      | V        | V       |
-| SITE_ENGINEER | V          | V, C, E | V      | V        | V       |
-| VIEWER        | V          | V       | V      | V        | V       |
+|               | INVENTORY  | WORKERS | LOCATION | REPORTS |
+| ------------- | ---------- | ------- | -------- | ------- |
+| SUPER_ADMIN   | ALL        | ALL     | ALL      | ALL     |
+| ADMIN         | ALL        | ALL     | ALL      | ALL     |
+| STORE_MANAGER | V, C, E, X | –       | V        | V       |
+| SITE_ENGINEER | V          | V       | V        | V       |
+| VIEWER        | V          | V       | V        | V       |
 
 Where `V`=VIEW, `C`=CREATE, `E`=EDIT, `X`=EXPORT. `DELETE` is never
 granted — soft-delete via EDIT is the only way to remove a transaction.
@@ -71,8 +71,8 @@ Adding a new module is additive, no `can_user()` change needed:
 
 ## Per-user overrides — worked example
 
-Grant a STORE_MANAGER on Site A an extra `DPR.VIEW` capability just
-for this one user, without promoting them to SITE_ENGINEER:
+Grant a STORE_MANAGER on Site A an extra `WORKERS.VIEW` capability
+just for this one user, without promoting them to SITE_ENGINEER:
 
 ```sql
 -- Find the access row
@@ -83,7 +83,7 @@ WHERE user_id = '<user-uuid>' AND site_id = '<site-uuid>';
 INSERT INTO site_user_permission_overrides
   (access_id, module_id, action_id, granted)
 VALUES
-  ('<access-id>', 'DPR', 'VIEW', true);
+  ('<access-id>', 'WORKERS', 'VIEW', true);
 ```
 
 To revoke a default permission (e.g., strip a STORE_MANAGER's
