@@ -849,6 +849,49 @@ CREATE INDEX wa_open_idx       ON worker_affiliations(worker_id)
 
 
 -- =============================================================================
+-- RLS: units + role_permissions (Wave 6)
+-- =============================================================================
+--
+-- Mirrored from migrations 20260423000008 and 20260423000009 so the
+-- canonical schema stays in sync. Both tables are tenant-wide reference
+-- data: SELECT is open to every authenticated user; WRITE is restricted.
+
+ALTER TABLE units ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "units_select_all" ON units
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "units_write_admin" ON units
+  FOR ALL USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+
+ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "role_permissions_select_all" ON role_permissions
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+-- SUPER_ADMIN-only: a change here silently widens authority on every
+-- site. Site ADMINs must use `site_user_permission_overrides`.
+CREATE POLICY "role_permissions_write_super_admin" ON role_permissions
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+       WHERE id = auth.uid()
+         AND is_active = true
+         AND role_id = 'SUPER_ADMIN'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+       WHERE id = auth.uid()
+         AND is_active = true
+         AND role_id = 'SUPER_ADMIN'
+    )
+  );
+
+
+-- =============================================================================
 -- SEEDING A NEW SITE
 -- =============================================================================
 

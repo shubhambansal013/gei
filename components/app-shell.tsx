@@ -18,6 +18,8 @@ import {
   Building2,
   MapPin,
   UserCog,
+  Ruler,
+  ShieldCheck,
   BarChart3,
   Menu,
   X,
@@ -45,6 +47,8 @@ const MASTERS_NAV: readonly NavItem[] = [
   { href: '/masters/workers', label: 'Workers', icon: HardHat },
   { href: '/masters/sites', label: 'Sites', icon: Building2 },
   { href: '/masters/locations', label: 'Locations', icon: MapPin },
+  { href: '/masters/units', label: 'Units', icon: Ruler },
+  { href: '/masters/role-permissions', label: 'Role permissions', icon: ShieldCheck },
   { href: '/masters/users', label: 'Users', icon: UserCog },
 ] as const;
 
