@@ -208,7 +208,7 @@ INSERT INTO roles (id, label, level, description) VALUES
   ('SUPER_ADMIN',   'Super Admin',   1, 'Full access to everything.'),
   ('ADMIN',         'Admin',         2, 'Full access on assigned sites.'),
   ('STORE_MANAGER', 'Store Manager', 3, 'Inventory read/write on assigned sites.'),
-  ('SITE_ENGINEER', 'Site Engineer', 4, 'DPR read/write, inventory read.'),
+  ('SITE_ENGINEER', 'Site Engineer', 4, 'Workers read, inventory read.'),
   ('VIEWER',        'Viewer',        5, 'Read-only on assigned sites.');
 
 
@@ -219,8 +219,7 @@ CREATE TABLE modules (
 
 INSERT INTO modules (id, label) VALUES
   ('INVENTORY', 'Inventory'),
-  ('DPR',       'Daily Progress Report'),
-  ('LABOUR',    'Labour Management'),
+  ('WORKERS',   'Workers'),
   ('LOCATION',  'Location Master'),
   ('REPORTS',   'Reports & Analytics');
 
@@ -259,11 +258,8 @@ INSERT INTO role_permissions (role_id, module_id, action_id) VALUES
   ('STORE_MANAGER', 'INVENTORY', 'EDIT'),
   ('STORE_MANAGER', 'INVENTORY', 'EXPORT'),
   ('STORE_MANAGER', 'REPORTS',   'VIEW'),
-  ('SITE_ENGINEER', 'DPR',       'VIEW'),
-  ('SITE_ENGINEER', 'DPR',       'CREATE'),
-  ('SITE_ENGINEER', 'DPR',       'EDIT'),
   ('SITE_ENGINEER', 'INVENTORY', 'VIEW'),
-  ('SITE_ENGINEER', 'LABOUR',    'VIEW'),
+  ('SITE_ENGINEER', 'WORKERS',   'VIEW'),
   ('SITE_ENGINEER', 'REPORTS',   'VIEW');
 
 INSERT INTO role_permissions (role_id, module_id, action_id)
