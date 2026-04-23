@@ -12,6 +12,7 @@ export async function createParty(raw: unknown) {
     const row: TablesInsert<'parties'> = {
       name: input.name,
       type: input.type,
+      short_code: input.short_code ?? null,
       gstin: input.gstin ?? null,
       phone: input.phone ?? null,
       address: input.address ?? null,
@@ -32,6 +33,7 @@ export async function updateParty(raw: unknown) {
     const patch: TablesUpdate<'parties'> = {
       ...(rest.name !== undefined ? { name: rest.name } : {}),
       ...(rest.type !== undefined ? { type: rest.type } : {}),
+      ...(rest.short_code !== undefined ? { short_code: rest.short_code ?? null } : {}),
       ...(rest.gstin !== undefined ? { gstin: rest.gstin ?? null } : {}),
       ...(rest.phone !== undefined ? { phone: rest.phone ?? null } : {}),
       ...(rest.address !== undefined ? { address: rest.address ?? null } : {}),

@@ -14,6 +14,7 @@ type Party = {
   name: string;
   type: string;
   type_label: string | null;
+  short_code: string | null;
   gstin: string | null;
   phone: string | null;
   address: string | null;
@@ -29,6 +30,17 @@ type Props = {
 const col = createColumnHelper<Party>();
 
 const STATIC_COLS = [
+  col.accessor('short_code', {
+    header: 'Code',
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? (
+        <span className="font-mono text-xs uppercase">{v}</span>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      );
+    },
+  }),
   col.accessor('name', { header: 'Name' }),
   col.accessor('type_label', {
     header: 'Type',
@@ -52,6 +64,7 @@ const STATIC_COLS = [
 ];
 
 const EXPORT_COLS = [
+  { key: 'short_code' as const, header: 'Short code' },
   { key: 'name' as const, header: 'Name' },
   { key: 'type_label' as const, header: 'Type' },
   { key: 'gstin' as const, header: 'GSTIN' },
@@ -69,6 +82,7 @@ export function PartiesClient({ parties, partyTypes }: Props) {
     return parties.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
+        (p.short_code ?? '').toLowerCase().includes(q) ||
         (p.gstin ?? '').toLowerCase().includes(q) ||
         (p.phone ?? '').toLowerCase().includes(q),
     );

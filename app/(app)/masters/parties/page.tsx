@@ -12,7 +12,7 @@ export default async function PartiesPage() {
   const [{ data: parties }, { data: partyTypes }] = await Promise.all([
     sb
       .from('parties')
-      .select('id, name, type, type_label:party_types(label), gstin, phone, address')
+      .select('id, name, type, short_code, type_label:party_types(label), gstin, phone, address')
       .order('name'),
     sb.from('party_types').select('id, label').order('label'),
   ]);
