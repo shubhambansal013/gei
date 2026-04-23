@@ -124,18 +124,23 @@ CREATE TABLE parties (
 
 -- =============================================================================
 -- ITEMS MASTER
--- code = GEI_code (internal short code for fast entry)
--- unit = canonical stock unit
+-- code              = GEI_code (internal short code for fast entry)
+-- stock_unit        = canonical unit stock is tracked and issued in
+-- stock_conv_factor = default "stock units per received unit" multiplier
+--                     used when a purchase row does not override it
+--                     (e.g. 100m of wire per received roll). Defaults
+--                     to 1 when received unit equals stock unit.
 -- =============================================================================
 
 CREATE TABLE items (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        TEXT NOT NULL,
-  code        TEXT UNIQUE,
-  category_id TEXT REFERENCES item_categories(id),
-  unit        TEXT NOT NULL REFERENCES units(id),
-  hsn_code    TEXT,
-  created_at  TIMESTAMPTZ DEFAULT now()
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name              TEXT NOT NULL,
+  code              TEXT UNIQUE,
+  category_id       TEXT REFERENCES item_categories(id),
+  stock_unit        TEXT NOT NULL REFERENCES units(id),
+  stock_conv_factor NUMERIC NOT NULL DEFAULT 1 CHECK (stock_conv_factor > 0),
+  hsn_code          TEXT,
+  created_at        TIMESTAMPTZ DEFAULT now()
 );
 
 
