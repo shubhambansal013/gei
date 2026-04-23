@@ -29,10 +29,12 @@ type IssueRow = {
   unit: string;
   rate: number | null;
   remarks: string | null;
-  issued_to: string | null;
+  issued_to_legacy: string | null;
+  worker_id: string | null;
   party: { id: string; name: string } | null;
   location: { id: string; full_path: string; full_code: string } | null;
   dest: { id: string; code: string; name: string } | null;
+  worker: { id: string; code: string; full_name: string } | null;
 };
 
 type LedgerRow = {
@@ -84,7 +86,11 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
       balance: 0,
       party: i.location?.full_path ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : ''),
       rate: i.rate,
-      remarks: i.issued_to ? `To ${i.issued_to}` : (i.remarks ?? ''),
+      remarks: i.worker
+        ? `To ${i.worker.full_name} (${i.worker.code})`
+        : i.issued_to_legacy
+          ? `To ${i.issued_to_legacy}`
+          : (i.remarks ?? ''),
     }));
     const combined = [...ins, ...outs].sort((a, b) => a.date.localeCompare(b.date));
 

@@ -67,7 +67,7 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
             id: target.id,
             reason: reason.trim(),
             ...(qtyChanged ? { qty } : {}),
-            ...(refChanged ? { issued_to: ref || null } : {}),
+            ...(refChanged ? { issued_to_legacy: ref || null } : {}),
           };
       const res = isIn ? await editPurchase(payload) : await editIssue(payload);
       if (res.ok) {
