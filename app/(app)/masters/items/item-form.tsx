@@ -11,6 +11,7 @@ import {
   FormItem,
   FormLabel,
   FormControl,
+  FormDescription,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -74,7 +75,8 @@ export function ItemForm(props: Props) {
           id: props.item.id,
           name: props.item.name,
           code: props.item.code ?? '',
-          unit: props.item.unit,
+          stock_unit: props.item.stock_unit,
+          stock_conv_factor: props.item.stock_conv_factor,
           category_id: props.item.category_id,
           hsn_code: props.item.hsn_code ?? '',
           reorder_level: props.item.reorder_level ?? undefined,
@@ -83,7 +85,8 @@ export function ItemForm(props: Props) {
       : {
           name: '',
           code: '',
-          unit: '',
+          stock_unit: '',
+          stock_conv_factor: 1,
           category_id: null,
           hsn_code: '',
           reorder_level: undefined,
@@ -155,16 +158,44 @@ export function ItemForm(props: Props) {
 
         <FormField
           control={form.control}
-          name="unit"
+          name="stock_unit"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Unit *</FormLabel>
+              <FormLabel>Stock unit *</FormLabel>
               <SearchableSelect
                 options={unitOptions}
                 value={(field.value as string) || null}
                 onChange={field.onChange}
-                placeholder="Select unit"
+                placeholder="Select stock unit"
               />
+              <FormDescription>Unit you track stock in (e.g. meter, kg).</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name={'stock_conv_factor' as keyof (ItemCreate | ItemUpdate)}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Conversion factor *</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  placeholder="1"
+                  {...field}
+                  value={(field.value as number | string | undefined) ?? ''}
+                  onChange={(e) =>
+                    field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                  }
+                />
+              </FormControl>
+              <FormDescription>
+                How many stock units per received unit. Default 1 when received = stock.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

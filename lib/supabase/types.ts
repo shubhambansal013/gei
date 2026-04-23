@@ -231,6 +231,11 @@ export type Database = {
           id: string;
           name: string;
           reorder_level: number | null;
+          stock_conv_factor: number;
+          stock_unit: string;
+          /** @deprecated renamed to stock_unit; kept as a transitional
+           * alias so downstream callers still typecheck until they are
+           * migrated to `stock_unit` in the follow-up wave. */
           unit: string;
         };
         Insert: {
@@ -241,7 +246,8 @@ export type Database = {
           id?: string;
           name: string;
           reorder_level?: number | null;
-          unit: string;
+          stock_conv_factor?: number;
+          stock_unit: string;
         };
         Update: {
           category_id?: string | null;
@@ -251,7 +257,8 @@ export type Database = {
           id?: string;
           name?: string;
           reorder_level?: number | null;
-          unit?: string;
+          stock_conv_factor?: number;
+          stock_unit?: string;
         };
         Relationships: [
           {
@@ -262,8 +269,8 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'items_unit_fkey';
-            columns: ['unit'];
+            foreignKeyName: 'items_stock_unit_fkey';
+            columns: ['stock_unit'];
             isOneToOne: false;
             referencedRelation: 'units';
             referencedColumns: ['id'];
