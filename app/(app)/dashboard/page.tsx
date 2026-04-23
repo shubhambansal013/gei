@@ -23,6 +23,8 @@ export default async function DashboardPage() {
   const today = now.toISOString().slice(0, 10);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+
   const [
     { data: stock },
     { data: inwardMonth },
@@ -31,6 +33,7 @@ export default async function DashboardPage() {
     { data: consumption },
     { data: recentIn },
     { data: recentOut },
+    { data: costBasis },
   ] = await Promise.all([
     sb.from('stock_balance').select('site_id, item_id, current_stock').limit(5000),
     sb
@@ -57,7 +60,9 @@ export default async function DashboardPage() {
       .limit(2000),
     sb
       .from('purchases')
-      .select('id, receipt_date, received_qty, item:items(code, name, stock_unit)')
+      .select(
+        'id, receipt_date, received_qty, total_amount, item:items(id, code, name, stock_unit)',
+      )
       .eq('is_deleted', false)
       .order('receipt_date', { ascending: false })
       .limit(10),
@@ -67,6 +72,15 @@ export default async function DashboardPage() {
       .eq('is_deleted', false)
       .order('issue_date', { ascending: false })
       .limit(10),
+    // Last-90-days running average cost per item. Aggregated in-memory
+    // below. TODO(#17): moving-average is a stand-in; awaiting FIFO/WAC
+    // spec decision before we adopt the real costing method.
+    sb
+      .from('purchases')
+      .select('item_id, total_amount, stock_qty')
+      .gte('receipt_date', ninetyDaysAgo)
+      .eq('is_deleted', false)
+      .limit(10000),
   ]);
 
   // SKUs with positive stock
@@ -93,10 +107,31 @@ export default async function DashboardPage() {
     .sort((a, b) => a.current / a.reorder_level! - b.current / b.reorder_level!)
     .slice(0, 8);
 
+  // Running-average purchase rate per item over the last 90 days.
+  // avg = Σ total_amount / Σ stock_qty. Used as a read-only heuristic for
+  // display only — cost column is purely indicative until a proper
+  // costing method is chosen.
+  // TODO(#17): moving-average is a stand-in; awaiting FIFO/WAC spec decision.
+  const costAgg = new Map<string, { amount: number; qty: number }>();
+  for (const p of costBasis ?? []) {
+    if (!p.item_id) continue;
+    const amt = p.total_amount ?? 0;
+    const qty = p.stock_qty ?? 0;
+    if (qty <= 0) continue;
+    const prev = costAgg.get(p.item_id) ?? { amount: 0, qty: 0 };
+    prev.amount += amt;
+    prev.qty += qty;
+    costAgg.set(p.item_id, prev);
+  }
+  const avgCostByItem = new Map<string, number>();
+  for (const [id, v] of costAgg) {
+    if (v.qty > 0) avgCostByItem.set(id, v.amount / v.qty);
+  }
+
   // Top 10 items by outward qty over last 30 days
   const byItem = new Map<
     string,
-    { name: string; code: string; unit: string; qty: number; id: string }
+    { name: string; code: string; unit: string; qty: number; id: string; amount: number }
   >();
   for (const row of consumption ?? []) {
     const item = row.item;
@@ -107,8 +142,12 @@ export default async function DashboardPage() {
       code: item.code ?? '',
       unit: item.stock_unit,
       qty: 0,
+      amount: 0,
     };
-    prev.qty += row.qty ?? 0;
+    const q = row.qty ?? 0;
+    prev.qty += q;
+    const rate = avgCostByItem.get(item.id);
+    if (rate != null) prev.amount += q * rate;
     byItem.set(item.id, prev);
   }
   const topConsumption = [...byItem.values()].sort((a, b) => b.qty - a.qty).slice(0, 10);
@@ -123,6 +162,7 @@ export default async function DashboardPage() {
     itemCode: string;
     itemName: string;
     unit: string;
+    amount: number | null;
   };
   const recent: Recent[] = [
     ...(recentIn ?? []).map(
@@ -134,6 +174,7 @@ export default async function DashboardPage() {
         itemCode: p.item?.code ?? '',
         itemName: p.item?.name ?? '—',
         unit: p.item?.stock_unit ?? '',
+        amount: p.total_amount,
       }),
     ),
     ...(recentOut ?? []).map(
@@ -145,6 +186,9 @@ export default async function DashboardPage() {
         itemCode: i.item?.code ?? '',
         itemName: i.item?.name ?? '—',
         unit: i.item?.stock_unit ?? '',
+        // OUT rows show "—"; no costing method chosen yet.
+        // TODO(#17): once FIFO/WAC is decided, populate from cost-of-goods-issued.
+        amount: null,
       }),
     ),
   ]
@@ -237,7 +281,9 @@ export default async function DashboardPage() {
         <section className="bg-card rounded-md border p-5 shadow-sm">
           <header className="mb-3">
             <h2 className="text-sm font-semibold">Top 10 consumption (last 30 days)</h2>
-            <p className="text-muted-foreground text-xs">By issue qty</p>
+            <p className="text-muted-foreground text-xs">
+              By issue qty · amount @ 90-day running avg purchase rate
+            </p>
           </header>
           {topConsumption.length === 0 ? (
             <p className="text-muted-foreground text-sm">No issues recorded in the last 30 days.</p>
@@ -247,7 +293,7 @@ export default async function DashboardPage() {
                 <li key={c.id}>
                   <Link
                     href={`/inventory/item/${c.id}`}
-                    className="grid grid-cols-[1fr_auto] items-baseline gap-2 py-0.5 text-sm"
+                    className="grid grid-cols-[1fr_auto_auto] items-baseline gap-3 py-0.5 text-sm"
                   >
                     <div className="min-w-0 truncate">
                       <span className="text-muted-foreground font-mono text-xs">{c.code}</span>{' '}
@@ -255,6 +301,9 @@ export default async function DashboardPage() {
                     </div>
                     <div className="text-right font-mono text-xs tabular-nums">
                       {fmtNum(c.qty)} {c.unit}
+                    </div>
+                    <div className="text-muted-foreground w-24 text-right font-mono text-xs tabular-nums">
+                      {c.amount > 0 ? fmtINR(c.amount) : '—'}
                     </div>
                   </Link>
                   <div className="bg-primary/20 h-1 overflow-hidden rounded-full">
@@ -293,6 +342,7 @@ export default async function DashboardPage() {
                 <th className="py-1.5 text-left font-medium">Type</th>
                 <th className="py-1.5 text-left font-medium">Item</th>
                 <th className="py-1.5 text-right font-medium">Qty</th>
+                <th className="py-1.5 text-right font-medium">Amount</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -316,6 +366,9 @@ export default async function DashboardPage() {
                   </td>
                   <td className="py-1.5 text-right font-mono tabular-nums">
                     {fmtNum(r.qty)} {r.unit}
+                  </td>
+                  <td className="text-muted-foreground py-1.5 text-right font-mono tabular-nums">
+                    {r.amount != null ? fmtINR(r.amount) : '—'}
                   </td>
                 </tr>
               ))}
