@@ -16,7 +16,7 @@ export default async function PivotPage() {
     .from('issues')
     .select(
       `id, site_id, qty, issue_date,
-       item:items(id, code, name, unit),
+       item:items(id, code, name, stock_unit),
        party:parties(id, name),
        location:location_references(id, full_path, full_code),
        dest:sites!issues_dest_site_id_fkey(id, code, name)`,

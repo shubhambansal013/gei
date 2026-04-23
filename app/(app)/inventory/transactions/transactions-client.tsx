@@ -43,7 +43,7 @@ type PurchaseRow = {
   stock_qty: number | null;
   total_amount: number | null;
   invoice_no: string | null;
-  item: { id: string; code: string | null; name: string; unit: string } | null;
+  item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   vendor: { id: string; name: string } | null;
 };
 
@@ -53,7 +53,7 @@ type IssueRow = {
   qty: number;
   unit: string;
   issued_to: string | null;
-  item: { id: string; code: string | null; name: string; unit: string } | null;
+  item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   party: { id: string; name: string } | null;
   location: { id: string; full_path: string; full_code: string } | null;
   dest: { id: string; code: string; name: string } | null;
@@ -78,7 +78,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
       itemCode: p.item?.code ?? '',
       itemName: p.item?.name ?? '—',
       qty: p.received_qty,
-      unit: p.item?.unit ?? '',
+      unit: p.item?.stock_unit ?? '',
       party: p.vendor?.name ?? '',
       destination: p.vendor?.name ?? '',
       ref: p.invoice_no ?? '',

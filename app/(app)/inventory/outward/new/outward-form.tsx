@@ -10,7 +10,7 @@ import type { SearchableOption } from '@/components/searchable-select';
 import { createIssue } from './actions';
 
 type Site = { id: string; name: string; code: string };
-type Item = { id: string; name: string; code: string | null; unit: string };
+type Item = { id: string; name: string; code: string | null; stock_unit: string };
 type Party = { id: string; name: string; type: string };
 type LocationRef = { id: string; full_path: string; full_code: string; site_id: string };
 
@@ -84,7 +84,7 @@ export function IssueForm({ sites, items, parties, locations }: Props) {
   const itemOptions = items.map((i) => ({
     value: i.id,
     label: i.name,
-    sub: i.code ? `${i.code} · ${i.unit}` : i.unit,
+    sub: i.code ? `${i.code} · ${i.stock_unit}` : i.stock_unit,
   }));
 
   const onSubmit = (e: React.FormEvent) => {
@@ -98,7 +98,7 @@ export function IssueForm({ sites, items, parties, locations }: Props) {
       site_id: siteId,
       item_id: itemId,
       qty,
-      unit: selectedItem?.unit ?? '',
+      unit: selectedItem?.stock_unit ?? '',
       issued_to: issuedTo || null,
     };
     const payload =
@@ -158,7 +158,7 @@ export function IssueForm({ sites, items, parties, locations }: Props) {
         <div className="space-y-1.5">
           <Label>Unit</Label>
           <Input
-            value={selectedItem?.unit ?? ''}
+            value={selectedItem?.stock_unit ?? ''}
             readOnly
             className="bg-muted font-mono text-sm"
             tabIndex={-1}

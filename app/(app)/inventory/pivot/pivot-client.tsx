@@ -10,7 +10,7 @@ type IssueRow = {
   id: string;
   qty: number;
   issue_date: string;
-  item: { id: string; code: string | null; name: string; unit: string } | null;
+  item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   party: { id: string; name: string } | null;
   location: { id: string; full_path: string; full_code: string } | null;
   dest: { id: string; code: string; name: string } | null;
@@ -58,7 +58,7 @@ export function PivotClient({ issues }: Props) {
         const itemLabel = i.item?.name ?? '—';
         rowLabels.set(r.key, r.label);
         colLabels.set(itemId, itemLabel);
-        if (i.item?.unit) colUnit.set(itemId, i.item.unit);
+        if (i.item?.stock_unit) colUnit.set(itemId, i.item.stock_unit);
         const cellKey = `${r.key}|${itemId}`;
         cells.set(cellKey, (cells.get(cellKey) ?? 0) + i.qty);
         rowTotals.set(r.key, (rowTotals.get(r.key) ?? 0) + i.qty);

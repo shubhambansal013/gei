@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/empty-state';
 import { ChevronLeft } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-type Item = { id: string; name: string; code: string | null; unit: string };
+type Item = { id: string; name: string; code: string | null; stock_unit: string };
 
 type PurchaseRow = {
   id: string;
@@ -180,7 +180,7 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{item.name}</h1>
           <p className="text-muted-foreground mt-0.5 text-xs">
-            <span className="font-mono">{item.code ?? '—'}</span> · stock unit {item.unit}
+            <span className="font-mono">{item.code ?? '—'}</span> · stock unit {item.stock_unit}
           </p>
         </div>
         <div className="text-right">
@@ -188,7 +188,8 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
             Current stock
           </div>
           <div className="font-mono text-2xl font-semibold tabular-nums">
-            {currentStock.toLocaleString('en-IN')} <span className="text-sm">{item.unit}</span>
+            {currentStock.toLocaleString('en-IN')}{' '}
+            <span className="text-sm">{item.stock_unit}</span>
           </div>
         </div>
       </header>

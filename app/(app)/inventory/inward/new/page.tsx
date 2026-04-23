@@ -14,7 +14,7 @@ export default async function PurchaseNewPage() {
   const sb = await supabaseServer();
   const [{ data: sites }, { data: items }, { data: parties }] = await Promise.all([
     sb.from('sites').select('id, name, code').order('name'),
-    sb.from('items').select('id, name, code, unit').order('code'),
+    sb.from('items').select('id, name, code, stock_unit').order('code'),
     sb.from('parties').select('id, name, type').eq('type', 'SUPPLIER').order('name'),
   ]);
 

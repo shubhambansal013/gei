@@ -233,10 +233,6 @@ export type Database = {
           reorder_level: number | null;
           stock_conv_factor: number;
           stock_unit: string;
-          /** @deprecated renamed to stock_unit; kept as a transitional
-           * alias so downstream callers still typecheck until they are
-           * migrated to `stock_unit` in the follow-up wave. */
-          unit: string;
         };
         Insert: {
           category_id?: string | null;

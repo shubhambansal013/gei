@@ -45,22 +45,25 @@ export default async function DashboardPage() {
       .gte('issue_date', monthStartStr)
       .lte('issue_date', today)
       .eq('is_deleted', false),
-    sb.from('items').select('id, name, code, unit, reorder_level').not('reorder_level', 'is', null),
+    sb
+      .from('items')
+      .select('id, name, code, stock_unit, reorder_level')
+      .not('reorder_level', 'is', null),
     sb
       .from('issues')
-      .select('qty, item:items(id, code, name, unit)')
+      .select('qty, item:items(id, code, name, stock_unit)')
       .gte('issue_date', thirtyDaysAgo)
       .eq('is_deleted', false)
       .limit(2000),
     sb
       .from('purchases')
-      .select('id, receipt_date, received_qty, item:items(code, name, unit)')
+      .select('id, receipt_date, received_qty, item:items(code, name, stock_unit)')
       .eq('is_deleted', false)
       .order('receipt_date', { ascending: false })
       .limit(10),
     sb
       .from('issues')
-      .select('id, issue_date, qty, item:items(code, name, unit)')
+      .select('id, issue_date, qty, item:items(code, name, stock_unit)')
       .eq('is_deleted', false)
       .order('issue_date', { ascending: false })
       .limit(10),
@@ -102,7 +105,7 @@ export default async function DashboardPage() {
       id: item.id,
       name: item.name,
       code: item.code ?? '',
-      unit: item.unit,
+      unit: item.stock_unit,
       qty: 0,
     };
     prev.qty += row.qty ?? 0;
@@ -130,7 +133,7 @@ export default async function DashboardPage() {
         qty: p.received_qty,
         itemCode: p.item?.code ?? '',
         itemName: p.item?.name ?? '—',
-        unit: p.item?.unit ?? '',
+        unit: p.item?.stock_unit ?? '',
       }),
     ),
     ...(recentOut ?? []).map(
@@ -141,7 +144,7 @@ export default async function DashboardPage() {
         qty: i.qty,
         itemCode: i.item?.code ?? '',
         itemName: i.item?.name ?? '—',
-        unit: i.item?.unit ?? '',
+        unit: i.item?.stock_unit ?? '',
       }),
     ),
   ]
@@ -222,7 +225,7 @@ export default async function DashboardPage() {
                   <span className="ml-2 shrink-0 font-mono text-xs tabular-nums">
                     <span className="text-destructive font-semibold">{fmtNum(i.current)}</span>{' '}
                     <span className="text-muted-foreground">
-                      / {fmtNum(i.reorder_level ?? 0)} {i.unit}
+                      / {fmtNum(i.reorder_level ?? 0)} {i.stock_unit}
                     </span>
                   </span>
                 </li>

@@ -15,7 +15,7 @@ export default async function ItemLedgerPage({ params }: { params: Promise<{ id:
   const sb = await supabaseServer();
 
   const [{ data: item }, { data: purchases }, { data: issues }] = await Promise.all([
-    sb.from('items').select('id, name, code, unit').eq('id', id).maybeSingle(),
+    sb.from('items').select('id, name, code, stock_unit').eq('id', id).maybeSingle(),
     sb
       .from('purchases')
       .select(
