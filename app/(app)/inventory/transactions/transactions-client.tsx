@@ -52,11 +52,13 @@ type IssueRow = {
   issue_date: string;
   qty: number;
   unit: string;
-  issued_to: string | null;
+  issued_to_legacy: string | null;
+  worker_id: string | null;
   item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   party: { id: string; name: string } | null;
   location: { id: string; full_path: string; full_code: string } | null;
   dest: { id: string; code: string; name: string } | null;
+  worker: { id: string; code: string; full_name: string } | null;
 };
 
 type Props = { purchases: PurchaseRow[]; issues: IssueRow[] };
@@ -97,7 +99,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
         unit: i.unit,
         party: i.party?.name ?? '',
         destination: dest,
-        ref: i.issued_to ?? '',
+        ref: i.worker ? `${i.worker.full_name} (${i.worker.code})` : (i.issued_to_legacy ?? ''),
         amount: null,
       };
     });

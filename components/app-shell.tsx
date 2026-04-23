@@ -14,6 +14,7 @@ import {
   Grid3x3,
   Package,
   Users2,
+  HardHat,
   Building2,
   MapPin,
   UserCog,
@@ -41,6 +42,7 @@ const CORE_NAV: readonly NavItem[] = [
 const MASTERS_NAV: readonly NavItem[] = [
   { href: '/masters/items', label: 'Items', icon: Package },
   { href: '/masters/parties', label: 'Parties', icon: Users2 },
+  { href: '/masters/workers', label: 'Workers', icon: HardHat },
   { href: '/masters/sites', label: 'Sites', icon: Building2 },
   { href: '/masters/locations', label: 'Locations', icon: MapPin },
   { href: '/masters/users', label: 'Users', icon: UserCog },
