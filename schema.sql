@@ -271,27 +271,34 @@ SELECT 'VIEWER', m.id, 'VIEW' FROM modules m;
 
 
 CREATE TABLE profiles (
-  id         UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  full_name  TEXT NOT NULL,
-  phone      TEXT,
-  role_id    TEXT NOT NULL REFERENCES roles(id) DEFAULT 'VIEWER',
-  is_active  BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name   TEXT NOT NULL,
+  phone       TEXT,
+  role_id     TEXT NOT NULL REFERENCES roles(id) DEFAULT 'VIEWER',
+  -- New signups are inactive until admin approval. See
+  -- 20260423000002_signup_approval.sql.
+  is_active   BOOLEAN DEFAULT false,
+  approved_at TIMESTAMPTZ,
+  approved_by UUID REFERENCES profiles(id),
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  updated_at  TIMESTAMPTZ DEFAULT now()
 );
 
+-- Create the profile inactive — an admin flips the bit via the
+-- approveUser server action. See 20260423000002_signup_approval.sql.
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, full_name, role_id)
+  INSERT INTO profiles (id, full_name, role_id, is_active)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
-    'VIEWER'
+    'VIEWER',
+    false
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -641,6 +648,49 @@ CREATE POLICY "overrides_update_admin" ON site_user_permission_overrides
   WITH CHECK (is_admin_anywhere(auth.uid()));
 CREATE POLICY "overrides_delete_admin" ON site_user_permission_overrides
   FOR DELETE USING (is_admin_anywhere(auth.uid()));
+
+-- -----------------------------------------------------------------------
+-- Masters SELECT policies, post-Security-Wave-1 (20260423000002):
+-- authenticated AND is_active=true. Keeps the pre-approval pipeline
+-- from leaking the item / party catalog to new signups.
+-- -----------------------------------------------------------------------
+CREATE POLICY "items_select_all" ON items
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND is_active = true
+    )
+  );
+
+CREATE POLICY "parties_select_all" ON parties
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND is_active = true
+    )
+  );
+
+CREATE POLICY "sites_select_accessible" ON sites
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+       WHERE id = auth.uid()
+         AND role_id = 'SUPER_ADMIN'
+         AND is_active = true
+    )
+    OR (
+      EXISTS (
+        SELECT 1 FROM profiles
+         WHERE id = auth.uid() AND is_active = true
+      )
+      AND EXISTS (
+        SELECT 1 FROM site_user_access
+         WHERE user_id = auth.uid() AND site_id = sites.id
+      )
+    )
+  );
 
 
 -- =============================================================================

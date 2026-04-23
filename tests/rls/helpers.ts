@@ -39,9 +39,15 @@ export async function asUser(email: string): Promise<SupabaseClient> {
 /**
  * Overwrites the given user's global role. Use to shape a test subject
  * without touching `site_user_access`.
+ *
+ * Also marks the profile active. Security-Wave-1 migration
+ * `20260423000002_signup_approval.sql` defaults new signups to
+ * `is_active=false`, so without this flip every RLS test that assumes
+ * the user can act would start returning 42501. Tests that want to
+ * exercise the inactive path set `is_active` back to false explicitly.
  */
 export async function setGlobalRole(userId: string, roleId: string) {
-  await service().from('profiles').update({ role_id: roleId }).eq('id', userId);
+  await service().from('profiles').update({ role_id: roleId, is_active: true }).eq('id', userId);
 }
 
 /** Wipes rows inserted by a test — call in afterEach/afterAll blocks. */
