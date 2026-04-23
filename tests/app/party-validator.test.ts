@@ -46,4 +46,56 @@ describe('partyCreateSchema', () => {
       expect(typeError).toBeDefined();
     }
   });
+
+  it('accepts a valid short_code (2–8 uppercase alphanum)', () => {
+    const result = partyCreateSchema.safeParse({
+      name: 'ABC Corp',
+      type: 'SUPPLIER',
+      short_code: 'ABC12',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a null/absent short_code', () => {
+    const a = partyCreateSchema.safeParse({ name: 'X', type: 'SUPPLIER' });
+    const b = partyCreateSchema.safeParse({ name: 'X', type: 'SUPPLIER', short_code: null });
+    expect(a.success).toBe(true);
+    expect(b.success).toBe(true);
+  });
+
+  it('rejects a short_code shorter than 2 characters', () => {
+    const result = partyCreateSchema.safeParse({
+      name: 'X',
+      type: 'SUPPLIER',
+      short_code: 'A',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a short_code longer than 8 characters', () => {
+    const result = partyCreateSchema.safeParse({
+      name: 'X',
+      type: 'SUPPLIER',
+      short_code: 'ABCDEFGHI',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a short_code with lowercase letters', () => {
+    const result = partyCreateSchema.safeParse({
+      name: 'X',
+      type: 'SUPPLIER',
+      short_code: 'abc12',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a short_code with a hyphen', () => {
+    const result = partyCreateSchema.safeParse({
+      name: 'X',
+      type: 'SUPPLIER',
+      short_code: 'AB-12',
+    });
+    expect(result.success).toBe(false);
+  });
 });

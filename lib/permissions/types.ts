@@ -4,7 +4,7 @@
  * union drift would fail typecheck against the generated DB types.
  */
 
-export type ModuleId = 'INVENTORY' | 'DPR' | 'LABOUR' | 'LOCATION' | 'REPORTS';
+export type ModuleId = 'INVENTORY' | 'DPR' | 'LABOUR' | 'WORKERS' | 'LOCATION' | 'REPORTS';
 
 export type ActionId = 'VIEW' | 'CREATE' | 'EDIT' | 'DELETE' | 'EXPORT';
 
