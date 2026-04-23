@@ -86,8 +86,27 @@ pnpm dev                                          # http://localhost:3000
 | `pnpm e2e`        | Playwright                               |
 | `pnpm db:start`   | `supabase start`                         |
 | `pnpm db:reset`   | Re-apply all migrations from a clean DB  |
+| `pnpm db:diff`    | Generate a migration from schema drift   |
 
 Husky pre-commit runs `lint-staged` + `typecheck` on every commit.
+
+## Database schema workflow
+
+Canonical schema lives in `schema.sql` at the repo root; ordered migrations
+in `supabase/migrations/` are the executable shape applied to live
+databases. Keeping the two aligned is semi-automated.
+
+1. Edit `schema.sql` to reflect the desired end state.
+2. Apply it to your local Supabase (destructive — dev only):
+   `pnpm db:reset`.
+3. Generate a migration from the drift between migrations and the
+   current local DB: `pnpm db:diff --name add_foo_column`. This writes
+   `supabase/migrations/<timestamp>_add_foo_column.sql`.
+4. Inspect the generated SQL — `supabase db diff` is best-effort; edit
+   it by hand when it misses policies, functions, or defaults.
+5. Commit `schema.sql` and the new migration together.
+6. On another machine: `supabase migration up` applies the delta
+   without resetting the DB.
 
 ## Repo layout
 
