@@ -205,16 +205,16 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
       {rows.length === 0 ? (
         <EmptyState
           title="No movements yet"
-          description="Record an inward or outward for this item to see the ledger."
+          description="Record a purchase or issue for this item to see the ledger."
           action={
             <div className="flex gap-2">
               <Link href="/inventory/inward/new">
                 <Button variant="outline" type="button">
-                  + Inward
+                  + Purchase
                 </Button>
               </Link>
               <Link href="/inventory/outward/new">
-                <Button type="button">+ Outward</Button>
+                <Button type="button">+ Issue</Button>
               </Link>
             </div>
           }

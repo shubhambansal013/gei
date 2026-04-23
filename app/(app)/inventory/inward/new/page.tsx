@@ -1,5 +1,5 @@
 import { supabaseServer } from '@/lib/supabase/server';
-import { InwardForm } from './inward-form';
+import { PurchaseForm } from './inward-form';
 import { EmptyState } from '@/components/empty-state';
 
 /**
@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/empty-state';
  * as the SiteSwitcher does. A future improvement passes the
  * user-selected site from the Zustand store via a client wrapper.
  */
-export default async function InwardNewPage() {
+export default async function PurchaseNewPage() {
   const sb = await supabaseServer();
   const [{ data: sites }, { data: items }, { data: parties }] = await Promise.all([
     sb.from('sites').select('id, name, code').order('name'),
@@ -22,7 +22,7 @@ export default async function InwardNewPage() {
     return (
       <EmptyState
         title="No accessible sites"
-        description="Ask an admin for site access before recording inward."
+        description="Ask an admin for site access before recording a purchase."
       />
     );
   }
@@ -30,12 +30,12 @@ export default async function InwardNewPage() {
   return (
     <div className="max-w-xl space-y-4">
       <header>
-        <h1 className="text-xl font-semibold tracking-tight">New inward</h1>
+        <h1 className="text-xl font-semibold tracking-tight">New purchase</h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Record goods received from a supplier. Fields marked * are required.
         </p>
       </header>
-      <InwardForm sites={sites} items={items ?? []} suppliers={parties ?? []} />
+      <PurchaseForm sites={sites} items={items ?? []} suppliers={parties ?? []} />
     </div>
   );
 }

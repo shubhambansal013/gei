@@ -20,12 +20,12 @@ type Props = {
 };
 
 /**
- * Simple-mode inward entry form — 5 fields + a detailed-mode toggle
- * for rate, HSN, dates, manufacturer, part number. Uses native HTML
- * submit + useTransition to stream the server action and keep the
+ * Simple-mode purchase (inward) entry form — 5 fields + a detailed-mode
+ * toggle for rate, HSN, dates, manufacturer, part number. Uses native
+ * HTML submit + useTransition to stream the server action and keep the
  * button in a "Saving…" state until the response lands.
  */
-export function InwardForm({ sites, items, suppliers }: Props) {
+export function PurchaseForm({ sites, items, suppliers }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -68,7 +68,7 @@ export function InwardForm({ sites, items, suppliers }: Props) {
         supplier_part_no: detailed ? partNo || null : null,
       });
       if (res.ok) {
-        toast.success('Inward recorded.');
+        toast.success('Purchase recorded.');
         router.push('/inventory/transactions');
       } else {
         toast.error(res.error);
@@ -208,7 +208,7 @@ export function InwardForm({ sites, items, suppliers }: Props) {
       )}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? 'Saving…' : 'Record inward'}
+        {pending ? 'Saving…' : 'Record purchase'}
       </Button>
     </form>
   );

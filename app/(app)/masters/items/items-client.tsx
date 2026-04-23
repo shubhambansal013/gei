@@ -135,7 +135,7 @@ export function ItemsClient({ items, categories, units }: Props) {
         {filtered.length === 0 && !search.trim() ? (
           <EmptyState
             title="No items yet"
-            description="Create your first item to start recording inward."
+            description="Create your first item to start recording purchases."
             action={<Button onClick={openCreate}>+ New item</Button>}
           />
         ) : (

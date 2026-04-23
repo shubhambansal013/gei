@@ -21,8 +21,8 @@ import {
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/inventory/transactions', label: 'Transactions', icon: List },
-  { href: '/inventory/inward/new', label: 'Inward', icon: ArrowDownToLine },
-  { href: '/inventory/outward/new', label: 'Outward', icon: ArrowUpFromLine },
+  { href: '/inventory/inward/new', label: 'Purchase', icon: ArrowDownToLine },
+  { href: '/inventory/outward/new', label: 'Issue', icon: ArrowUpFromLine },
   { href: '/inventory/pivot', label: 'Pivot', icon: Grid3x3 },
   { href: '/masters/items', label: 'Items', icon: Package },
   { href: '/masters/parties', label: 'Parties', icon: Users2 },

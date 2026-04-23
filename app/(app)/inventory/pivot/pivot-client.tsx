@@ -116,7 +116,7 @@ export function PivotClient({ issues }: Props) {
       <header className="print:hide">
         <h1 className="text-xl font-semibold tracking-tight">Destination × item pivot</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Sum of outward qty by destination (rows) and item (columns). Date-range filter applies to
+          Sum of issue qty by destination (rows) and item (columns). Date-range filter applies to
           `issue_date`.
         </p>
       </header>
@@ -159,10 +159,10 @@ export function PivotClient({ issues }: Props) {
 
       {rowKeys.length === 0 || colKeys.length === 0 ? (
         <EmptyState
-          title="No outward movements"
+          title="No issues yet"
           description={
             issues.length === 0
-              ? 'Record an outward first; the pivot fills in as you issue material.'
+              ? 'Record an issue first; the pivot fills in as you issue material.'
               : 'Try widening the date range.'
           }
         />

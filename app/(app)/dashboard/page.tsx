@@ -166,7 +166,7 @@ export default async function DashboardPage() {
         aria-label="Key metrics"
         className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
       >
-        <Kpi label="Inward value" value={fmtINR(inwardValue)} sub="this month" icon={Wallet} />
+        <Kpi label="Purchase value" value={fmtINR(inwardValue)} sub="this month" icon={Wallet} />
         <Kpi
           label="SKUs in stock"
           value={fmtNum(skuCount)}
@@ -174,13 +174,13 @@ export default async function DashboardPage() {
           icon={Package}
         />
         <Kpi
-          label="Inward qty"
+          label="Purchase qty"
           value={fmtNum(Math.round(inwardQty))}
           sub="this month"
           icon={ArrowDownToLine}
         />
         <Kpi
-          label="Outward qty"
+          label="Issue qty"
           value={fmtNum(Math.round(outwardQty))}
           sub="this month"
           icon={ArrowUpFromLine}
@@ -234,12 +234,10 @@ export default async function DashboardPage() {
         <section className="bg-card rounded-md border p-5 shadow-sm">
           <header className="mb-3">
             <h2 className="text-sm font-semibold">Top 10 consumption (last 30 days)</h2>
-            <p className="text-muted-foreground text-xs">By outward qty</p>
+            <p className="text-muted-foreground text-xs">By issue qty</p>
           </header>
           {topConsumption.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              No outward movements in the last 30 days.
-            </p>
+            <p className="text-muted-foreground text-sm">No issues recorded in the last 30 days.</p>
           ) : (
             <ul className="space-y-1.5">
               {topConsumption.map((c) => (
@@ -282,7 +280,7 @@ export default async function DashboardPage() {
         {recent.length === 0 ? (
           <EmptyState
             title="No transactions yet"
-            description="Record an inward or outward to light this up."
+            description="Record a purchase or issue to light this up."
           />
         ) : (
           <table className="w-full text-sm">
