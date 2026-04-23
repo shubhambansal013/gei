@@ -532,6 +532,8 @@ export type Database = {
       };
       profiles: {
         Row: {
+          approved_at: string | null;
+          approved_by: string | null;
           created_at: string | null;
           full_name: string;
           id: string;
@@ -541,6 +543,8 @@ export type Database = {
           updated_at: string | null;
         };
         Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
           created_at?: string | null;
           full_name: string;
           id: string;
@@ -550,6 +554,8 @@ export type Database = {
           updated_at?: string | null;
         };
         Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
           created_at?: string | null;
           full_name?: string;
           id?: string;
@@ -559,6 +565,13 @@ export type Database = {
           updated_at?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'profiles_approved_by_fkey';
+            columns: ['approved_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'profiles_role_id_fkey';
             columns: ['role_id'];

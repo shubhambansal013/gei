@@ -1,6 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
+import { safeErrorMessage } from '@/lib/actions/errors';
 
 type SupabaseServerClient = Awaited<ReturnType<typeof supabaseServer>>;
 
@@ -38,9 +39,12 @@ export async function runAction<I, O>(
     const data = await body(parsed.data, sb);
     return { ok: true, data };
   } catch (e) {
+    // Never leak raw pg/RLS messages to clients. `safeErrorMessage`
+    // maps SQLSTATEs to user-safe copy and logs the full error to
+    // `console.error` for server-side debugging.
     return {
       ok: false,
-      error: e instanceof Error ? e.message : 'Unknown error',
+      error: safeErrorMessage(e),
     };
   }
 }
