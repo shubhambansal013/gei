@@ -27,9 +27,13 @@ describe('profile privilege escalation — non-admin cannot self-promote', () =>
     const e = await asUser(engineerEmail);
     const a = await asUser(adminEmail);
 
-    viewerId = (await v.auth.getUser()).data.user!.id;
-    engineerId = (await e.auth.getUser()).data.user!.id;
-    adminId = (await a.auth.getUser()).data.user!.id;
+    const { data: vUser } = await v.auth.getUser();
+    const { data: eUser } = await e.auth.getUser();
+    const { data: aUser } = await a.auth.getUser();
+
+    viewerId = vUser.user!.id;
+    engineerId = eUser.user!.id;
+    adminId = aUser.user!.id;
 
     // Admin is active SUPER_ADMIN; the other two are active at their
     // nominal role so they can read their own profile via RLS.

@@ -281,7 +281,7 @@ CREATE TABLE profiles (
 );
 
 CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   INSERT INTO profiles (id, full_name, role_id)
   VALUES (
@@ -291,7 +291,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -329,7 +329,7 @@ CREATE OR REPLACE FUNCTION can_user(
   p_module_id TEXT,
   p_action_id TEXT
 )
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_global_role_id TEXT;
   v_site_role_id   TEXT;
@@ -367,7 +367,7 @@ BEGIN
 
   RETURN v_permitted;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 
 -- =============================================================================
@@ -510,7 +510,7 @@ CREATE OR REPLACE FUNCTION resolve_location(
   p_site_id UUID,
   p_code    TEXT
 )
-RETURNS UUID AS $$
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_parts     TEXT[];
   v_unit_code TEXT;
@@ -567,7 +567,7 @@ BEGIN
 
   RETURN v_ref_id;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 
 -- =============================================================================

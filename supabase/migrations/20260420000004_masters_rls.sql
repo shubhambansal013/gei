@@ -3,10 +3,18 @@
 -- can SELECT. Only SUPER_ADMIN globally, or ADMIN on any site, can write.
 
 CREATE OR REPLACE FUNCTION is_admin_anywhere(p_user_id UUID)
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_role TEXT;
 BEGIN
+  IF current_user IN ('service_role', 'postgres', 'supabase_admin') THEN
+    RETURN true;
+  END IF;
+
+  IF p_user_id IS NULL THEN
+    RETURN false;
+  END IF;
+
   SELECT role_id INTO v_role FROM profiles
    WHERE id = p_user_id AND is_active = true;
   IF NOT FOUND THEN RETURN false; END IF;
@@ -17,7 +25,7 @@ BEGIN
      WHERE user_id = p_user_id AND role_id IN ('SUPER_ADMIN', 'ADMIN')
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 ALTER TABLE items    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parties  ENABLE ROW LEVEL SECURITY;

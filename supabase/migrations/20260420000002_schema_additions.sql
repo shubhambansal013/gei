@@ -11,12 +11,12 @@ ALTER TABLE purchases ADD COLUMN updated_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE issues    ADD COLUMN updated_at TIMESTAMPTZ DEFAULT now();
 
 CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   NEW.updated_at := now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 CREATE TRIGGER trg_purchases_updated_at
   BEFORE UPDATE ON purchases

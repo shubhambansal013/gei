@@ -37,7 +37,7 @@ UPDATE profiles
 -- bit and stamps approved_at/approved_by.
 -- -----------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   INSERT INTO public.profiles (id, full_name, role_id, is_active)
   VALUES (
@@ -48,7 +48,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 
 -- -----------------------------------------------------------------------
 -- Close the masters SELECT hole. The original policies from

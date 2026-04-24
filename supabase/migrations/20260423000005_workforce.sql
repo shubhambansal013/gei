@@ -91,12 +91,12 @@ CREATE INDEX workers_is_active_idx    ON workers(is_active);
 -- never supplies `code`; the trigger always overwrites any value so
 -- a malicious client cannot pick its own.
 CREATE OR REPLACE FUNCTION mint_worker_code()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   NEW.code := 'W-' || lpad(nextval('worker_code_seq')::text, 4, '0');
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+
 
 CREATE TRIGGER mint_worker_code_trg
   BEFORE INSERT ON workers
@@ -105,14 +105,14 @@ CREATE TRIGGER mint_worker_code_trg
 -- Code is immutable after mint — block updates to `code` regardless of
 -- the actor. (Even SUPER_ADMIN goes through this trigger.)
 CREATE OR REPLACE FUNCTION freeze_worker_code()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   IF NEW.code IS DISTINCT FROM OLD.code THEN
     RAISE EXCEPTION 'workers.code is immutable once minted';
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+
 
 CREATE TRIGGER freeze_worker_code_trg
   BEFORE UPDATE ON workers

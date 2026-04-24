@@ -31,9 +31,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Admin writes are unrestricted. Service role (auth.uid() IS NULL)
-  -- is also allowed to bypass this check.
-  IF auth.uid() IS NULL OR is_admin_anywhere(auth.uid()) THEN
+  -- Admin writes and service role are unrestricted (handled by profiles_update policies).
+  IF current_user IN ('service_role', 'postgres', 'supabase_admin') OR is_admin_anywhere(auth.uid()) THEN
     RETURN NEW;
   END IF;
 

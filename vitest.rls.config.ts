@@ -1,9 +1,5 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
-import * as dotenv from 'dotenv';
-
-// Load .env.local for RLS tests
-dotenv.config({ path: '.env.local' });
 
 /**
  * RLS suite config. Runs against a LIVE local Supabase instance —
@@ -17,6 +13,6 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/rls/**/*.test.ts'],
     testTimeout: 20_000,
-    setupFiles: [path.resolve(__dirname, 'vitest.setup.ts')],
+    setupFiles: ['dotenv/config'],
   },
 });

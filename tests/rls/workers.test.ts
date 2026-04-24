@@ -165,17 +165,14 @@ d('workers RLS', () => {
       .single();
     const { data: party } = await svc
       .from('parties')
-      .upsert(
-        { name: 'WRK RLS Contractor', type: 'CONTRACTOR', short_code: 'WRKRLS' },
-        { onConflict: 'short_code' },
-      )
+      .upsert({ name: 'WRK RLS Contractor', type: 'CONTRACTOR' }, { onConflict: 'name' })
       .select()
       .single();
 
     const { error } = await svc.from('worker_affiliations').insert({
       worker_id: w!.id,
       employment_type: 'DIRECT',
-      contractor_party_id: party!.id,
+      contractor_party_id: party?.id ?? null,
       effective_from: '2026-01-01',
     });
     expect(error).not.toBeNull();

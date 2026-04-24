@@ -40,7 +40,7 @@ CREATE POLICY "edit_log_select" ON inventory_edit_log
   );
 
 CREATE OR REPLACE FUNCTION log_inventory_edit()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_reason TEXT;
 BEGIN
@@ -60,7 +60,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 CREATE TRIGGER trg_purchases_audit
   AFTER UPDATE ON purchases
