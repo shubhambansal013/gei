@@ -140,7 +140,6 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
       header: 'Type',
       cell: ({ getValue }) => {
         const v = getValue() as 'PURCHASE' | 'ISSUE';
-        const label = v === 'PURCHASE' ? 'IN' : 'OUT';
         return (
           <Badge
             variant="outline"
@@ -150,7 +149,7 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
                 : 'border-emerald-500/50 bg-emerald-500/5 text-emerald-700'
             }
           >
-            {label}
+            {v}
           </Badge>
         );
       },
@@ -291,7 +290,7 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
                   : 'text-muted-foreground hover:bg-accent'
               }`}
             >
-              {t === 'PURCHASE' ? 'IN' : t === 'ISSUE' ? 'OUT' : 'ALL'}
+              {t}
             </button>
           ))}
         </div>
