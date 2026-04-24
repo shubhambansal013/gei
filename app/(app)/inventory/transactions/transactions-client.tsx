@@ -18,7 +18,7 @@ import { EditDialog, type EditTarget } from './edit-dialog';
 
 /**
  * A unified row shape that both purchases and issues flatten into.
- * `type: 'IN'` reads amber for purchases, `'OUT'` reads green for issues
+ * `type: 'PURCHASE'` reads amber for purchases, `'ISSUE'` reads green for issues
  * (semantic use of accent vs. chart-3).
  */
 type UnifiedRow = {
@@ -36,7 +36,7 @@ type UnifiedRow = {
   amount: number | null;
   receivedUnit?: string | null;
   convFactor?: number | null;
-  receivedQty?: number; // Only for IN
+  receivedQty?: number; // Only for PURCHASE
 };
 
 type PurchaseRow = {

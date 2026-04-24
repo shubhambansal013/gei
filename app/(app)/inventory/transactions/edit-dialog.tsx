@@ -54,7 +54,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
   const [pending, startTransition] = useTransition();
 
   const canSubmit = reason.trim().length > 0 && !pending;
-  const isIn = target?.type === 'PURCHASE';
+  const isPurchase = target?.type === 'PURCHASE';
 
   const handle = () => {
     if (!target || !canSubmit) return;
@@ -63,10 +63,10 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
       // the server action's omitUndefined helper so we avoid blowing over
       // columns the user didn't touch.
       const qtyChanged = qty !== String(target.currentQty);
-      const unitChanged = isIn && receivedUnit !== target.receivedUnit;
-      const factorChanged = isIn && convFactor !== String(target.convFactor);
+      const unitChanged = isPurchase && receivedUnit !== target.receivedUnit;
+      const factorChanged = isPurchase && convFactor !== String(target.convFactor);
       const refChanged = ref !== target.currentRef;
-      const payload = isIn
+      const payload = isPurchase
         ? {
             id: target.id,
             reason: reason.trim(),
@@ -81,7 +81,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
             ...(qtyChanged ? { qty } : {}),
             ...(refChanged ? { issued_to_legacy: ref || null } : {}),
           };
-      const res = isIn ? await editPurchase(payload) : await editIssue(payload);
+      const res = isPurchase ? await editPurchase(payload) : await editIssue(payload);
       if (res.ok) {
         toast.success('Saved. Audit log captured the reason.');
         onSuccess();
