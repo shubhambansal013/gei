@@ -141,7 +141,7 @@ export function PartyPicker({
             {!type && (
               <div className="grid gap-1.5">
                 <Label>Type *</Label>
-                <Select value={newType} onValueChange={setNewType}>
+                <Select value={newType} onValueChange={(v) => v && setNewType(v)}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
