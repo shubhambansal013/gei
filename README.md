@@ -185,7 +185,7 @@ See `docs/runbooks/deploy.md` for shipping to production.
 
 ## Deployment target
 
-- Frontend on Vercel.
+- Frontend on Cloudflare Workers (via `@opennextjs/cloudflare`).
 - Backend on Supabase Cloud (separate project per environment).
 - Runbook lands with Phase 3 under `docs/runbooks/deploy.md`.
 
