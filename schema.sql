@@ -9,6 +9,71 @@
 
 
 -- =============================================================================
+-- AUDIT LOG
+-- =============================================================================
+
+CREATE TABLE inventory_edit_log (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  table_name  TEXT NOT NULL CHECK (table_name IN ('purchases', 'issues')),
+  row_id      UUID NOT NULL,
+  changed_by  UUID REFERENCES profiles(id),
+  changed_at  TIMESTAMPTZ DEFAULT now(),
+  reason      TEXT,
+  before_data JSONB NOT NULL,
+  after_data  JSONB NOT NULL
+);
+
+CREATE INDEX idx_edit_log_table_row   ON inventory_edit_log(table_name, row_id);
+CREATE INDEX idx_edit_log_changed_at  ON inventory_edit_log(changed_at DESC);
+
+ALTER TABLE inventory_edit_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "edit_log_select" ON inventory_edit_log
+  FOR SELECT USING (
+    (
+      table_name = 'purchases'
+      AND EXISTS (
+        SELECT 1 FROM purchases p
+        WHERE p.id = row_id
+          AND can_user(auth.uid(), p.site_id, 'INVENTORY', 'VIEW')
+      )
+    )
+    OR
+    (
+      table_name = 'issues'
+      AND EXISTS (
+        SELECT 1 FROM issues i
+        WHERE i.id = row_id
+          AND can_user(auth.uid(), i.site_id, 'INVENTORY', 'VIEW')
+      )
+    )
+  );
+
+CREATE OR REPLACE FUNCTION log_inventory_edit()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_reason TEXT;
+BEGIN
+  -- current_setting with missing_ok=true returns '' if not set.
+  v_reason := current_setting('app.edit_reason', true);
+
+  INSERT INTO inventory_edit_log (
+    table_name, row_id, changed_by, reason, before_data, after_data
+  )
+  VALUES (
+    TG_TABLE_NAME,
+    NEW.id,
+    auth.uid(),
+    NULLIF(v_reason, ''),
+    to_jsonb(OLD),
+    to_jsonb(NEW)
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- =============================================================================
 -- ENUMS
 -- =============================================================================
 
@@ -386,6 +451,44 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+CREATE OR REPLACE FUNCTION public.is_admin_anywhere(p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  SELECT role_id INTO v_role FROM profiles
+   WHERE id = p_user_id AND is_active = true;
+  IF NOT FOUND THEN RETURN false; END IF;
+  IF v_role = 'SUPER_ADMIN' THEN RETURN true; END IF;
+
+  RETURN EXISTS (
+    SELECT 1 FROM site_user_access
+     WHERE user_id = p_user_id AND role_id IN ('SUPER_ADMIN', 'ADMIN')
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_admin_on_site(p_user_id UUID, p_site_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM profiles
+     WHERE id = p_user_id AND is_active = true AND role_id = 'SUPER_ADMIN'
+  ) OR EXISTS (
+    SELECT 1 FROM site_user_access
+     WHERE user_id = p_user_id AND site_id = p_site_id AND role_id IN ('SUPER_ADMIN', 'ADMIN')
+  );
+END;
+$$;
+
 
 -- =============================================================================
 -- PURCHASES
@@ -488,6 +591,14 @@ CREATE TABLE issues (
     worker_id IS NOT NULL OR issued_to_legacy IS NOT NULL
   )
 );
+
+CREATE TRIGGER trg_purchases_audit
+  AFTER UPDATE ON purchases
+  FOR EACH ROW EXECUTE FUNCTION log_inventory_edit();
+
+CREATE TRIGGER trg_issues_audit
+  AFTER UPDATE ON issues
+  FOR EACH ROW EXECUTE FUNCTION log_inventory_edit();
 
 
 -- =============================================================================
@@ -758,6 +869,32 @@ CREATE INDEX wa_open_idx       ON worker_affiliations(worker_id)
 -- BEFORE UPDATE: raise if NEW.code <> OLD.code.
 -- RLS policies follow the can_user(..., 'WORKERS', ...) pattern for
 -- writes; reads require is_active AND (admin-anywhere OR site access).
+
+ALTER TABLE workers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE worker_site_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE worker_affiliations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "workers_select" ON workers
+  FOR SELECT USING (is_admin_on_site(auth.uid(), current_site_id) OR can_user(auth.uid(), current_site_id, 'WORKERS', 'VIEW'));
+
+CREATE POLICY "workers_insert" ON workers
+  FOR INSERT WITH CHECK (can_user(auth.uid(), current_site_id, 'WORKERS', 'CREATE'));
+
+CREATE POLICY "workers_update" ON workers
+  FOR UPDATE USING (can_user(auth.uid(), current_site_id, 'WORKERS', 'EDIT'));
+
+CREATE POLICY "wsa_select" ON worker_site_assignments
+  FOR SELECT USING (is_admin_on_site(auth.uid(), site_id) OR can_user(auth.uid(), site_id, 'WORKERS', 'VIEW'));
+
+CREATE POLICY "wsa_insert" ON worker_site_assignments
+  FOR INSERT WITH CHECK (is_admin_on_site(auth.uid(), site_id) OR can_user(auth.uid(), site_id, 'WORKERS', 'EDIT'));
+
+CREATE POLICY "wa_select" ON worker_affiliations
+  FOR SELECT USING (is_admin_anywhere(auth.uid()) OR EXISTS (
+    SELECT 1 FROM worker_site_assignments wsa
+    WHERE wsa.worker_id = worker_affiliations.worker_id
+    AND (is_admin_on_site(auth.uid(), wsa.site_id) OR can_user(auth.uid(), wsa.site_id, 'WORKERS', 'VIEW'))
+  ));
 
 
 -- =============================================================================
