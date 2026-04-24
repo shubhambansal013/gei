@@ -53,12 +53,17 @@ describe('AppShell Navigation', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (usePathname as any).mockReturnValue('/dashboard');
-    (createCan as any).mockReturnValue(mockCan);
+    vi.mocked(usePathname).mockReturnValue('/dashboard');
+    vi.mocked(createCan).mockReturnValue(mockCan);
   });
 
   it('renders Dashboard always', async () => {
-    (useSiteStore as any).mockReturnValue({ currentSite: { id: 'site-1' } });
+    vi.mocked(useSiteStore).mockReturnValue({
+      currentSite: { id: 'site-1', name: 'Site 1', code: 'S1' },
+      sites: [],
+      setCurrentSite: vi.fn(),
+      setSites: vi.fn(),
+    });
     mockCan.mockResolvedValue(false);
 
     render(<AppShell>Content</AppShell>);
@@ -67,7 +72,12 @@ describe('AppShell Navigation', () => {
   });
 
   it('shows Inventory section if user has permissions', async () => {
-    (useSiteStore as any).mockReturnValue({ currentSite: { id: 'site-1' } });
+    vi.mocked(useSiteStore).mockReturnValue({
+      currentSite: { id: 'site-1', name: 'Site 1', code: 'S1' },
+      sites: [],
+      setCurrentSite: vi.fn(),
+      setSites: vi.fn(),
+    });
     mockCan.mockImplementation(async ({ module }) => {
       return module === 'INVENTORY';
     });
@@ -83,7 +93,12 @@ describe('AppShell Navigation', () => {
   });
 
   it('hides Reports section if user has no permissions', async () => {
-    (useSiteStore as any).mockReturnValue({ currentSite: { id: 'site-1' } });
+    vi.mocked(useSiteStore).mockReturnValue({
+      currentSite: { id: 'site-1', name: 'Site 1', code: 'S1' },
+      sites: [],
+      setCurrentSite: vi.fn(),
+      setSites: vi.fn(),
+    });
     mockCan.mockResolvedValue(false);
 
     render(<AppShell>Content</AppShell>);
@@ -95,7 +110,12 @@ describe('AppShell Navigation', () => {
   });
 
   it('shows Reports section if user has permissions', async () => {
-    (useSiteStore as any).mockReturnValue({ currentSite: { id: 'site-1' } });
+    vi.mocked(useSiteStore).mockReturnValue({
+      currentSite: { id: 'site-1', name: 'Site 1', code: 'S1' },
+      sites: [],
+      setCurrentSite: vi.fn(),
+      setSites: vi.fn(),
+    });
     mockCan.mockImplementation(async ({ module }) => {
       return module === 'REPORTS';
     });
