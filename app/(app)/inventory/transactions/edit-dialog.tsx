@@ -103,7 +103,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="edit-qty">{isPurchase ? 'Received Qty' : 'Qty'}</Label>
               <Input
@@ -134,7 +134,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
           </div>
 
           {isPurchase && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="edit-factor">Conv. Factor</Label>
                 <Input

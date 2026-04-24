@@ -54,8 +54,8 @@ export function DataGrid<T>({
   }
 
   return (
-    <div className="overflow-auto">
-      <table className="excel-grid w-full border-collapse">
+    <div className="w-full overflow-auto">
+      <table className="excel-grid min-w-full border-collapse">
         <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>

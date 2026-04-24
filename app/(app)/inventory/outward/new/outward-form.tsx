@@ -142,7 +142,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
         />
       </div>
 
-      <div className="grid grid-cols-[1fr_100px] gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_100px]">
         <div className="space-y-1.5">
           <Label htmlFor="qty">Qty *</Label>
           <Input

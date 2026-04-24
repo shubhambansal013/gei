@@ -45,9 +45,9 @@ export function MasterShell<T>({
           placeholder={`Search ${title}...`}
           value={search}
           onChange={(e) => onSearch(e.target.value)}
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
         />
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
           <ExportButton filename={exportFile} columns={exportCols} rows={exportRows} />
           <PrintButton />
           {canCreate && (

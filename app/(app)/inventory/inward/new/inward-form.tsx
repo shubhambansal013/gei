@@ -128,7 +128,7 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="qty">Received Qty *</Label>
           <Input
@@ -153,7 +153,7 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="convFactor">Conv. Factor *</Label>
           <Input
@@ -208,7 +208,7 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
       </p>
 
       <div className="bg-muted/30 space-y-3 rounded-md border p-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="rate">Rate (₹/unit)</Label>
             <Input
@@ -235,7 +235,7 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
             onChange={(e) => setInvoiceDate(e.target.value)}
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="mfg">Manufacturer</Label>
             <Input

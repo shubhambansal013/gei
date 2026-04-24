@@ -195,7 +195,7 @@
 }
 .excel-grid th,
 .excel-grid td {
-  @apply border-border border px-2 py-1;
+  @apply border-border border px-2 py-1.5 sm:py-1;
 }
 .excel-grid thead th {
   @apply bg-muted text-foreground sticky top-0 z-10 text-left font-semibold;
