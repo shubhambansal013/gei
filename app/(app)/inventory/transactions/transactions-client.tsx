@@ -23,7 +23,7 @@ import { EditDialog, type EditTarget } from './edit-dialog';
  */
 type UnifiedRow = {
   id: string;
-  type: 'IN' | 'OUT';
+  type: 'PURCHASE' | 'ISSUE';
   date: string;
   itemId: string;
   itemCode: string;
@@ -74,14 +74,17 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'IN' | 'OUT' } | null>(null);
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'PURCHASE' | 'ISSUE'>('ALL');
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    type: 'PURCHASE' | 'ISSUE';
+  } | null>(null);
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
 
   const rows = useMemo<UnifiedRow[]>(() => {
     const inRows: UnifiedRow[] = purchases.map((p) => ({
       id: p.id,
-      type: 'IN',
+      type: 'PURCHASE',
       date: p.receipt_date,
       itemId: p.item?.id ?? '',
       itemCode: p.item?.code ?? '',
@@ -100,7 +103,7 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
       const dest = i.location?.full_path ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : '—');
       return {
         id: i.id,
-        type: 'OUT',
+        type: 'ISSUE',
         date: i.issue_date,
         itemId: i.item?.id ?? '',
         itemCode: i.item?.code ?? '',
@@ -136,17 +139,18 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
       accessorKey: 'type',
       header: 'Type',
       cell: ({ getValue }) => {
-        const v = getValue() as 'IN' | 'OUT';
+        const v = getValue() as 'PURCHASE' | 'ISSUE';
+        const label = v === 'PURCHASE' ? 'IN' : 'OUT';
         return (
           <Badge
             variant="outline"
             className={
-              v === 'IN'
+              v === 'PURCHASE'
                 ? 'border-primary/50 text-primary bg-primary/5'
                 : 'border-emerald-500/50 bg-emerald-500/5 text-emerald-700'
             }
           >
-            {v}
+            {label}
           </Badge>
         );
       },
@@ -173,7 +177,12 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
       header: 'Qty',
       cell: ({ row }) => {
         const r = row.original;
-        if (r.type === 'IN' && r.receivedUnit && r.receivedQty != null && r.receivedUnit !== r.unit) {
+        if (
+          r.type === 'PURCHASE' &&
+          r.receivedUnit &&
+          r.receivedQty != null &&
+          r.receivedUnit !== r.unit
+        ) {
           return (
             <div className="flex flex-col items-end">
               <span className="tabular-nums font-medium">{r.qty}</span>
@@ -212,7 +221,8 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
               setEditTarget({
                 id: row.original.id,
                 type: row.original.type,
-                currentQty: row.original.type === 'IN' ? row.original.receivedQty! : row.original.qty,
+                currentQty:
+                  row.original.type === 'PURCHASE' ? row.original.receivedQty! : row.original.qty,
                 currentRef: row.original.ref,
                 receivedUnit: row.original.receivedUnit ?? null,
                 convFactor: row.original.convFactor ?? null,
@@ -270,7 +280,7 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
           className="max-w-xs"
         />
         <div className="flex gap-1 rounded-sm border p-0.5">
-          {(['ALL', 'IN', 'OUT'] as const).map((t) => (
+          {(['ALL', 'PURCHASE', 'ISSUE'] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -281,7 +291,7 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
                   : 'text-muted-foreground hover:bg-accent'
               }`}
             >
-              {t}
+              {t === 'PURCHASE' ? 'IN' : t === 'ISSUE' ? 'OUT' : 'ALL'}
             </button>
           ))}
         </div>
@@ -326,7 +336,7 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
         confirmLabel="Delete"
         onConfirm={async (reason) => {
           if (!deleteTarget || !reason) return;
-          const fn = deleteTarget.type === 'IN' ? softDeletePurchase : softDeleteIssue;
+          const fn = deleteTarget.type === 'PURCHASE' ? softDeletePurchase : softDeleteIssue;
           const res = await fn({ id: deleteTarget.id, reason });
           if (res.ok) {
             toast.success('Transaction deleted.');

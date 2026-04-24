@@ -17,7 +17,7 @@ import { editPurchase, editIssue } from './actions';
 
 export type EditTarget = {
   id: string;
-  type: 'IN' | 'OUT';
+  type: 'PURCHASE' | 'ISSUE';
   currentQty: number;
   currentRef: string;
   receivedUnit?: string | null;
@@ -54,7 +54,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
   const [pending, startTransition] = useTransition();
 
   const canSubmit = reason.trim().length > 0 && !pending;
-  const isIn = target?.type === 'IN';
+  const isIn = target?.type === 'PURCHASE';
 
   const handle = () => {
     if (!target || !canSubmit) return;
@@ -95,17 +95,17 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit {isIn ? 'purchase' : 'issue'} transaction</DialogTitle>
+          <DialogTitle>Edit {isPurchase ? 'purchase' : 'issue'} transaction</DialogTitle>
           <p className="text-muted-foreground text-sm">
-            Only qty and {isIn ? 'invoice #' : 'issued-to'} can be edited inline. For destination
-            changes, soft-delete and re-enter.
+            Only qty and {isPurchase ? 'invoice #' : 'issued-to'} can be edited inline. For
+            destination changes, soft-delete and re-enter.
           </p>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="edit-qty">{isIn ? 'Received Qty' : 'Qty'}</Label>
+              <Label htmlFor="edit-qty">{isPurchase ? 'Received Qty' : 'Qty'}</Label>
               <Input
                 id="edit-qty"
                 type="number"
@@ -116,7 +116,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
                 className="font-mono tabular-nums"
               />
             </div>
-            {isIn && (
+            {isPurchase && (
               <div className="space-y-1.5">
                 <Label htmlFor="edit-unit">Received Unit</Label>
                 <SearchableSelect
@@ -133,7 +133,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
             )}
           </div>
 
-          {isIn && (
+          {isPurchase && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="edit-factor">Conv. Factor</Label>
@@ -159,7 +159,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="edit-ref">{isIn ? 'Invoice #' : 'Issued to'}</Label>
+            <Label htmlFor="edit-ref">{isPurchase ? 'Invoice #' : 'Issued to'}</Label>
             <Input id="edit-ref" value={ref} onChange={(e) => setRef(e.target.value)} />
           </div>
 
