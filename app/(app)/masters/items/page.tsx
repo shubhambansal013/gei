@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import { supabaseServer } from '@/lib/supabase/server';
 import { ItemsClient } from './items-client';
 

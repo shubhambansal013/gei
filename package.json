@@ -22,6 +22,7 @@
     "db:reset": "supabase db reset",
     "db:migrate": "supabase migration up --local",
     "db:diff": "supabase db diff -f",
+    "pages:build": "pnpm next-on-pages",
     "prepare": "husky"
   },
   "dependencies": {
@@ -48,6 +49,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

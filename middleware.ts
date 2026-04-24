@@ -1,3 +1,4 @@
+export const runtime = "experimental-edge";
 import { type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
@@ -6,7 +7,7 @@ import { updateSession } from '@/lib/supabase/middleware';
  * Supabase session cookie on every request and redirects unauthenticated
  * traffic to `/login`. See `lib/supabase/middleware.ts` for the body.
  */
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   return updateSession(request);
 }
 

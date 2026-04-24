@@ -1,4 +1,5 @@
 'use client';
+export const runtime = "edge";
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { Button } from '@/components/ui/button';
 

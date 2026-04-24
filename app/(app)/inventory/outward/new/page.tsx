@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import { supabaseServer } from '@/lib/supabase/server';
 import { IssueForm } from './outward-form';
 import { EmptyState } from '@/components/empty-state';
