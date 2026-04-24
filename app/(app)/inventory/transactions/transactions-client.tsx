@@ -61,7 +61,7 @@ type IssueRow = {
   worker_id: string | null;
   item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   party: { id: string; name: string } | null;
-  location: { id: string; full_path: string; full_code: string } | null;
+  location: { id: string; name: string; code: string } | null;
   dest: { id: string; code: string; name: string } | null;
   worker: { id: string; code: string; full_name: string } | null;
 };
@@ -100,7 +100,7 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
       receivedQty: p.received_qty,
     }));
     const outRows: UnifiedRow[] = issues.map((i) => {
-      const dest = i.location?.full_path ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : '—');
+      const dest = i.location?.name ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : '—');
       return {
         id: i.id,
         type: 'ISSUE',

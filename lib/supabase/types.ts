@@ -97,7 +97,7 @@ export type Database = {
           issue_date: string;
           issued_to_legacy: string | null;
           item_id: string;
-          location_ref_id: string | null;
+          location_unit_id: string | null;
           party_id: string | null;
           qty: number;
           rate: number | null;
@@ -119,7 +119,7 @@ export type Database = {
           issue_date?: string;
           issued_to_legacy?: string | null;
           item_id: string;
-          location_ref_id?: string | null;
+          location_unit_id?: string | null;
           party_id?: string | null;
           qty: number;
           rate?: number | null;
@@ -141,7 +141,7 @@ export type Database = {
           issue_date?: string;
           issued_to_legacy?: string | null;
           item_id?: string;
-          location_ref_id?: string | null;
+          location_unit_id?: string | null;
           party_id?: string | null;
           qty?: number;
           rate?: number | null;
@@ -181,10 +181,10 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'issues_location_ref_id_fkey';
-            columns: ['location_ref_id'];
+            foreignKeyName: 'issues_location_unit_id_fkey';
+            columns: ['location_unit_id'];
             isOneToOne: false;
-            referencedRelation: 'location_references';
+            referencedRelation: 'location_units';
             referencedColumns: ['id'];
           },
           {
@@ -280,131 +280,6 @@ export type Database = {
           },
         ];
       };
-      location_references: {
-        Row: {
-          created_at: string | null;
-          full_code: string;
-          full_path: string;
-          id: string;
-          site_id: string;
-          template_node_id: string | null;
-          unit_id: string;
-        };
-        Insert: {
-          created_at?: string | null;
-          full_code: string;
-          full_path: string;
-          id?: string;
-          site_id: string;
-          template_node_id?: string | null;
-          unit_id: string;
-        };
-        Update: {
-          created_at?: string | null;
-          full_code?: string;
-          full_path?: string;
-          id?: string;
-          site_id?: string;
-          template_node_id?: string | null;
-          unit_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'location_references_site_id_fkey';
-            columns: ['site_id'];
-            isOneToOne: false;
-            referencedRelation: 'sites';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'location_references_template_node_id_fkey';
-            columns: ['template_node_id'];
-            isOneToOne: false;
-            referencedRelation: 'location_template_nodes';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'location_references_unit_id_fkey';
-            columns: ['unit_id'];
-            isOneToOne: false;
-            referencedRelation: 'location_units';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      location_template_nodes: {
-        Row: {
-          code: string;
-          id: string;
-          name: string;
-          parent_id: string | null;
-          position: number | null;
-          template_id: string;
-          type: string;
-        };
-        Insert: {
-          code: string;
-          id?: string;
-          name: string;
-          parent_id?: string | null;
-          position?: number | null;
-          template_id: string;
-          type: string;
-        };
-        Update: {
-          code?: string;
-          id?: string;
-          name?: string;
-          parent_id?: string | null;
-          position?: number | null;
-          template_id?: string;
-          type?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'location_template_nodes_parent_id_fkey';
-            columns: ['parent_id'];
-            isOneToOne: false;
-            referencedRelation: 'location_template_nodes';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'location_template_nodes_template_id_fkey';
-            columns: ['template_id'];
-            isOneToOne: false;
-            referencedRelation: 'location_templates';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'location_template_nodes_type_fkey';
-            columns: ['type'];
-            isOneToOne: false;
-            referencedRelation: 'location_types';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      location_templates: {
-        Row: {
-          created_at: string | null;
-          description: string | null;
-          id: string;
-          name: string;
-        };
-        Insert: {
-          created_at?: string | null;
-          description?: string | null;
-          id?: string;
-          name: string;
-        };
-        Update: {
-          created_at?: string | null;
-          description?: string | null;
-          id?: string;
-          name?: string;
-        };
-        Relationships: [];
-      };
       location_types: {
         Row: {
           id: string;
@@ -425,27 +300,21 @@ export type Database = {
           code: string;
           id: string;
           name: string;
-          position: number | null;
           site_id: string;
-          template_id: string | null;
           type: string;
         };
         Insert: {
           code: string;
           id?: string;
           name: string;
-          position?: number | null;
           site_id: string;
-          template_id?: string | null;
           type: string;
         };
         Update: {
           code?: string;
           id?: string;
           name?: string;
-          position?: number | null;
           site_id?: string;
-          template_id?: string | null;
           type?: string;
         };
         Relationships: [
@@ -454,13 +323,6 @@ export type Database = {
             columns: ['site_id'];
             isOneToOne: false;
             referencedRelation: 'sites';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'location_units_template_id_fkey';
-            columns: ['template_id'];
-            isOneToOne: false;
-            referencedRelation: 'location_templates';
             referencedColumns: ['id'];
           },
           {
@@ -1165,10 +1027,6 @@ export type Database = {
         Returns: boolean;
       };
       is_admin_anywhere: { Args: { p_user_id: string }; Returns: boolean };
-      resolve_location: {
-        Args: { p_code: string; p_site_id: string };
-        Returns: string;
-      };
     };
     Enums: {
       employment_type: 'DIRECT' | 'CONTRACTOR_EMPLOYEE' | 'SUBCONTRACTOR_LENT';

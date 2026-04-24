@@ -18,7 +18,7 @@ export default async function PivotPage() {
       `id, site_id, qty, issue_date,
        item:items(id, code, name, stock_unit),
        party:parties(id, name),
-       location:location_references(id, full_path, full_code),
+       location:location_units(id, name, code),
        dest:sites!issues_dest_site_id_fkey(id, code, name)`,
     )
     .eq('is_deleted', false)

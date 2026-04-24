@@ -1,6 +1,6 @@
 /**
- * RLS coverage for location_units, location_references, and
- * site_user_permission_overrides. Before Security Wave 1, these three
+ * RLS coverage for location_units and
+ * site_user_permission_overrides. Before Security Wave 1, these
  * tables had RLS enabled but no write policies (or — for overrides —
  * RLS not enabled at all), so even SUPER_ADMIN got SQLSTATE 42501 on
  * INSERT.
@@ -8,9 +8,6 @@
  * These tests assert:
  *   - SUPER_ADMIN / ADMIN can INSERT/UPDATE/DELETE location_units.
  *   - Non-admin global roles cannot write.
- *   - location_references: SUPER_ADMIN / ADMIN can INSERT (the
- *     `resolve_location` RPC also inserts, but through SECURITY
- *     DEFINER — the direct-client path also needs to work).
  *   - site_user_permission_overrides: admins can INSERT/UPDATE/DELETE,
  *     non-admins cannot.
  *
@@ -120,72 +117,6 @@ describe('location_units — admin writes', () => {
       .eq('id', seeded!.id)
       .maybeSingle();
     expect(still).toBeNull();
-  });
-});
-
-describe('location_references — admin writes', () => {
-  const uniq = `LR-${Date.now()}`;
-  let siteId = '';
-  let unitId = '';
-
-  beforeAll(async () => {
-    const svc = service();
-    const { data: site } = await svc
-      .from('sites')
-      .insert({ code: `S-${uniq}`, name: 'LR admin write test' })
-      .select()
-      .single();
-    siteId = site!.id;
-    const { data: unit } = await svc
-      .from('location_units')
-      .insert({
-        site_id: siteId,
-        name: 'LR Block',
-        code: `LRB-${uniq}`,
-        type: 'BLOCK',
-      })
-      .select()
-      .single();
-    unitId = unit!.id;
-  });
-
-  afterAll(async () => {
-    const svc = service();
-    await svc.from('location_references').delete().eq('site_id', siteId);
-    await svc.from('location_units').delete().eq('site_id', siteId);
-    await svc.from('sites').delete().eq('id', siteId);
-  });
-
-  it('SUPER_ADMIN can INSERT a location_reference', async () => {
-    const u = await asUser('lr-sa@test.local');
-    const { data: who } = await u.auth.getUser();
-    await setGlobalRole(who.user!.id, 'SUPER_ADMIN');
-
-    const res = await u
-      .from('location_references')
-      .insert({
-        site_id: siteId,
-        unit_id: unitId,
-        full_path: 'LR Block',
-        full_code: `LRB-${uniq}`,
-      })
-      .select()
-      .single();
-    expect(res.error).toBeNull();
-  });
-
-  it('VIEWER cannot INSERT a location_reference', async () => {
-    const u = await asUser('lr-viewer@test.local');
-    const { data: who } = await u.auth.getUser();
-    await setGlobalRole(who.user!.id, 'VIEWER');
-
-    const res = await u.from('location_references').insert({
-      site_id: siteId,
-      unit_id: unitId,
-      full_path: 'Denied',
-      full_code: `DENY-${uniq}`,
-    });
-    expect(res.error).not.toBeNull();
   });
 });
 

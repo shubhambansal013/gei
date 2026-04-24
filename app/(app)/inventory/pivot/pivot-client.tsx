@@ -12,14 +12,14 @@ type IssueRow = {
   issue_date: string;
   item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   party: { id: string; name: string } | null;
-  location: { id: string; full_path: string; full_code: string } | null;
+  location: { id: string; name: string; code: string } | null;
   dest: { id: string; code: string; name: string } | null;
 };
 
 type Props = { issues: IssueRow[] };
 
 function destKey(i: IssueRow): { key: string; label: string } {
-  if (i.location) return { key: `L:${i.location.id}`, label: i.location.full_path };
+  if (i.location) return { key: `L:${i.location.id}`, label: i.location.name };
   if (i.party) return { key: `P:${i.party.id}`, label: i.party.name };
   if (i.dest) return { key: `S:${i.dest.id}`, label: `Site ${i.dest.code}` };
   return { key: 'U', label: '—' };
