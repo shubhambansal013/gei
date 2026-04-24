@@ -1,6 +1,5 @@
 'use client';
 import { useState, useTransition, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +33,6 @@ type Props = {
  * to a plain Input that flows into issued_to_legacy.
  */
 export function IssueForm({ sites, items, parties, locations, workers }: Props) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   const [siteId, setSiteId] = useState<string | null>(sites[0]?.id ?? null);
@@ -110,7 +108,12 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       const res = await createIssue(payload);
       if (res.ok) {
         toast.success('Issue recorded.');
-        router.push('/inventory/transactions');
+        setQty('');
+        setItemId(null);
+        setLocationId(null);
+        setPartyId(null);
+        setWorkerId(null);
+        setIssuedTo('');
       } else {
         toast.error(res.error);
       }
@@ -207,7 +210,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? 'Saving…' : 'Record issue'}
+        {pending ? 'Saving…' : 'Submit'}
       </Button>
     </form>
   );
