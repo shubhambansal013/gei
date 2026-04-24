@@ -14,6 +14,13 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { SearchableSelect } from '@/components/searchable-select';
 import { createParty } from '@/app/(app)/masters/parties/actions';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export type PartyOption = {
   id: string;
@@ -61,8 +68,8 @@ export function PartyPicker({
     const filtered = type ? parties.filter((p) => p.type === type) : parties;
     return filtered.map((p) => ({
       value: p.id,
-      label: p.name,
-      sub: p.short_code ?? p.type,
+      label: p.short_code ? `${p.short_code} — ${p.name}` : p.name,
+      sub: p.short_code ? `${p.name} · ${p.type}` : p.type,
     }));
   }, [parties, type]);
 
@@ -133,14 +140,19 @@ export function PartyPicker({
             </div>
             {!type && (
               <div className="grid gap-1.5">
-                <Label htmlFor="np-type">Type *</Label>
-                <Input
-                  id="np-type"
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value.toUpperCase())}
-                  placeholder="SUPPLIER / CONTRACTOR / CUSTOMER"
-                  maxLength={32}
-                />
+                <Label>Type *</Label>
+                <Select value={newType} onValueChange={setNewType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SUPPLIER">Supplier</SelectItem>
+                    <SelectItem value="CONTRACTOR">Contractor</SelectItem>
+                    <SelectItem value="SUBCONTRACTOR">Sub-Contractor</SelectItem>
+                    <SelectItem value="CLIENT">Client</SelectItem>
+                    <SelectItem value="CONSULTANT">Consultant</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
             <div className="grid gap-1.5">

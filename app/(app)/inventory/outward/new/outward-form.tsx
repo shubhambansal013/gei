@@ -12,15 +12,13 @@ import { createIssue } from './actions';
 
 type Site = { id: string; name: string; code: string };
 type Item = { id: string; name: string; code: string | null; stock_unit: string };
-type LocationRef = { id: string; full_path: string; full_code: string; site_id: string };
-
-type Mode = 'direct' | 'transfer';
+type LocationUnit = { id: string; name: string; code: string; site_id: string };
 
 type Props = {
   sites: Site[];
   items: Item[];
   parties: PartyOption[];
-  locations: LocationRef[];
+  locations: LocationUnit[];
   workers: WorkerOption[];
 };
 
@@ -29,9 +27,7 @@ type Props = {
  * independent fields — Location and Party — because the business
  * reality is three-valued: material can go to a location, to a
  * contractor, or to a contractor AT a location (the most common
- * case on a large site). A separate "Transfer to site" toggle
- * routes to the inter-site branch of chk_issue_destination when
- * stock is physically moving off-site.
+ * case on a large site).
  *
  * Issued-to: a WorkerPicker (with inline "+ New worker") replaces
  * the free-text field. Sites with no workers registered fall back
@@ -41,13 +37,11 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [mode, setMode] = useState<Mode>('direct');
   const [siteId, setSiteId] = useState<string | null>(sites[0]?.id ?? null);
   const [itemId, setItemId] = useState<string | null>(null);
   const [qty, setQty] = useState('');
   const [locationId, setLocationId] = useState<string | null>(null);
   const [partyId, setPartyId] = useState<string | null>(null);
-  const [destSiteId, setDestSiteId] = useState<string | null>(null);
   const [workerId, setWorkerId] = useState<string | null>(null);
   const [issuedTo, setIssuedTo] = useState('');
 
@@ -63,16 +57,8 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
     () =>
       locations
         .filter((l) => l.site_id === siteId)
-        .map((l) => ({ value: l.id, label: l.full_path, sub: l.full_code })),
+        .map((l) => ({ value: l.id, label: l.name, sub: l.code })),
     [locations, siteId],
-  );
-
-  const transferSiteOptions = useMemo(
-    () =>
-      sites
-        .filter((s) => s.id !== siteId)
-        .map((s) => ({ value: s.id, label: s.name, sub: s.code })),
-    [sites, siteId],
   );
 
   const siteOptions = sites.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` }));
@@ -88,11 +74,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       toast.error('Site, item, and qty are required.');
       return;
     }
-    if (mode === 'transfer' && !destSiteId) {
-      toast.error('Pick the destination site for the transfer.');
-      return;
-    }
-    if (mode === 'direct' && !locationId && !partyId) {
+    if (!locationId && !partyId) {
       toast.error('Pick at least one of Location or Party.');
       return;
     }
@@ -115,17 +97,14 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       issued_to_legacy: useLegacyInput ? issuedTo.trim() || null : null,
     };
 
-    const payload =
-      mode === 'transfer'
-        ? { ...base, destinationKind: 'site' as const, dest_site_id: destSiteId! }
-        : locationId
-          ? {
-              ...base,
-              destinationKind: 'location' as const,
-              location_ref_id: locationId,
-              party_id: partyId,
-            }
-          : { ...base, destinationKind: 'party' as const, party_id: partyId! };
+    const payload = locationId
+      ? {
+          ...base,
+          destinationKind: 'location' as const,
+          location_unit_id: locationId,
+          party_id: partyId,
+        }
+      : { ...base, destinationKind: 'party' as const, party_id: partyId! };
 
     startTransition(async () => {
       const res = await createIssue(payload);
@@ -185,55 +164,28 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
         </div>
       </div>
 
-      <div
-        role="radiogroup"
-        aria-label="Destination mode"
-        className="flex gap-1 rounded-md border p-1 text-xs"
-      >
-        <ModeButton active={mode === 'direct'} onClick={() => setMode('direct')}>
-          Issue
-        </ModeButton>
-        <ModeButton active={mode === 'transfer'} onClick={() => setMode('transfer')}>
-          Transfer to site
-        </ModeButton>
+      <div className="space-y-1.5">
+        <Label>Location</Label>
+        <SearchableSelect
+          options={locationOptions}
+          value={locationId}
+          onChange={setLocationId}
+          placeholder="Where on site? (optional)"
+        />
       </div>
-
-      {mode === 'direct' ? (
-        <>
-          <div className="space-y-1.5">
-            <Label>Location</Label>
-            <SearchableSelect
-              options={locationOptions}
-              value={locationId}
-              onChange={setLocationId}
-              placeholder="Where on site? (optional)"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Party</Label>
-            <PartyPicker
-              parties={parties}
-              value={partyId}
-              onChange={setPartyId}
-              placeholder="Contractor / customer (optional)"
-            />
-          </div>
-          <p className="text-muted-foreground text-xs">
-            Fill at least one. Both is fine — e.g. &ldquo;KB&rsquo;s crew working on Block 3&rdquo;
-            sets Location <span className="font-medium">and</span> Party.
-          </p>
-        </>
-      ) : (
-        <div className="space-y-1.5">
-          <Label>Destination site *</Label>
-          <SearchableSelect
-            options={transferSiteOptions}
-            value={destSiteId}
-            onChange={setDestSiteId}
-            placeholder="Which site is stock moving to?"
-          />
-        </div>
-      )}
+      <div className="space-y-1.5">
+        <Label>Party</Label>
+        <PartyPicker
+          parties={parties}
+          value={partyId}
+          onChange={setPartyId}
+          placeholder="Contractor / customer (optional)"
+        />
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Fill at least one. Both is fine — e.g. &ldquo;KB&rsquo;s crew working on Block 3&rdquo; sets
+        Location <span className="font-medium">and</span> Party.
+      </p>
 
       <div className="space-y-1.5">
         <Label>Issued to {useLegacyInput ? '' : '*'}</Label>
@@ -258,30 +210,5 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
         {pending ? 'Saving…' : 'Record issue'}
       </Button>
     </form>
-  );
-}
-
-function ModeButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={
-        'flex-1 rounded px-3 py-1.5 font-medium transition-colors ' +
-        (active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')
-      }
-    >
-      {children}
-    </button>
   );
 }

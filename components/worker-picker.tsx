@@ -20,6 +20,10 @@ export type WorkerOption = {
   code: string;
   full_name: string;
   current_site_id: string;
+  worker_affiliations?: {
+    employment_type: string;
+    contractor?: { name: string } | null;
+  }[];
 };
 
 type Props = {
@@ -51,11 +55,20 @@ export function WorkerPicker({ workers, siteId, value, onChange }: Props) {
     () =>
       workers
         .filter((w) => w.current_site_id === siteId)
-        .map((w) => ({
-          value: w.id,
-          label: w.full_name,
-          sub: w.code,
-        })),
+        .map((w) => {
+          const aff = w.worker_affiliations?.[0];
+          const affLabel = aff
+            ? aff.employment_type === 'DIRECT'
+              ? 'Direct'
+              : aff.contractor?.name ?? aff.employment_type
+            : null;
+
+          return {
+            value: w.id,
+            label: w.full_name,
+            sub: affLabel ? `${w.code} · ${affLabel}` : w.code,
+          };
+        }),
     [workers, siteId],
   );
 

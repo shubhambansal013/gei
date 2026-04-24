@@ -33,7 +33,20 @@ export async function createIssue(raw: unknown) {
       dest_site_id: null,
     };
     if (input.destinationKind === 'location') {
-      payload.location_ref_id = input.location_ref_id;
+      const { data: unit, error: unitErr } = await sb
+        .from('location_units')
+        .select('code')
+        .eq('id', input.location_unit_id)
+        .single();
+      if (unitErr) throw new Error(`Location unit not found: ${unitErr.message}`);
+
+      const { data: refId, error: rpcErr } = await sb.rpc('resolve_location', {
+        p_site_id: input.site_id,
+        p_code: unit.code,
+      });
+      if (rpcErr) throw new Error(`Failed to resolve location: ${rpcErr.message}`);
+
+      payload.location_ref_id = refId;
       payload.party_id = input.party_id ?? null;
     } else if (input.destinationKind === 'party') {
       payload.party_id = input.party_id;
