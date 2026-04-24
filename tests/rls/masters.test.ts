@@ -9,7 +9,7 @@ describe('masters RLS', () => {
 
     const { error } = await viewer.from('items').insert({
       name: 'Forbidden',
-      unit: 'NOS',
+      stock_unit: 'NOS',
       code: 'RLS-FORBIDDEN-1',
     });
     expect(error).not.toBeNull();
@@ -23,7 +23,7 @@ describe('masters RLS', () => {
 
     const { error } = await admin.from('items').insert({
       name: 'Rebar 8mm',
-      unit: 'MT',
+      stock_unit: 'MT',
       code: 'RLS-ALLOW-1',
     });
     expect(error).toBeNull();
@@ -38,7 +38,7 @@ describe('masters RLS', () => {
     // Ensure at least one item exists
     await service()
       .from('items')
-      .upsert({ name: 'Anyone', unit: 'NOS', code: 'RLS-ANY-1' }, { onConflict: 'code' });
+      .upsert({ name: 'Anyone', stock_unit: 'NOS', code: 'RLS-ANY-1' }, { onConflict: 'code' });
 
     const { data, error } = await viewer.from('items').select('id, code').eq('code', 'RLS-ANY-1');
     expect(error).toBeNull();
@@ -60,7 +60,7 @@ describe('masters RLS', () => {
       .single();
     const { data: item } = await svc
       .from('items')
-      .upsert({ code: 'RLS-ITM-1', name: 'Test', unit: 'NOS' }, { onConflict: 'code' })
+      .upsert({ code: 'RLS-ITM-1', name: 'Test', stock_unit: 'NOS' }, { onConflict: 'code' })
       .select()
       .single();
     const { data: purchase } = await svc

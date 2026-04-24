@@ -17,7 +17,7 @@ export type SearchableOption<V extends string = string> = {
   value: V;
   label: string;
   sub?: string;
-  group?: string;
+  group?: string | null;
 };
 
 type Props<V extends string> = {

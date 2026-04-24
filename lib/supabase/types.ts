@@ -241,7 +241,6 @@ export type Database = {
           id: string;
           name: string;
           reorder_level: number | null;
-          stock_conv_factor: number;
           stock_unit: string;
         };
         Insert: {
@@ -252,7 +251,6 @@ export type Database = {
           id?: string;
           name: string;
           reorder_level?: number | null;
-          stock_conv_factor?: number;
           stock_unit: string;
         };
         Update: {
@@ -263,7 +261,6 @@ export type Database = {
           id?: string;
           name?: string;
           reorder_level?: number | null;
-          stock_conv_factor?: number;
           stock_unit?: string;
         };
         Relationships: [

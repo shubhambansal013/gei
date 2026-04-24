@@ -133,10 +133,6 @@ CREATE UNIQUE INDEX parties_short_code_uk
 -- ITEMS MASTER
 -- code              = GEI_code (internal short code for fast entry)
 -- stock_unit        = canonical unit stock is tracked and issued in
--- stock_conv_factor = default "stock units per received unit" multiplier
---                     used when a purchase row does not override it
---                     (e.g. 100m of wire per received roll). Defaults
---                     to 1 when received unit equals stock unit.
 -- =============================================================================
 
 CREATE TABLE items (
@@ -145,7 +141,6 @@ CREATE TABLE items (
   code              TEXT UNIQUE,
   category_id       TEXT REFERENCES item_categories(id),
   stock_unit        TEXT NOT NULL REFERENCES units(id),
-  stock_conv_factor NUMERIC NOT NULL DEFAULT 1 CHECK (stock_conv_factor > 0),
   hsn_code          TEXT,
   created_at        TIMESTAMPTZ DEFAULT now()
 );
@@ -548,7 +543,7 @@ SELECT
     - COALESCE(SUM(iss.qty), 0)       AS current_stock
 FROM purchases p
 JOIN items i ON i.id = p.item_id
-JOIN units u ON u.id = i.unit
+JOIN units u ON u.id = i.stock_unit
 LEFT JOIN issues iss
        ON iss.site_id   = p.site_id
       AND iss.item_id   = p.item_id

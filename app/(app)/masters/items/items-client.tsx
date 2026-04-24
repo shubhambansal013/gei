@@ -23,7 +23,6 @@ type ExportRow = {
   name: string;
   category: string;
   stock_unit: string;
-  stock_conv_factor: number;
   reorder_level: number | null;
 };
 
@@ -67,14 +66,6 @@ export function ItemsClient({ items, categories, units }: Props) {
       header: 'Stock unit',
     },
     {
-      accessorKey: 'stock_conv_factor',
-      header: 'Conv factor',
-      cell: ({ getValue }) => {
-        const v = getValue();
-        return <span className="block text-right tabular-nums">{v != null ? String(v) : '—'}</span>;
-      },
-    },
-    {
       accessorKey: 'reorder_level',
       header: 'Reorder Level',
       cell: ({ getValue }) => {
@@ -89,7 +80,6 @@ export function ItemsClient({ items, categories, units }: Props) {
     { key: 'name', header: 'Name' },
     { key: 'category', header: 'Category' },
     { key: 'stock_unit', header: 'Stock unit' },
-    { key: 'stock_conv_factor', header: 'Conv factor', numFmt: '#,##0.####' },
     { key: 'reorder_level', header: 'Reorder Level', numFmt: '#,##0' },
   ];
 
@@ -98,7 +88,6 @@ export function ItemsClient({ items, categories, units }: Props) {
     name: row.name,
     category: row.category?.label ?? '',
     stock_unit: row.stock_unit,
-    stock_conv_factor: row.stock_conv_factor,
     reorder_level: row.reorder_level,
   }));
 

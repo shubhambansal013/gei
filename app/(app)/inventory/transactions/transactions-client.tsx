@@ -34,12 +34,17 @@ type UnifiedRow = {
   destination: string;
   ref: string; // invoice or issued-to
   amount: number | null;
+  receivedUnit?: string | null;
+  convFactor?: number | null;
+  receivedQty?: number; // Only for PURCHASE
 };
 
 type PurchaseRow = {
   id: string;
   receipt_date: string;
   received_qty: number;
+  received_unit: string;
+  unit_conv_factor: number;
   stock_qty: number | null;
   total_amount: number | null;
   invoice_no: string | null;
@@ -61,14 +66,19 @@ type IssueRow = {
   worker: { id: string; code: string; full_name: string } | null;
 };
 
-type Props = { purchases: PurchaseRow[]; issues: IssueRow[] };
+type Unit = { id: string; label: string; category: string | null };
 
-export function TransactionsClient({ purchases, issues }: Props) {
+type Props = { purchases: PurchaseRow[]; issues: IssueRow[]; units: Unit[] };
+
+export function TransactionsClient({ purchases, issues, units }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'PURCHASE' | 'ISSUE'>('ALL');
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'PURCHASE' | 'ISSUE' } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    type: 'PURCHASE' | 'ISSUE';
+  } | null>(null);
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
 
   const rows = useMemo<UnifiedRow[]>(() => {
@@ -79,12 +89,15 @@ export function TransactionsClient({ purchases, issues }: Props) {
       itemId: p.item?.id ?? '',
       itemCode: p.item?.code ?? '',
       itemName: p.item?.name ?? '—',
-      qty: p.received_qty,
+      qty: p.stock_qty ?? 0,
       unit: p.item?.stock_unit ?? '',
       party: p.vendor?.name ?? '',
       destination: p.vendor?.name ?? '',
       ref: p.invoice_no ?? '',
       amount: p.total_amount,
+      receivedUnit: p.received_unit,
+      convFactor: p.unit_conv_factor,
+      receivedQty: p.received_qty,
     }));
     const outRows: UnifiedRow[] = issues.map((i) => {
       const dest = i.location?.full_path ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : '—');
@@ -161,9 +174,25 @@ export function TransactionsClient({ purchases, issues }: Props) {
     {
       accessorKey: 'qty',
       header: 'Qty',
-      cell: ({ getValue }) => (
-        <span className="block text-right tabular-nums">{String(getValue() ?? '')}</span>
-      ),
+      cell: ({ row }) => {
+        const r = row.original;
+        if (
+          r.type === 'PURCHASE' &&
+          r.receivedUnit &&
+          r.receivedQty != null &&
+          r.receivedUnit !== r.unit
+        ) {
+          return (
+            <div className="flex flex-col items-end">
+              <span className="tabular-nums font-medium">{r.qty}</span>
+              <span className="text-muted-foreground text-[10px]">
+                ({r.receivedQty} {r.receivedUnit})
+              </span>
+            </div>
+          );
+        }
+        return <span className="block text-right tabular-nums">{r.qty}</span>;
+      },
     },
     { accessorKey: 'unit', header: 'Unit' },
     { accessorKey: 'destination', header: 'Party / Location' },
@@ -191,8 +220,11 @@ export function TransactionsClient({ purchases, issues }: Props) {
               setEditTarget({
                 id: row.original.id,
                 type: row.original.type,
-                currentQty: row.original.qty,
+                currentQty:
+                  row.original.type === 'PURCHASE' ? row.original.receivedQty! : row.original.qty,
                 currentRef: row.original.ref,
+                receivedUnit: row.original.receivedUnit ?? null,
+                convFactor: row.original.convFactor ?? null,
               })
             }
             className="text-muted-foreground hover:text-foreground"
@@ -281,6 +313,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
       <EditDialog
         key={editTarget?.id ?? 'none'}
         target={editTarget}
+        units={units}
         onOpenChange={(o) => {
           if (!o) setEditTarget(null);
         }}
