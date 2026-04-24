@@ -18,12 +18,12 @@ import { EditDialog, type EditTarget } from './edit-dialog';
 
 /**
  * A unified row shape that both purchases and issues flatten into.
- * `type: 'IN'` reads amber for purchases, `'OUT'` reads green for issues
+ * `type: 'PURCHASE'` reads amber for purchases, `'ISSUE'` reads green for issues
  * (semantic use of accent vs. chart-3).
  */
 type UnifiedRow = {
   id: string;
-  type: 'IN' | 'OUT';
+  type: 'PURCHASE' | 'ISSUE';
   date: string;
   itemId: string;
   itemCode: string;
@@ -67,14 +67,14 @@ export function TransactionsClient({ purchases, issues }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'IN' | 'OUT' } | null>(null);
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'PURCHASE' | 'ISSUE'>('ALL');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'PURCHASE' | 'ISSUE' } | null>(null);
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
 
   const rows = useMemo<UnifiedRow[]>(() => {
     const inRows: UnifiedRow[] = purchases.map((p) => ({
       id: p.id,
-      type: 'IN',
+      type: 'PURCHASE',
       date: p.receipt_date,
       itemId: p.item?.id ?? '',
       itemCode: p.item?.code ?? '',
@@ -90,7 +90,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
       const dest = i.location?.full_path ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : '—');
       return {
         id: i.id,
-        type: 'OUT',
+        type: 'ISSUE',
         date: i.issue_date,
         itemId: i.item?.id ?? '',
         itemCode: i.item?.code ?? '',
@@ -126,12 +126,12 @@ export function TransactionsClient({ purchases, issues }: Props) {
       accessorKey: 'type',
       header: 'Type',
       cell: ({ getValue }) => {
-        const v = getValue() as 'IN' | 'OUT';
+        const v = getValue() as 'PURCHASE' | 'ISSUE';
         return (
           <Badge
             variant="outline"
             className={
-              v === 'IN'
+              v === 'PURCHASE'
                 ? 'border-primary/50 text-primary bg-primary/5'
                 : 'border-emerald-500/50 bg-emerald-500/5 text-emerald-700'
             }
@@ -247,7 +247,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
           className="max-w-xs"
         />
         <div className="flex gap-1 rounded-sm border p-0.5">
-          {(['ALL', 'IN', 'OUT'] as const).map((t) => (
+          {(['ALL', 'PURCHASE', 'ISSUE'] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -302,7 +302,7 @@ export function TransactionsClient({ purchases, issues }: Props) {
         confirmLabel="Delete"
         onConfirm={async (reason) => {
           if (!deleteTarget || !reason) return;
-          const fn = deleteTarget.type === 'IN' ? softDeletePurchase : softDeleteIssue;
+          const fn = deleteTarget.type === 'PURCHASE' ? softDeletePurchase : softDeleteIssue;
           const res = await fn({ id: deleteTarget.id, reason });
           if (res.ok) {
             toast.success('Transaction deleted.');

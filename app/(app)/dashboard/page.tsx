@@ -156,7 +156,7 @@ export default async function DashboardPage() {
   // Recent 10 transactions (merge + sort)
   type Recent = {
     id: string;
-    type: 'IN' | 'OUT';
+    type: 'PURCHASE' | 'ISSUE';
     date: string;
     qty: number;
     itemCode: string;
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
     ...(recentIn ?? []).map(
       (p): Recent => ({
         id: p.id,
-        type: 'IN',
+        type: 'PURCHASE',
         date: p.receipt_date,
         qty: p.received_qty,
         itemCode: p.item?.code ?? '',
@@ -180,7 +180,7 @@ export default async function DashboardPage() {
     ...(recentOut ?? []).map(
       (i): Recent => ({
         id: i.id,
-        type: 'OUT',
+        type: 'ISSUE',
         date: i.issue_date,
         qty: i.qty,
         itemCode: i.item?.code ?? '',
@@ -352,7 +352,7 @@ export default async function DashboardPage() {
                   <td className="py-1.5">
                     <span
                       className={
-                        r.type === 'IN'
+                        r.type === 'PURCHASE'
                           ? 'text-primary font-semibold'
                           : 'font-semibold text-emerald-700'
                       }

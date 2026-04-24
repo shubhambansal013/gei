@@ -40,7 +40,7 @@ type IssueRow = {
 type LedgerRow = {
   id: string;
   date: string;
-  type: 'IN' | 'OUT';
+  type: 'PURCHASE' | 'ISSUE';
   qtyIn: number | null;
   qtyOut: number | null;
   balance: number;
@@ -69,7 +69,7 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
     const ins: LedgerRow[] = purchases.map((p) => ({
       id: `P-${p.id}`,
       date: p.receipt_date,
-      type: 'IN',
+      type: 'PURCHASE',
       qtyIn: p.stock_qty ?? p.received_qty,
       qtyOut: null,
       balance: 0,
@@ -80,7 +80,7 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
     const outs: LedgerRow[] = issues.map((i) => ({
       id: `I-${i.id}`,
       date: i.issue_date,
-      type: 'OUT',
+      type: 'ISSUE',
       qtyIn: null,
       qtyOut: i.qty,
       balance: 0,
@@ -110,10 +110,12 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
       accessorKey: 'type',
       header: 'Type',
       cell: ({ getValue }) => {
-        const v = getValue() as 'IN' | 'OUT';
+        const v = getValue() as 'PURCHASE' | 'ISSUE';
         return (
           <span
-            className={v === 'IN' ? 'text-primary font-medium' : 'font-medium text-emerald-700'}
+            className={
+              v === 'PURCHASE' ? 'text-primary font-medium' : 'font-medium text-emerald-700'
+            }
           >
             {v}
           </span>
@@ -122,7 +124,7 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
     },
     {
       accessorKey: 'qtyIn',
-      header: 'Qty in',
+      header: 'Purchase qty',
       cell: ({ getValue }) => {
         const v = getValue() as number | null;
         return <span className="block text-right tabular-nums">{v != null ? v : ''}</span>;
@@ -130,7 +132,7 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
     },
     {
       accessorKey: 'qtyOut',
-      header: 'Qty out',
+      header: 'Issue qty',
       cell: ({ getValue }) => {
         const v = getValue() as number | null;
         return <span className="block text-right tabular-nums">{v != null ? v : ''}</span>;
@@ -162,8 +164,8 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
   const exportCols: { key: keyof LedgerRow; header: string; numFmt?: string }[] = [
     { key: 'date', header: 'Date' },
     { key: 'type', header: 'Type' },
-    { key: 'qtyIn', header: 'Qty in', numFmt: '#,##0.00' },
-    { key: 'qtyOut', header: 'Qty out', numFmt: '#,##0.00' },
+    { key: 'qtyIn', header: 'Purchase qty', numFmt: '#,##0.00' },
+    { key: 'qtyOut', header: 'Issue qty', numFmt: '#,##0.00' },
     { key: 'balance', header: 'Balance', numFmt: '#,##0.00' },
     { key: 'party', header: 'Party / Location' },
     { key: 'rate', header: 'Rate', numFmt: '₹#,##,##0.00' },
