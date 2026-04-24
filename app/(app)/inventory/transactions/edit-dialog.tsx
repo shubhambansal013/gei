@@ -34,9 +34,9 @@ type Props = {
 };
 
 /**
- * Form dialog for editing a purchase (IN) or issue (OUT). Only the
- * handful of safe-to-edit columns are exposed — quantity and the ref
- * field (invoice # for IN, issued-to for OUT). Reason is required
+ * Form dialog for editing a purchase or issue. Only the handful of
+ * safe-to-edit columns are exposed — quantity and the ref field
+ * (invoice # for purchase, issued-to for issue). Reason is required
  * because `editPurchase`/`editIssue` set `SET LOCAL app.edit_reason`
  * and the audit trigger writes before/after JSONB into
  * `inventory_edit_log`.

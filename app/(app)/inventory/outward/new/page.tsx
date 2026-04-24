@@ -3,12 +3,10 @@ import { IssueForm } from './outward-form';
 import { EmptyState } from '@/components/empty-state';
 
 /**
- * The core low-effort screen for site-store workers. Four fields:
- *   item · qty · destination · issued-to (optional)
- *
- * Loads items, parties, location_references, and external sites in
- * parallel, flattens them into a single grouped SearchableSelect so
- * the worker picks from ONE dropdown regardless of destination type.
+ * The primary entry screen for site-store workers. Destination is
+ * decomposed into Location + Party (either or both) with a separate
+ * "Transfer to site" mode for cross-site stock moves. Issued-to flows
+ * through WorkerPicker with inline create.
  */
 export default async function IssueNewPage() {
   const sb = await supabaseServer();
@@ -21,7 +19,7 @@ export default async function IssueNewPage() {
   ] = await Promise.all([
     sb.from('sites').select('id, name, code').order('name'),
     sb.from('items').select('id, name, code, stock_unit').order('code'),
-    sb.from('parties').select('id, name, type').order('name'),
+    sb.from('parties').select('id, name, type, short_code').order('name'),
     sb.from('location_references').select('id, full_path, full_code, site_id').order('full_code'),
     sb
       .from('workers')

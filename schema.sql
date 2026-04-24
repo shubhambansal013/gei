@@ -307,6 +307,45 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- Issue #22 — privilege-escalation block. The profiles RLS policy
+-- allows a user to UPDATE their own row (so they can edit full_name
+-- / phone). Without this trigger, that policy also lets them set
+-- role_id='SUPER_ADMIN' or flip is_active or stamp their own
+-- approved_at/by. The trigger raises 42501 on any non-admin attempt
+-- to modify those four privileged columns on their own row.
+-- See migration 20260424000001_fix_profile_privilege_escalation.sql.
+CREATE OR REPLACE FUNCTION public.profiles_block_self_privilege_escalation()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF is_admin_anywhere(auth.uid()) THEN
+    RETURN NEW;
+  END IF;
+  IF auth.uid() IS DISTINCT FROM OLD.id THEN
+    RAISE EXCEPTION USING
+      ERRCODE = '42501',
+      MESSAGE = 'Non-admin users may only update their own profile.';
+  END IF;
+  IF NEW.role_id     IS DISTINCT FROM OLD.role_id
+  OR NEW.is_active   IS DISTINCT FROM OLD.is_active
+  OR NEW.approved_at IS DISTINCT FROM OLD.approved_at
+  OR NEW.approved_by IS DISTINCT FROM OLD.approved_by THEN
+    RAISE EXCEPTION USING
+      ERRCODE = '42501',
+      MESSAGE = 'Privileged profile columns can only be changed by an administrator.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER profiles_block_self_privilege_escalation_trg
+  BEFORE UPDATE ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.profiles_block_self_privilege_escalation();
+
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();

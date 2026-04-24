@@ -1,0 +1,9 @@
+- [User role](user_role.md) — Head of Engineering, acts as Vivek Kumar; co-author is shubhambansal013 who files issues
+- [Project: GEI Inventory](project_gei_inventory.md) — multi-site construction inventory, Next.js 16 + Supabase; feature/foundation is the active branch and merges direct to main
+- [Project: 2026-04 wave execution](project_apr_execution.md) — 20+ issues worked through parallel worktree agents; HANDOFF.md at repo root captures current state
+- [Preference: parallel execution](feedback_parallel.md) — Prefers multi-agent swarm with worktrees, single message, for anything with 2+ independent lanes
+- [Preference: direct push](feedback_direct_push.md) — Direct-push to feature/foundation is acceptable in this repo; no PR gate unless asked
+- [Preference: concise reporting](feedback_concise_reports.md) — Tight tables/bullets, no emojis, monospaced diffs in fences; confirm before anything destructive
+- [Convention: spec immutability](project_spec_immutable.md) — docs/superpowers/specs/_ and docs/superpowers/plans/_ are dated and immutable; amend via new dated files
+- [Convention: commit signature](feedback_commit_sig.md) — git user not global; pass -c user.email/user.name inline; always add Claude co-author trailer
+- [Reference: stakeholder issues live on GitHub](reference_issue_tracker.md) — shubhambansal013/gei · gh CLI for issue triage; stakeholder drops new ones during active work
