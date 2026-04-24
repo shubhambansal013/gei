@@ -21,18 +21,33 @@ export function service(): SupabaseClient {
  */
 export async function asUser(email: string): Promise<SupabaseClient> {
   const admin = service();
-  const { data: list } = await admin.auth.admin.listUsers();
+  const { data: list, error: listError } = await admin.auth.admin.listUsers();
+  if (listError) throw listError;
+
   let user = list?.users.find((u) => u.email === email);
   if (!user) {
-    const created = await admin.auth.admin.createUser({
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
       password: TEST_PASSWORD,
     });
-    user = created.data.user ?? undefined;
+    if (createError) {
+      // If it exists but wasn't in the first page of listUsers, we might get an error here.
+      // In that case, we can't easily get the ID without searching all pages.
+      // For tests, we expect unique emails or them being in the first page.
+      throw createError;
+    }
+    user = created.user ?? undefined;
   }
+  if (!user) throw new Error(`Could not find or create user ${email}`);
+
   const client = createClient(URL, ANON, { auth: { persistSession: false } });
-  await client.auth.signInWithPassword({ email, password: TEST_PASSWORD });
+  const { error: loginError } = await client.auth.signInWithPassword({
+    email,
+    password: TEST_PASSWORD,
+  });
+  if (loginError) throw loginError;
+
   return client;
 }
 
@@ -47,10 +62,18 @@ export async function asUser(email: string): Promise<SupabaseClient> {
  * exercise the inactive path set `is_active` back to false explicitly.
  */
 export async function setGlobalRole(userId: string, roleId: string) {
-  await service().from('profiles').update({ role_id: roleId, is_active: true }).eq('id', userId);
+  const { error } = await service()
+    .from('profiles')
+    .update({ role_id: roleId, is_active: true })
+    .eq('id', userId);
+  if (error) throw error;
 }
 
 /** Wipes rows inserted by a test — call in afterEach/afterAll blocks. */
 export async function cleanupItem(code: string) {
-  await service().from('items').delete().eq('code', code);
+  const { error } = await service().from('items').delete().eq('code', code);
+  if (error) {
+    // maybe it was already deleted or never created, that's fine for cleanup
+    console.error(`Cleanup failed for item ${code}:`, error);
+  }
 }

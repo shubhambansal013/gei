@@ -31,8 +31,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Admin writes are unrestricted (handled by profiles_update policies).
-  IF is_admin_anywhere(auth.uid()) THEN
+  -- Admin writes are unrestricted. Service role (auth.uid() IS NULL)
+  -- is also allowed to bypass this check.
+  IF auth.uid() IS NULL OR is_admin_anywhere(auth.uid()) THEN
     RETURN NEW;
   END IF;
 

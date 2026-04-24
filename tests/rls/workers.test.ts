@@ -165,7 +165,10 @@ d('workers RLS', () => {
       .single();
     const { data: party } = await svc
       .from('parties')
-      .upsert({ name: 'WRK RLS Contractor', type: 'CONTRACTOR' }, { onConflict: 'name' })
+      .upsert(
+        { name: 'WRK RLS Contractor', type: 'CONTRACTOR', short_code: 'WRKRLS' },
+        { onConflict: 'short_code' },
+      )
       .select()
       .single();
 

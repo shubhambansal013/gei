@@ -54,13 +54,14 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
       email_confirm: true,
     });
     userId = created.data.user!.id;
-    await svc.from('profiles').update({ role_id: 'SUPER_ADMIN' }).eq('id', userId);
+    // Set role AND make active (signup-approval migration defaults to inactive)
+    await svc.from('profiles').update({ role_id: 'SUPER_ADMIN', is_active: true }).eq('id', userId);
 
     // 2. Seed masters via service role (avoids clicking through 3 forms)
     await svc.from('sites').insert({ code: siteCode, name: `E2E ${unique}` });
     const { data: item } = await svc
       .from('items')
-      .insert({ code: itemCode, name: `E2E Cement ${unique}`, unit: 'MT' })
+      .insert({ code: itemCode, name: `E2E Cement ${unique}`, stock_unit: 'MT' })
       .select()
       .single();
     itemId = item!.id;
@@ -120,7 +121,12 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
 
     // The new row appears — first row should be our PURCHASE transaction
     await expect(page.getByText(`E2E Cement ${unique}`).first()).toBeVisible();
-    await expect(page.locator('span').filter({ hasText: /^PURCHASE$/ }).first()).toBeVisible();
+    await expect(
+      page
+        .locator('span')
+        .filter({ hasText: /^PURCHASE$/ })
+        .first(),
+    ).toBeVisible();
   });
 
   test('records an issue transaction', async ({ page }) => {
@@ -146,7 +152,12 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
     await page.getByRole('button', { name: 'Record issue' }).click();
     await page.waitForURL(/\/inventory\/transactions/, { timeout: 15_000 });
 
-    await expect(page.locator('span').filter({ hasText: /^ISSUE$/ }).first()).toBeVisible();
+    await expect(
+      page
+        .locator('span')
+        .filter({ hasText: /^ISSUE$/ })
+        .first(),
+    ).toBeVisible();
   });
 
   test('item ledger shows running balance 100 − 30 = 70', async ({ page }) => {
