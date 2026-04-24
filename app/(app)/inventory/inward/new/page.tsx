@@ -12,10 +12,11 @@ import { EmptyState } from '@/components/empty-state';
  */
 export default async function PurchaseNewPage() {
   const sb = await supabaseServer();
-  const [{ data: sites }, { data: items }, { data: parties }] = await Promise.all([
+  const [{ data: sites }, { data: items }, { data: parties }, { data: units }] = await Promise.all([
     sb.from('sites').select('id, name, code').order('name'),
     sb.from('items').select('id, name, code, stock_unit').order('code'),
     sb.from('parties').select('id, name, type').eq('type', 'SUPPLIER').order('name'),
+    sb.from('units').select('id, label, category').order('label'),
   ]);
 
   if (!sites || sites.length === 0) {
@@ -35,7 +36,12 @@ export default async function PurchaseNewPage() {
           Record goods received from a supplier. Fields marked * are required.
         </p>
       </header>
-      <PurchaseForm sites={sites} items={items ?? []} suppliers={parties ?? []} />
+      <PurchaseForm
+        sites={sites}
+        items={items ?? []}
+        suppliers={parties ?? []}
+        units={units ?? []}
+      />
     </div>
   );
 }

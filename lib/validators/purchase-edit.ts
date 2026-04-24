@@ -11,6 +11,8 @@ export const purchaseEditSchema = z.object({
   id: z.string().uuid(),
   reason: z.string().min(1, 'A reason is required for every edit'),
   received_qty: z.coerce.number().positive().optional(),
+  received_unit: z.string().min(1).optional(),
+  unit_conv_factor: z.coerce.number().positive().optional(),
   rate: z.coerce.number().nonnegative().nullable().optional(),
   invoice_no: z.string().max(40).nullable().optional(),
   remarks: z.string().max(500).nullable().optional(),

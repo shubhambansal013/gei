@@ -76,7 +76,6 @@ export function ItemForm(props: Props) {
           name: props.item.name,
           code: props.item.code ?? '',
           stock_unit: props.item.stock_unit,
-          stock_conv_factor: props.item.stock_conv_factor,
           category_id: props.item.category_id,
           hsn_code: props.item.hsn_code ?? '',
           reorder_level: props.item.reorder_level ?? undefined,
@@ -86,7 +85,6 @@ export function ItemForm(props: Props) {
           name: '',
           code: '',
           stock_unit: '',
-          stock_conv_factor: 1,
           category_id: null,
           hsn_code: '',
           reorder_level: undefined,
@@ -169,33 +167,6 @@ export function ItemForm(props: Props) {
                 placeholder="Select stock unit"
               />
               <FormDescription>Unit you track stock in (e.g. meter, kg).</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name={'stock_conv_factor' as keyof (ItemCreate | ItemUpdate)}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Conversion factor *</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min={0}
-                  placeholder="1"
-                  {...field}
-                  value={(field.value as number | string | undefined) ?? ''}
-                  onChange={(e) =>
-                    field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
-                  }
-                />
-              </FormControl>
-              <FormDescription>
-                How many stock units per received unit. Default 1 when received = stock.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

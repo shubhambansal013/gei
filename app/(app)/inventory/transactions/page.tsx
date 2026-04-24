@@ -17,11 +17,11 @@ export const dynamic = 'force-dynamic';
 export default async function TransactionsPage() {
   const sb = await supabaseServer();
 
-  const [{ data: purchases }, { data: issues }] = await Promise.all([
+  const [{ data: purchases }, { data: issues }, { data: units }] = await Promise.all([
     sb
       .from('purchases')
       .select(
-        `id, site_id, item_id, received_qty, stock_qty, rate, total_amount, receipt_date, invoice_no,
+        `id, site_id, item_id, received_qty, received_unit, unit_conv_factor, stock_qty, rate, total_amount, receipt_date, invoice_no,
          item:items(id, code, name, stock_unit),
          vendor:parties(id, name)`,
       )
@@ -41,7 +41,14 @@ export default async function TransactionsPage() {
       .eq('is_deleted', false)
       .order('issue_date', { ascending: false })
       .limit(500),
+    sb.from('units').select('id, label, category').order('label'),
   ]);
 
-  return <TransactionsClient purchases={purchases ?? []} issues={issues ?? []} />;
+  return (
+    <TransactionsClient
+      purchases={purchases ?? []}
+      issues={issues ?? []}
+      units={units ?? []}
+    />
+  );
 }

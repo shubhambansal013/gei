@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { SearchableSelect } from '@/components/searchable-select';
 import { editPurchase, editIssue } from './actions';
 
 export type EditTarget = {
@@ -19,10 +20,15 @@ export type EditTarget = {
   type: 'IN' | 'OUT';
   currentQty: number;
   currentRef: string;
+  receivedUnit?: string | null;
+  convFactor?: number | null;
 };
+
+type Unit = { id: string; label: string; category: string | null };
 
 type Props = {
   target: EditTarget | null;
+  units: Unit[];
   onOpenChange: (o: boolean) => void;
   onSuccess: () => void;
 };
@@ -35,12 +41,14 @@ type Props = {
  * and the audit trigger writes before/after JSONB into
  * `inventory_edit_log`.
  */
-export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
+export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
   // Derive initial form state from the target. The dialog instance is
   // keyed on target.id by the parent (React re-mounts between targets),
   // so these useState hooks read the target at mount time — no effect
   // needed and no cascading re-renders.
   const [qty, setQty] = useState(target ? String(target.currentQty) : '');
+  const [receivedUnit, setReceivedUnit] = useState(target?.receivedUnit ?? '');
+  const [convFactor, setConvFactor] = useState(target ? String(target.convFactor) : '1');
   const [ref, setRef] = useState(target?.currentRef ?? '');
   const [reason, setReason] = useState('');
   const [pending, startTransition] = useTransition();
@@ -55,12 +63,16 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
       // the server action's omitUndefined helper so we avoid blowing over
       // columns the user didn't touch.
       const qtyChanged = qty !== String(target.currentQty);
+      const unitChanged = isIn && receivedUnit !== target.receivedUnit;
+      const factorChanged = isIn && convFactor !== String(target.convFactor);
       const refChanged = ref !== target.currentRef;
       const payload = isIn
         ? {
             id: target.id,
             reason: reason.trim(),
             ...(qtyChanged ? { received_qty: qty } : {}),
+            ...(unitChanged ? { received_unit: receivedUnit } : {}),
+            ...(factorChanged ? { unit_conv_factor: convFactor } : {}),
             ...(refChanged ? { invoice_no: ref || null } : {}),
           }
         : {
@@ -91,18 +103,60 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-qty">Qty</Label>
-            <Input
-              id="edit-qty"
-              type="number"
-              inputMode="decimal"
-              step="any"
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              className="font-mono tabular-nums"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-qty">{isIn ? 'Received Qty' : 'Qty'}</Label>
+              <Input
+                id="edit-qty"
+                type="number"
+                inputMode="decimal"
+                step="any"
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                className="font-mono tabular-nums"
+              />
+            </div>
+            {isIn && (
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-unit">Received Unit</Label>
+                <SearchableSelect
+                  options={units.map((u) => ({
+                    value: u.id,
+                    label: u.label,
+                    group: u.category,
+                  }))}
+                  value={receivedUnit}
+                  onChange={setReceivedUnit}
+                  placeholder="Select unit"
+                />
+              </div>
+            )}
           </div>
+
+          {isIn && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-factor">Conv. Factor</Label>
+                <Input
+                  id="edit-factor"
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  value={convFactor}
+                  onChange={(e) => setConvFactor(e.target.value)}
+                  className="font-mono tabular-nums"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Stock Qty</Label>
+                <div className="bg-muted flex h-10 w-full items-center rounded-md border px-3 py-2 text-sm font-mono tabular-nums">
+                  {!isNaN(parseFloat(qty)) && !isNaN(parseFloat(convFactor))
+                    ? (parseFloat(qty) * parseFloat(convFactor)).toFixed(4).replace(/\.?0+$/, '')
+                    : '0'}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="edit-ref">{isIn ? 'Invoice #' : 'Issued to'}</Label>
