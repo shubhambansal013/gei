@@ -118,9 +118,9 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
     await page.getByRole('button', { name: 'Record purchase' }).click();
     await page.waitForURL(/\/inventory\/transactions/, { timeout: 15_000 });
 
-    // The new row appears — first row should be our IN transaction
+    // The new row appears — first row should be our PURCHASE transaction
     await expect(page.getByText(`E2E Cement ${unique}`).first()).toBeVisible();
-    await expect(page.locator('span').filter({ hasText: /^IN$/ }).first()).toBeVisible();
+    await expect(page.locator('span').filter({ hasText: /^PURCHASE$/ }).first()).toBeVisible();
   });
 
   test('records an issue transaction', async ({ page }) => {
@@ -146,7 +146,7 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
     await page.getByRole('button', { name: 'Record issue' }).click();
     await page.waitForURL(/\/inventory\/transactions/, { timeout: 15_000 });
 
-    await expect(page.locator('span').filter({ hasText: /^OUT$/ }).first()).toBeVisible();
+    await expect(page.locator('span').filter({ hasText: /^ISSUE$/ }).first()).toBeVisible();
   });
 
   test('item ledger shows running balance 100 − 30 = 70', async ({ page }) => {
@@ -162,7 +162,7 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
     const currentStockSection = page.locator('text=Current stock').locator('..');
     await expect(currentStockSection).toContainText('70');
 
-    // The ledger body contains both IN (100) and OUT (30) rows, final balance 70
+    // The ledger body contains both PURCHASE (100) and ISSUE (30) rows, final balance 70
     const ledgerRows = page.locator('table.excel-grid tbody tr');
     await expect(ledgerRows).toHaveCount(2);
     // Final balance cell on the last row

@@ -16,7 +16,7 @@ import { editPurchase, editIssue } from './actions';
 
 export type EditTarget = {
   id: string;
-  type: 'IN' | 'OUT';
+  type: 'PURCHASE' | 'ISSUE';
   currentQty: number;
   currentRef: string;
 };
@@ -28,9 +28,9 @@ type Props = {
 };
 
 /**
- * Form dialog for editing a purchase (IN) or issue (OUT). Only the
- * handful of safe-to-edit columns are exposed — quantity and the ref
- * field (invoice # for IN, issued-to for OUT). Reason is required
+ * Form dialog for editing a purchase or issue. Only the handful of
+ * safe-to-edit columns are exposed — quantity and the ref field
+ * (invoice # for purchase, issued-to for issue). Reason is required
  * because `editPurchase`/`editIssue` set `SET LOCAL app.edit_reason`
  * and the audit trigger writes before/after JSONB into
  * `inventory_edit_log`.
@@ -46,7 +46,7 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
   const [pending, startTransition] = useTransition();
 
   const canSubmit = reason.trim().length > 0 && !pending;
-  const isIn = target?.type === 'IN';
+  const isPurchase = target?.type === 'PURCHASE';
 
   const handle = () => {
     if (!target || !canSubmit) return;
@@ -56,7 +56,7 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
       // columns the user didn't touch.
       const qtyChanged = qty !== String(target.currentQty);
       const refChanged = ref !== target.currentRef;
-      const payload = isIn
+      const payload = isPurchase
         ? {
             id: target.id,
             reason: reason.trim(),
@@ -69,7 +69,7 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
             ...(qtyChanged ? { qty } : {}),
             ...(refChanged ? { issued_to_legacy: ref || null } : {}),
           };
-      const res = isIn ? await editPurchase(payload) : await editIssue(payload);
+      const res = isPurchase ? await editPurchase(payload) : await editIssue(payload);
       if (res.ok) {
         toast.success('Saved. Audit log captured the reason.');
         onSuccess();
@@ -83,10 +83,10 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit {isIn ? 'purchase' : 'issue'} transaction</DialogTitle>
+          <DialogTitle>Edit {isPurchase ? 'purchase' : 'issue'} transaction</DialogTitle>
           <p className="text-muted-foreground text-sm">
-            Only qty and {isIn ? 'invoice #' : 'issued-to'} can be edited inline. For destination
-            changes, soft-delete and re-enter.
+            Only qty and {isPurchase ? 'invoice #' : 'issued-to'} can be edited inline. For
+            destination changes, soft-delete and re-enter.
           </p>
         </DialogHeader>
 
@@ -105,7 +105,7 @@ export function EditDialog({ target, onOpenChange, onSuccess }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="edit-ref">{isIn ? 'Invoice #' : 'Issued to'}</Label>
+            <Label htmlFor="edit-ref">{isPurchase ? 'Invoice #' : 'Issued to'}</Label>
             <Input id="edit-ref" value={ref} onChange={(e) => setRef(e.target.value)} />
           </div>
 

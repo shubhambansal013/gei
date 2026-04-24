@@ -166,7 +166,7 @@ export function ItemsReportClient({ rows }: Props) {
           title={rows.length === 0 ? 'No stock movements yet' : 'Nothing matches your search'}
           description={
             rows.length === 0
-              ? 'Record an inward transaction; the report populates on the next load.'
+              ? 'Record a purchase transaction; the report populates on the next load.'
               : 'Try a different code or name.'
           }
         />
