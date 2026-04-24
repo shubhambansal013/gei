@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -50,13 +50,14 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
 
   const selectedItem = items.find((i) => i.id === itemId);
 
-  // Sync receivedUnit when itemId changes
-  useEffect(() => {
-    if (selectedItem) {
-      setReceivedUnit(selectedItem.stock_unit);
+  const handleItemChange = (id: string | null) => {
+    setItemId(id);
+    const item = items.find((i) => i.id === id);
+    if (item) {
+      setReceivedUnit(item.stock_unit);
       setConvFactor('1');
     }
-  }, [selectedItem]);
+  };
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +96,6 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
     label: i.name,
     sub: i.code ? `${i.code} · ${i.stock_unit}` : i.stock_unit,
   }));
-  const supplierOptions = suppliers.map((p) => ({ value: p.id, label: p.name }));
   const unitOptions = units.map((u) => ({
     value: u.id,
     label: u.label,
@@ -123,7 +123,7 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
         <SearchableSelect
           options={itemOptions}
           value={itemId}
-          onChange={setItemId}
+          onChange={handleItemChange}
           placeholder="Search items…"
         />
       </div>

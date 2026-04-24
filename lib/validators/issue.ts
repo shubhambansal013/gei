@@ -31,7 +31,7 @@ const baseFields = z.object({
  */
 const locationDest = z.object({
   destinationKind: z.literal('location'),
-  location_ref_id: z.string().uuid(),
+  location_unit_id: z.string().uuid(),
   party_id: z.string().uuid().nullable().optional(),
 });
 const partyDest = z.object({

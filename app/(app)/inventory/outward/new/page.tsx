@@ -20,11 +20,21 @@ export default async function IssueNewPage() {
     sb.from('sites').select('id, name, code').order('name'),
     sb.from('items').select('id, name, code, stock_unit').order('code'),
     sb.from('parties').select('id, name, type, short_code').order('name'),
-    sb.from('location_references').select('id, full_path, full_code, site_id').order('full_code'),
+    sb.from('location_units').select('id, name, code, site_id').order('code'),
     sb
       .from('workers')
-      .select('id, code, full_name, current_site_id')
+      .select(`
+        id,
+        code,
+        full_name,
+        current_site_id,
+        worker_affiliations(
+          employment_type,
+          contractor:parties(name)
+        )
+      `)
       .eq('is_active', true)
+      .is('worker_affiliations.effective_to', null)
       .order('full_name'),
   ]);
 
