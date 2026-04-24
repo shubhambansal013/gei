@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { SearchableSelect } from '@/components/searchable-select';
+import { PartyPicker } from '@/components/party-picker';
 import { createPurchase } from './actions';
 
 type Site = { id: string; name: string; code: string };
@@ -20,23 +21,23 @@ type Props = {
 };
 
 /**
- * Simple-mode purchase (inward) entry form — 5 fields + a detailed-mode
- * toggle for rate, HSN, dates, manufacturer, part number. Uses native
- * HTML submit + useTransition to stream the server action and keep the
- * button in a "Saving…" state until the response lands.
+ * Purchase (inward) entry form. All fields visible at once — optional
+ * ones are labelled as such and grouped in a subdued block so the eye
+ * reads past them. This is a deliberate shift from the earlier
+ * "show detailed fields" toggle: real site-store workers fill the
+ * whole form in one pass (with a supplier they may need to create
+ * on the spot), and the toggle was hiding the rate field that is
+ * required to compute a purchase value on the dashboard.
  */
 export function PurchaseForm({ sites, items, suppliers }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [detailed, setDetailed] = useState(false);
   const [siteId, setSiteId] = useState<string | null>(sites[0]?.id ?? null);
   const [itemId, setItemId] = useState<string | null>(null);
   const [qty, setQty] = useState('');
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [invoiceNo, setInvoiceNo] = useState('');
-
-  // Detailed mode fields
   const [rate, setRate] = useState('');
   const [hsn, setHsn] = useState('');
   const [invoiceDate, setInvoiceDate] = useState('');
@@ -61,11 +62,11 @@ export function PurchaseForm({ sites, items, suppliers }: Props) {
         unit_conv_factor: 1,
         vendor_id: supplierId ?? null,
         invoice_no: invoiceNo || null,
-        rate: detailed && rate ? rate : null,
-        hsn_sac: detailed ? hsn || null : null,
-        invoice_date: detailed ? invoiceDate || null : null,
-        manufacturer: detailed ? manufacturer || null : null,
-        supplier_part_no: detailed ? partNo || null : null,
+        rate: rate || null,
+        hsn_sac: hsn || null,
+        invoice_date: invoiceDate || null,
+        manufacturer: manufacturer || null,
+        supplier_part_no: partNo || null,
       });
       if (res.ok) {
         toast.success('Purchase recorded.');
@@ -82,7 +83,6 @@ export function PurchaseForm({ sites, items, suppliers }: Props) {
     label: i.name,
     sub: i.code ? `${i.code} · ${i.stock_unit}` : i.stock_unit,
   }));
-  const supplierOptions = suppliers.map((p) => ({ value: p.id, label: p.name }));
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -132,17 +132,17 @@ export function PurchaseForm({ sites, items, suppliers }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="supplier">Supplier</Label>
-        <SearchableSelect
-          options={supplierOptions}
+        <Label>Supplier (optional)</Label>
+        <PartyPicker
+          parties={suppliers}
+          type="SUPPLIER"
           value={supplierId}
           onChange={setSupplierId}
-          placeholder="Select supplier"
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="invoice">Invoice #</Label>
+        <Label htmlFor="invoice">Invoice # (optional)</Label>
         <Input
           id="invoice"
           value={invoiceNo}
@@ -153,59 +153,54 @@ export function PurchaseForm({ sites, items, suppliers }: Props) {
 
       <Separator />
 
-      <button
-        type="button"
-        onClick={() => setDetailed((v) => !v)}
-        className="text-primary text-xs font-medium hover:underline"
-      >
-        {detailed ? '− Hide detailed fields' : '+ Show detailed fields'}
-      </button>
+      <p className="text-muted-foreground text-xs">
+        All fields below are optional. Fill what you have; the dashboard uses rate to value
+        purchases.
+      </p>
 
-      {detailed && (
-        <div className="bg-muted/30 space-y-3 rounded-md border p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="rate">Rate (₹/unit)</Label>
-              <Input
-                id="rate"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-                className="font-mono tabular-nums"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="hsn">HSN/SAC</Label>
-              <Input id="hsn" value={hsn} onChange={(e) => setHsn(e.target.value)} />
-            </div>
-          </div>
+      <div className="bg-muted/30 space-y-3 rounded-md border p-4">
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="invDate">Invoice date</Label>
+            <Label htmlFor="rate">Rate (₹/unit)</Label>
             <Input
-              id="invDate"
-              type="date"
-              value={invoiceDate}
-              onChange={(e) => setInvoiceDate(e.target.value)}
+              id="rate"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={rate}
+              onChange={(e) => setRate(e.target.value)}
+              className="font-mono tabular-nums"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="mfg">Manufacturer</Label>
-              <Input
-                id="mfg"
-                value={manufacturer}
-                onChange={(e) => setManufacturer(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="partNo">Supplier part #</Label>
-              <Input id="partNo" value={partNo} onChange={(e) => setPartNo(e.target.value)} />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="hsn">HSN/SAC</Label>
+            <Input id="hsn" value={hsn} onChange={(e) => setHsn(e.target.value)} />
           </div>
         </div>
-      )}
+        <div className="space-y-1.5">
+          <Label htmlFor="invDate">Invoice date</Label>
+          <Input
+            id="invDate"
+            type="date"
+            value={invoiceDate}
+            onChange={(e) => setInvoiceDate(e.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="mfg">Manufacturer</Label>
+            <Input
+              id="mfg"
+              value={manufacturer}
+              onChange={(e) => setManufacturer(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="partNo">Supplier part #</Label>
+            <Input id="partNo" value={partNo} onChange={(e) => setPartNo(e.target.value)} />
+          </div>
+        </div>
+      </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? 'Saving…' : 'Record purchase'}

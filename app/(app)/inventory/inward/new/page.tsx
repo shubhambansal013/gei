@@ -15,7 +15,7 @@ export default async function PurchaseNewPage() {
   const [{ data: sites }, { data: items }, { data: parties }] = await Promise.all([
     sb.from('sites').select('id, name, code').order('name'),
     sb.from('items').select('id, name, code, stock_unit').order('code'),
-    sb.from('parties').select('id, name, type').eq('type', 'SUPPLIER').order('name'),
+    sb.from('parties').select('id, name, type, short_code').eq('type', 'SUPPLIER').order('name'),
   ]);
 
   if (!sites || sites.length === 0) {
