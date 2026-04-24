@@ -1,10 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SiteSwitcher } from './site-switcher';
 import { Button } from '@/components/ui/button';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { createCan } from '@/lib/permissions/can';
+import { useSiteStore } from '@/lib/stores/site';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -24,37 +26,61 @@ import {
   Menu,
   X,
 } from 'lucide-react';
+import type { ModuleId, ActionId } from '@/lib/permissions/types';
 
 type NavItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
+  module?: ModuleId;
+  action?: ActionId;
 };
 
-const CORE_NAV: readonly NavItem[] = [
+const DASHBOARD_NAV: readonly NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/inventory/transactions', label: 'Transactions', icon: List },
-  { href: '/inventory/inward/new', label: 'Purchase', icon: ArrowDownToLine },
-  { href: '/inventory/outward/new', label: 'Issue', icon: ArrowUpFromLine },
-  { href: '/inventory/pivot', label: 'Pivot', icon: Grid3x3 },
+] as const;
+
+const INVENTORY_NAV: readonly NavItem[] = [
+  {
+    href: '/inventory/outward/new',
+    label: 'Issue',
+    icon: ArrowUpFromLine,
+    module: 'INVENTORY',
+    action: 'CREATE',
+  },
+  {
+    href: '/inventory/inward/new',
+    label: 'Purchase',
+    icon: ArrowDownToLine,
+    module: 'INVENTORY',
+    action: 'CREATE',
+  },
+  {
+    href: '/inventory/transactions',
+    label: 'Transactions',
+    icon: List,
+    module: 'INVENTORY',
+    action: 'VIEW',
+  },
+  { href: '/masters/items', label: 'Items', icon: Package, module: 'INVENTORY', action: 'VIEW' },
+  { href: '/masters/units', label: 'Units', icon: Ruler, module: 'INVENTORY', action: 'VIEW' },
 ] as const;
 
 // Masters group — Wave 3 adds "Workers" here. Keep this list self-contained
 // and named so that parallel edits don't collide with the Reports group below.
 const MASTERS_NAV: readonly NavItem[] = [
-  { href: '/masters/items', label: 'Items', icon: Package },
-  { href: '/masters/parties', label: 'Parties', icon: Users2 },
-  { href: '/masters/workers', label: 'Workers', icon: HardHat },
+  { href: '/masters/parties', label: 'Parties', icon: Users2, module: 'INVENTORY', action: 'VIEW' },
+  { href: '/masters/workers', label: 'Workers', icon: HardHat, module: 'WORKERS', action: 'VIEW' },
   { href: '/masters/sites', label: 'Sites', icon: Building2 },
-  { href: '/masters/locations', label: 'Locations', icon: MapPin },
-  { href: '/masters/units', label: 'Units', icon: Ruler },
+  { href: '/masters/locations', label: 'Locations', icon: MapPin, module: 'LOCATION', action: 'VIEW' },
   { href: '/masters/role-permissions', label: 'Role permissions', icon: ShieldCheck },
   { href: '/masters/users', label: 'Users', icon: UserCog },
 ] as const;
 
 // Reports group — owned by Wave 5.
 const REPORTS_NAV: readonly NavItem[] = [
-  { href: '/reports/items', label: 'Item-wise stock', icon: BarChart3 },
+  { href: '/reports/items', label: 'Item-wise stock', icon: BarChart3, module: 'REPORTS', action: 'VIEW' },
+  { href: '/reports/consumption-pivot', label: 'Consumption Pivot', icon: Grid3x3, module: 'REPORTS', action: 'VIEW' },
 ] as const;
 
 /**
@@ -75,8 +101,55 @@ const REPORTS_NAV: readonly NavItem[] = [
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { currentSite } = useSiteStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+
+  const canFn = useMemo(() => createCan(supabaseBrowser()), []);
+
+  useEffect(() => {
+    if (!currentSite?.id) return;
+
+    const navs = [...INVENTORY_NAV, ...MASTERS_NAV, ...REPORTS_NAV];
+    const checks = navs
+      .filter((i) => i.module && i.action)
+      .map((i) => ({ module: i.module!, action: i.action! }));
+
+    // Distinct checks to avoid redundant RPCs
+    const distinct = Array.from(new Set(checks.map((c) => `${c.module}:${c.action}`))).map((s) => {
+      const [module, action] = s.split(':') as [ModuleId, ActionId];
+      return { module, action };
+    });
+
+    let alive = true;
+    Promise.all(
+      distinct.map(async ({ module, action }) => {
+        const allowed = await canFn({ siteId: currentSite.id, module, action });
+        return { key: `${module}:${action}`, allowed };
+      }),
+    ).then((results) => {
+      if (!alive) return;
+      const next = results.reduce(
+        (acc, r) => ({ ...acc, [r.key]: r.allowed }),
+        {} as Record<string, boolean>,
+      );
+      setPermissions(next);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [currentSite?.id, canFn]);
+
+  const isVisible = useCallback(
+    (item: NavItem) => {
+      if (!item.module || !item.action) return true;
+      return permissions[`${item.module}:${item.action}`] ?? false;
+    },
+    [permissions],
+  );
 
   const signOut = async () => {
     await supabaseBrowser().auth.signOut();
@@ -172,20 +245,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
           <ul className="flex flex-col gap-0.5 py-2" role="list">
-            {CORE_NAV.map((i) => (
+            {DASHBOARD_NAV.map((i) => (
               <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
             ))}
 
-            <NavSection label="Masters" />
-            {/* Masters nav — Wave 3 adds Workers here */}
-            {MASTERS_NAV.map((i) => (
-              <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
-            ))}
+            {INVENTORY_NAV.some(isVisible) && (
+              <>
+                <NavSection label="Inventory" />
+                {INVENTORY_NAV.filter(isVisible).map((i) => (
+                  <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
+                ))}
+              </>
+            )}
 
-            <NavSection label="Reports" />
-            {REPORTS_NAV.map((i) => (
-              <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
-            ))}
+            {MASTERS_NAV.some(isVisible) && (
+              <>
+                <NavSection label="Masters" />
+                {MASTERS_NAV.filter(isVisible).map((i) => (
+                  <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
+                ))}
+              </>
+            )}
+
+            {REPORTS_NAV.some(isVisible) && (
+              <>
+                <NavSection label="Reports" />
+                {REPORTS_NAV.filter(isVisible).map((i) => (
+                  <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
+                ))}
+              </>
+            )}
           </ul>
         </nav>
 
