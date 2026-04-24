@@ -45,7 +45,7 @@ describe('role matrix — masters writes', () => {
 
     const res = await u
       .from('items')
-      .insert({ code: `I-${uniq}-${role}`, name: `RM ${role}`, unit: 'NOS' });
+      .insert({ code: `I-${uniq}-${role}`, name: `RM ${role}`, stock_unit: 'NOS' });
 
     if (allow) expect(res.error).toBeNull();
     else expect(res.error).not.toBeNull();
@@ -63,7 +63,7 @@ describe('role matrix — masters writes', () => {
 
     const res = await u
       .from('items')
-      .insert({ code: `I-${uniq}-SITE-ADMIN`, name: 'Site-admin insert', unit: 'NOS' });
+      .insert({ code: `I-${uniq}-SITE-ADMIN`, name: 'Site-admin insert', stock_unit: 'NOS' });
     expect(res.error).toBeNull();
   });
 
@@ -80,7 +80,7 @@ describe('role matrix — masters writes', () => {
 
     const res = await u
       .from('items')
-      .insert({ code: `I-${uniq}-SM`, name: 'SM denied', unit: 'NOS' });
+      .insert({ code: `I-${uniq}-SM`, name: 'SM denied', stock_unit: 'NOS' });
     expect(res.error).not.toBeNull();
   });
 });
@@ -100,7 +100,7 @@ describe('role matrix — transaction writes via can_user', () => {
     siteId = site!.id;
     const { data: item } = await svc
       .from('items')
-      .insert({ code: `I-${uniq}`, name: 'Txn matrix item', unit: 'NOS' })
+      .insert({ code: `I-${uniq}`, name: 'Txn matrix item', stock_unit: 'NOS' })
       .select()
       .single();
     itemId = item!.id;
