@@ -32,7 +32,7 @@ type IssueRow = {
   issued_to_legacy: string | null;
   worker_id: string | null;
   party: { id: string; name: string } | null;
-  location: { id: string; full_path: string; full_code: string } | null;
+  location: { id: string; name: string; code: string } | null;
   dest: { id: string; code: string; name: string } | null;
   worker: { id: string; code: string; full_name: string } | null;
 };
@@ -84,7 +84,7 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
       qtyIn: null,
       qtyOut: i.qty,
       balance: 0,
-      party: i.location?.full_path ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : ''),
+      party: i.location?.name ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : ''),
       rate: i.rate,
       remarks: i.worker
         ? `To ${i.worker.full_name} (${i.worker.code})`

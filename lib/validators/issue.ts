@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * Zod schemas for `issues` (outward). Enforces the DB's
  * `chk_issue_destination` CHECK constraint at the app layer:
- * exactly one of (location_ref_id + optional party_id) OR
+ * exactly one of (location_unit_id + optional party_id) OR
  * dest_site_id must be set.
  */
 const baseFields = z.object({
@@ -25,7 +25,7 @@ const baseFields = z.object({
 /**
  * Destination is a discriminated union that maps exactly to
  * `chk_issue_destination`:
- *   - `location` → sets location_ref_id (+ optional party_id)
+ *   - `location` → sets location_unit_id (+ optional party_id)
  *   - `party`    → sets party_id (standalone, no location)
  *   - `site`     → sets dest_site_id (mutually exclusive with others)
  */

@@ -1,359 +1,165 @@
 'use client';
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useMemo, useCallback, useState } from 'react';
+import { createColumnHelper } from '@tanstack/react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SearchableSelect } from '@/components/searchable-select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { MasterShell } from '@/components/master-shell';
+import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
-import { createTemplate, createTemplateNode, createUnit } from './actions';
+import { LocationForm } from './location-form';
 
-type Template = { id: string; name: string; description: string | null };
-type Node = {
-  id: string;
-  template_id: string;
-  parent_id: string | null;
-  name: string;
-  code: string;
-  type: string;
-  position: number | null;
-};
 type Unit = {
   id: string;
   site_id: string;
   name: string;
   code: string;
   type: string;
-  template_id: string | null;
-  site: { id: string; code: string; name: string } | null;
-  template: { id: string; name: string } | null;
+  site_code: string | null;
+  site_name: string | null;
+  type_label: string | null;
 };
 type Site = { id: string; code: string; name: string };
 type TypeRow = { id: string; label: string };
 
 type Props = {
-  templates: Template[];
-  nodes: Node[];
   units: Unit[];
   sites: Site[];
   types: TypeRow[];
 };
 
-export function LocationsClient({ templates, nodes, units, sites, types }: Props) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [tab, setTab] = useState('templates');
+const col = createColumnHelper<Unit>();
 
-  // Template form
-  const [tName, setTName] = useState('');
-  const [tDesc, setTDesc] = useState('');
+const STATIC_COLS = [
+  col.accessor('site_code', {
+    header: 'Site',
+    cell: (info) => info.getValue() ?? '—',
+  }),
+  col.accessor('code', {
+    header: 'Code',
+    cell: (info) => <span className="font-mono text-xs uppercase">{info.getValue()}</span>,
+  }),
+  col.accessor('name', { header: 'Name' }),
+  col.accessor('type_label', {
+    header: 'Type',
+    cell: (info) => info.getValue() ?? '—',
+  }),
+];
 
-  // Node form
-  const [nodeTemplate, setNodeTemplate] = useState<string | null>(null);
-  const [nodeParent, setNodeParent] = useState<string | null>(null);
-  const [nodeName, setNodeName] = useState('');
-  const [nodeCode, setNodeCode] = useState('');
-  const [nodeType, setNodeType] = useState<string | null>(null);
+const EXPORT_COLS = [
+  { key: 'site_code' as const, header: 'Site code' },
+  { key: 'site_name' as const, header: 'Site name' },
+  { key: 'code' as const, header: 'Code' },
+  { key: 'name' as const, header: 'Name' },
+  { key: 'type_label' as const, header: 'Type' },
+];
 
-  // Unit form
-  const [uSite, setUSite] = useState<string | null>(null);
-  const [uName, setUName] = useState('');
-  const [uCode, setUCode] = useState('');
-  const [uType, setUType] = useState<string | null>(null);
-  const [uTemplate, setUTemplate] = useState<string | null>(null);
+export function LocationsClient({ units, sites, types }: Props) {
+  const [search, setSearch] = useState('');
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<Unit | null>(null);
 
-  const typeOptions = types.map((t) => ({ value: t.id, label: t.label }));
-  const templateOptions = templates.map((t) => ({ value: t.id, label: t.name }));
-  const siteOptions = sites.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` }));
-  const parentOptions = nodes
-    .filter((n) => n.template_id === nodeTemplate)
-    .map((n) => ({ value: n.id, label: `${n.name} (${n.code})`, sub: n.type }));
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return units;
+    return units.filter(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.code.toLowerCase().includes(q) ||
+        (u.site_code ?? '').toLowerCase().includes(q) ||
+        (u.site_name ?? '').toLowerCase().includes(q),
+    );
+  }, [units, search]);
 
-  const submitTemplate = () => {
-    if (!tName) return toast.error('Name is required.');
-    startTransition(async () => {
-      const res = await createTemplate({ name: tName, description: tDesc || null });
-      if (res.ok) {
-        toast.success('Template created.');
-        setTName('');
-        setTDesc('');
-        router.refresh();
-      } else toast.error(res.error);
-    });
-  };
+  const openEdit = useCallback((unit: Unit) => {
+    setEditing(unit);
+    setSheetOpen(true);
+  }, []);
 
-  const submitNode = () => {
-    if (!nodeTemplate || !nodeName || !nodeCode || !nodeType) {
-      return toast.error('Template, name, code, type are required.');
-    }
-    startTransition(async () => {
-      const res = await createTemplateNode({
-        template_id: nodeTemplate,
-        parent_id: nodeParent ?? null,
-        name: nodeName,
-        code: nodeCode,
-        type: nodeType,
-      });
-      if (res.ok) {
-        toast.success('Node added.');
-        setNodeName('');
-        setNodeCode('');
-        router.refresh();
-      } else toast.error(res.error);
-    });
-  };
+  const columns = useMemo(
+    (): ColumnDef<Unit, unknown>[] => [
+      ...(STATIC_COLS as ColumnDef<Unit, unknown>[]),
+      {
+        id: 'actions',
+        header: '',
+        cell: (info) => (
+          <Button variant="ghost" size="sm" onClick={() => openEdit(info.row.original)}>
+            Edit
+          </Button>
+        ),
+      },
+    ],
+    [openEdit],
+  );
 
-  const submitUnit = () => {
-    if (!uSite || !uName || !uCode || !uType) {
-      return toast.error('Site, name, code, and type are required.');
-    }
-    startTransition(async () => {
-      const res = await createUnit({
-        site_id: uSite,
-        name: uName,
-        code: uCode,
-        type: uType,
-        template_id: uTemplate ?? null,
-      });
-      if (res.ok) {
-        toast.success('Unit created.');
-        setUName('');
-        setUCode('');
-        router.refresh();
-      } else toast.error(res.error);
-    });
-  };
+  function openCreate() {
+    setEditing(null);
+    setSheetOpen(true);
+  }
+
+  function closeSheet() {
+    setSheetOpen(false);
+    setEditing(null);
+  }
 
   return (
     <div className="space-y-4">
       <header>
         <h1 className="text-xl font-semibold tracking-tight">Locations</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Templates define a reusable structure (e.g. Villa → Floor → Room). Units are the per-site
-          instances of a template (e.g. Villa 6 on site RGIPT-SIV).
-        </p>
       </header>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="units">Units</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="templates" className="mt-4 space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <section className="bg-card space-y-3 rounded-md border p-4 shadow-sm">
-              <h2 className="text-sm font-semibold">+ New template</h2>
-              <div className="space-y-1.5">
-                <Label htmlFor="tName">Name *</Label>
-                <Input
-                  id="tName"
-                  value={tName}
-                  onChange={(e) => setTName(e.target.value)}
-                  placeholder="e.g. Hostel Block"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="tDesc">Description</Label>
-                <Input
-                  id="tDesc"
-                  value={tDesc}
-                  onChange={(e) => setTDesc(e.target.value)}
-                  placeholder="Optional"
-                />
-              </div>
-              <Button onClick={submitTemplate} disabled={pending} size="sm">
-                Create template
+      <MasterShell
+        title="Locations"
+        search={search}
+        onSearch={setSearch}
+        onNew={openCreate}
+        canCreate
+        exportFile="locations"
+        exportCols={EXPORT_COLS}
+        exportRows={filtered}
+      >
+        {filtered.length === 0 && !search ? (
+          <EmptyState
+            title="No locations yet"
+            description="Add site-scoped locations (e.g. Block A, Villa 6) to start recording issues."
+            action={
+              <Button size="sm" onClick={openCreate}>
+                Add location
               </Button>
-            </section>
+            }
+          />
+        ) : (
+          <DataGrid columns={columns} data={filtered} showRowNumbers />
+        )}
+      </MasterShell>
 
-            <section className="bg-card space-y-3 rounded-md border p-4 shadow-sm">
-              <h2 className="text-sm font-semibold">+ Add node to template</h2>
-              <div className="space-y-1.5">
-                <Label>Template *</Label>
-                <SearchableSelect
-                  options={templateOptions}
-                  value={nodeTemplate}
-                  onChange={(v) => {
-                    setNodeTemplate(v);
-                    setNodeParent(null);
-                  }}
-                  placeholder="Pick template"
-                />
-              </div>
-              {nodeTemplate && parentOptions.length > 0 && (
-                <div className="space-y-1.5">
-                  <Label>Parent node (optional)</Label>
-                  <SearchableSelect
-                    options={parentOptions}
-                    value={nodeParent}
-                    onChange={setNodeParent}
-                    placeholder="Top-level if blank"
-                  />
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="nName">Name *</Label>
-                  <Input
-                    id="nName"
-                    value={nodeName}
-                    onChange={(e) => setNodeName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="nCode">Code *</Label>
-                  <Input
-                    id="nCode"
-                    value={nodeCode}
-                    onChange={(e) => setNodeCode(e.target.value)}
-                    className="font-mono"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Type *</Label>
-                <SearchableSelect
-                  options={typeOptions}
-                  value={nodeType}
-                  onChange={setNodeType}
-                  placeholder="floor / room / wing …"
-                />
-              </div>
-              <Button onClick={submitNode} disabled={pending} size="sm">
-                Add node
-              </Button>
-            </section>
-          </div>
-
-          <section className="bg-card rounded-md border shadow-sm">
-            <div className="border-b px-4 py-2 text-sm font-semibold">Existing templates</div>
-            {templates.length === 0 ? (
-              <div className="p-6">
-                <EmptyState
-                  title="No templates yet"
-                  description="Create your first template, then add nodes like Floor → Room."
-                />
-              </div>
-            ) : (
-              <ul className="divide-y">
-                {templates.map((t) => {
-                  const tNodes = nodes.filter((n) => n.template_id === t.id);
-                  return (
-                    <li key={t.id} className="px-4 py-3">
-                      <div className="flex items-baseline justify-between">
-                        <div className="font-medium">{t.name}</div>
-                        <div className="text-muted-foreground text-xs">
-                          {tNodes.length} node{tNodes.length === 1 ? '' : 's'}
-                        </div>
-                      </div>
-                      {t.description && (
-                        <p className="text-muted-foreground mt-0.5 text-xs">{t.description}</p>
-                      )}
-                      {tNodes.length > 0 && (
-                        <ul className="mt-2 flex flex-wrap gap-1.5">
-                          {tNodes.map((n) => (
-                            <li
-                              key={n.id}
-                              className="bg-muted rounded-sm px-1.5 py-0.5 font-mono text-xs"
-                            >
-                              {n.code} · {n.name}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-        </TabsContent>
-
-        <TabsContent value="units" className="mt-4 space-y-6">
-          <section className="bg-card space-y-3 rounded-md border p-4 shadow-sm">
-            <h2 className="text-sm font-semibold">+ New unit</h2>
-            <div className="space-y-1.5">
-              <Label>Site *</Label>
-              <SearchableSelect
-                options={siteOptions}
-                value={uSite}
-                onChange={setUSite}
-                placeholder="Pick site"
+      <Sheet open={sheetOpen} onOpenChange={closeSheet}>
+        <SheetContent side="right" className="w-full overflow-y-auto p-6 sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{editing ? 'Edit location' : 'New location'}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {editing ? (
+              <LocationForm
+                key={editing.id}
+                mode="edit"
+                sites={sites}
+                types={types}
+                defaultValues={editing}
+                onSuccess={closeSheet}
               />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="uName">Name *</Label>
-                <Input id="uName" value={uName} onChange={(e) => setUName(e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="uCode">Code *</Label>
-                <Input
-                  id="uCode"
-                  value={uCode}
-                  onChange={(e) => setUCode(e.target.value)}
-                  className="font-mono"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label>Type *</Label>
-                <SearchableSelect
-                  options={typeOptions}
-                  value={uType}
-                  onChange={setUType}
-                  placeholder="villa / block / flat …"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Template (optional)</Label>
-                <SearchableSelect
-                  options={templateOptions}
-                  value={uTemplate}
-                  onChange={setUTemplate}
-                  placeholder="Link a template"
-                />
-              </div>
-            </div>
-            <Button onClick={submitUnit} disabled={pending} size="sm">
-              Create unit
-            </Button>
-          </section>
-
-          <section className="bg-card rounded-md border shadow-sm">
-            <div className="border-b px-4 py-2 text-sm font-semibold">Existing units</div>
-            {units.length === 0 ? (
-              <div className="p-6">
-                <EmptyState
-                  title="No units yet"
-                  description="Create a site-scoped unit (e.g. Villa 6) and optionally link it to a template."
-                />
-              </div>
             ) : (
-              <ul className="divide-y">
-                {units.map((u) => (
-                  <li key={u.id} className="px-4 py-3">
-                    <div className="flex items-baseline justify-between">
-                      <div>
-                        <span className="font-mono text-sm">{u.code}</span>{' '}
-                        <span className="font-medium">{u.name}</span>
-                      </div>
-                      <div className="text-muted-foreground text-xs">
-                        {u.site?.code ?? '—'} · {u.type}
-                        {u.template ? ` · ${u.template.name}` : ''}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <LocationForm
+                key="create"
+                mode="create"
+                sites={sites}
+                types={types}
+                onSuccess={closeSheet}
+              />
             )}
-          </section>
-        </TabsContent>
-      </Tabs>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

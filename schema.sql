@@ -148,29 +148,7 @@ CREATE TABLE items (
 
 -- =============================================================================
 -- LOCATION SYSTEM
--- Layer 1: Templates (reusable structure)
--- Layer 2: Units per site (Villa 6, Block A)
--- Layer 3: References — resolved on first use, never pre-populated
 -- =============================================================================
-
-CREATE TABLE location_templates (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        TEXT NOT NULL,
-  description TEXT,
-  created_at  TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE location_template_nodes (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  template_id UUID NOT NULL REFERENCES location_templates(id) ON DELETE CASCADE,
-  parent_id   UUID REFERENCES location_template_nodes(id),
-  name        TEXT NOT NULL,
-  code        TEXT NOT NULL,
-  type        TEXT NOT NULL REFERENCES location_types(id),
-  position    INTEGER,
-
-  UNIQUE (template_id, parent_id, code)
-);
 
 CREATE TABLE location_units (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -178,22 +156,8 @@ CREATE TABLE location_units (
   name        TEXT NOT NULL,
   code        TEXT NOT NULL,
   type        TEXT NOT NULL REFERENCES location_types(id),
-  template_id UUID REFERENCES location_templates(id),
-  position    INTEGER,
 
   UNIQUE (site_id, code)
-);
-
-CREATE TABLE location_references (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  site_id          UUID NOT NULL REFERENCES sites(id),
-  unit_id          UUID NOT NULL REFERENCES location_units(id),
-  template_node_id UUID REFERENCES location_template_nodes(id),
-  full_path        TEXT NOT NULL,
-  full_code        TEXT NOT NULL,
-  created_at       TIMESTAMPTZ DEFAULT now(),
-
-  UNIQUE (unit_id, template_node_id)
 );
 
 
@@ -469,7 +433,7 @@ CREATE TABLE purchases (
 -- ISSUES
 -- Material outward register.
 -- qty is positive for issue, negative for return.
--- party_id and location_ref_id can both be filled (contractor at a location).
+-- party_id and location_unit_id can both be filled (contractor at a location).
 -- dest_site_id is mutually exclusive with the other two.
 --
 -- worker_id        = structured FK to the worker who received the material
@@ -488,7 +452,7 @@ CREATE TABLE issues (
   qty               NUMERIC NOT NULL CHECK (qty != 0),
   unit              TEXT NOT NULL REFERENCES units(id),
 
-  location_ref_id   UUID REFERENCES location_references(id),
+  location_unit_id  UUID REFERENCES location_units(id),
   party_id          UUID REFERENCES parties(id),
   dest_site_id      UUID REFERENCES sites(id),
 
@@ -509,12 +473,12 @@ CREATE TABLE issues (
   CONSTRAINT chk_issue_destination CHECK (
     (
       dest_site_id IS NULL
-      AND (location_ref_id IS NOT NULL OR party_id IS NOT NULL)
+      AND (location_unit_id IS NOT NULL OR party_id IS NOT NULL)
     )
     OR
     (
       dest_site_id IS NOT NULL
-      AND location_ref_id IS NULL
+      AND location_unit_id IS NULL
       AND party_id IS NULL
     )
   ),
@@ -568,81 +532,12 @@ GROUP BY site_id, item_id;
 
 
 -- =============================================================================
--- RESOLVE LOCATION FUNCTION
--- =============================================================================
-
-CREATE OR REPLACE FUNCTION resolve_location(
-  p_site_id UUID,
-  p_code    TEXT
-)
-RETURNS UUID AS $$
-DECLARE
-  v_parts     TEXT[];
-  v_unit_code TEXT;
-  v_unit      location_units%ROWTYPE;
-  v_node_id   UUID := NULL;
-  v_part      TEXT;
-  v_full_path TEXT;
-  v_ref_id    UUID;
-BEGIN
-  v_parts     := string_to_array(p_code, '-');
-  v_unit_code := v_parts[1];
-
-  SELECT * INTO v_unit
-  FROM location_units
-  WHERE site_id = p_site_id AND code = v_unit_code;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Unit code % not found for this site', v_unit_code;
-  END IF;
-
-  v_full_path := v_unit.name;
-
-  FOR i IN 2..array_length(v_parts, 1) LOOP
-    v_part := v_parts[i];
-
-    SELECT id INTO v_node_id
-    FROM location_template_nodes
-    WHERE template_id = v_unit.template_id
-      AND parent_id   IS NOT DISTINCT FROM v_node_id
-      AND code        = v_part;
-
-    IF NOT FOUND THEN
-      RAISE EXCEPTION 'Node code % not found in template at level %', v_part, i;
-    END IF;
-
-    SELECT v_full_path || ' > ' || name INTO v_full_path
-    FROM location_template_nodes
-    WHERE id = v_node_id;
-  END LOOP;
-
-  INSERT INTO location_references
-    (site_id, unit_id, template_node_id, full_path, full_code)
-  VALUES
-    (p_site_id, v_unit.id, v_node_id, v_full_path, p_code)
-  ON CONFLICT (unit_id, template_node_id) DO NOTHING
-  RETURNING id INTO v_ref_id;
-
-  IF v_ref_id IS NULL THEN
-    SELECT id INTO v_ref_id
-    FROM location_references
-    WHERE unit_id          = v_unit.id
-      AND template_node_id IS NOT DISTINCT FROM v_node_id;
-  END IF;
-
-  RETURN v_ref_id;
-END;
-$$ LANGUAGE plpgsql;
-
-
--- =============================================================================
 -- ROW LEVEL SECURITY
 -- =============================================================================
 
 ALTER TABLE purchases           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE issues              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE location_units      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE location_references ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "purchases_select" ON purchases
   FOR SELECT USING (can_user(auth.uid(), site_id, 'INVENTORY', 'VIEW'));
@@ -664,10 +559,8 @@ CREATE POLICY "issues_no_delete" ON issues
 
 CREATE POLICY "location_units_select" ON location_units
   FOR SELECT USING (can_user(auth.uid(), site_id, 'LOCATION', 'VIEW'));
-CREATE POLICY "location_refs_select" ON location_references
-  FOR SELECT USING (can_user(auth.uid(), site_id, 'LOCATION', 'VIEW'));
 
--- location_units / location_references writes: admins only. See
+-- location_units writes: admins only. See
 -- migration 20260423000001_write_policies.sql. `is_admin_anywhere` is
 -- defined in 20260420000004_masters_rls.sql (mirrored below).
 CREATE POLICY "location_units_insert_admin" ON location_units
@@ -676,14 +569,6 @@ CREATE POLICY "location_units_update_admin" ON location_units
   FOR UPDATE USING (is_admin_anywhere(auth.uid()))
   WITH CHECK (is_admin_anywhere(auth.uid()));
 CREATE POLICY "location_units_delete_admin" ON location_units
-  FOR DELETE USING (is_admin_anywhere(auth.uid()));
-
-CREATE POLICY "location_refs_insert_admin" ON location_references
-  FOR INSERT WITH CHECK (is_admin_anywhere(auth.uid()));
-CREATE POLICY "location_refs_update_admin" ON location_references
-  FOR UPDATE USING (is_admin_anywhere(auth.uid()))
-  WITH CHECK (is_admin_anywhere(auth.uid()));
-CREATE POLICY "location_refs_delete_admin" ON location_references
   FOR DELETE USING (is_admin_anywhere(auth.uid()));
 
 -- site_user_permission_overrides: RLS enabled by
@@ -766,20 +651,13 @@ CREATE INDEX idx_purchases_deleted        ON purchases(is_deleted);
 
 CREATE INDEX idx_issues_site_item         ON issues(site_id, item_id);
 CREATE INDEX idx_issues_date              ON issues(issue_date);
-CREATE INDEX idx_issues_location          ON issues(location_ref_id);
+CREATE INDEX idx_issues_location_unit     ON issues(location_unit_id);
 CREATE INDEX idx_issues_party             ON issues(party_id);
 CREATE INDEX idx_issues_worker            ON issues(worker_id);
 CREATE INDEX idx_issues_deleted           ON issues(is_deleted);
 
 CREATE INDEX idx_location_units_site      ON location_units(site_id);
 CREATE INDEX idx_location_units_site_code ON location_units(site_id, code);
-CREATE INDEX idx_template_nodes_template  ON location_template_nodes(template_id);
-CREATE INDEX idx_template_nodes_parent    ON location_template_nodes(parent_id);
-CREATE INDEX idx_location_refs_site       ON location_references(site_id);
-CREATE INDEX idx_location_refs_unit       ON location_references(unit_id);
-CREATE INDEX idx_location_refs_code       ON location_references(site_id, full_code);
-CREATE INDEX idx_location_refs_fts        ON location_references
-  USING gin(to_tsvector('english', full_path));
 
 CREATE INDEX idx_profiles_role            ON profiles(role_id);
 CREATE INDEX idx_profiles_active          ON profiles(is_active);
@@ -931,8 +809,8 @@ CREATE POLICY "role_permissions_write_super_admin" ON role_permissions
 
 -- INSERT INTO sites (name, code, type) VALUES ('RGIPT Sivasagar', 'RGIPT-SIV', 'hostel');
 
--- INSERT INTO location_units (site_id, name, code, type, template_id)
--- SELECT 'site-uuid', 'Block ' || n, n::TEXT, 'block', 'template-uuid'
+-- INSERT INTO location_units (site_id, name, code, type)
+-- SELECT 'site-uuid', 'Block ' || n, n::TEXT, 'block'
 -- FROM generate_series(1, 10) AS n;
 
 -- INSERT INTO site_user_access (site_id, user_id, role_id, granted_by)

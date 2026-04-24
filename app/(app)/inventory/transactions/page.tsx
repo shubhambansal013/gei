@@ -34,7 +34,7 @@ export default async function TransactionsPage() {
         `id, site_id, item_id, qty, unit, issue_date, issued_to_legacy, worker_id,
          item:items(id, code, name, stock_unit),
          party:parties(id, name),
-         location:location_references(id, full_path, full_code),
+         location:location_units(id, name, code),
          dest:sites!issues_dest_site_id_fkey(id, code, name),
          worker:workers(id, code, full_name)`,
       )

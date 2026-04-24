@@ -31,7 +31,7 @@ export default async function ItemLedgerPage({ params }: { params: Promise<{ id:
       .select(
         `id, issue_date, qty, unit, rate, remarks, issued_to_legacy, worker_id,
          party:parties(id, name),
-         location:location_references(id, full_path, full_code),
+         location:location_units(id, name, code),
          dest:sites!issues_dest_site_id_fkey(id, code, name),
          worker:workers(id, code, full_name)`,
       )
