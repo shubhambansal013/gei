@@ -24,8 +24,10 @@ DELETE FROM role_permissions WHERE module_id = 'DPR';
 DELETE FROM modules WHERE id = 'DPR';
 
 -- LABOUR → WORKERS rename: update child rows first, then parent.
+-- LABOUR → WORKERS rename: parent row first (as new insert), then children, then delete old parent.
+INSERT INTO modules (id, label) VALUES ('WORKERS', 'Workers');
 UPDATE role_permissions SET module_id = 'WORKERS' WHERE module_id = 'LABOUR';
 UPDATE site_user_permission_overrides SET module_id = 'WORKERS' WHERE module_id = 'LABOUR';
-UPDATE modules SET id = 'WORKERS', label = 'Workers' WHERE id = 'LABOUR';
+DELETE FROM modules WHERE id = 'LABOUR';
 
 COMMIT;
