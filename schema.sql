@@ -509,7 +509,7 @@ SELECT
     - COALESCE(SUM(iss.qty), 0)       AS current_stock
 FROM purchases p
 JOIN items i ON i.id = p.item_id
-JOIN units u ON u.id = i.unit
+JOIN units u ON u.id = i.stock_unit
 LEFT JOIN issues iss
        ON iss.site_id   = p.site_id
       AND iss.item_id   = p.item_id

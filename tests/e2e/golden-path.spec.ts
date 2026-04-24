@@ -60,7 +60,7 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
     await svc.from('sites').insert({ code: siteCode, name: `E2E ${unique}` });
     const { data: item } = await svc
       .from('items')
-      .insert({ code: itemCode, name: `E2E Cement ${unique}`, unit: 'MT' })
+      .insert({ code: itemCode, name: `E2E Cement ${unique}`, stock_stock_unit: 'MT' })
       .select()
       .single();
     itemId = item!.id;

@@ -36,7 +36,7 @@ describe('signup approval — inactive profiles cannot read masters', () => {
     siteId = site!.id;
     const { data: item } = await svc
       .from('items')
-      .insert({ code: `I-${uniq}`, name: 'SA Item', unit: 'NOS' })
+      .insert({ code: `I-${uniq}`, name: 'SA Item', stock_unit: 'NOS',
       .select()
       .single();
     itemId = item!.id;

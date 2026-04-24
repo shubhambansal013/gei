@@ -52,7 +52,7 @@ describe('inventory_edit_log — audit trigger + RLS', () => {
     siteId = site!.id;
     const { data: item } = await svc
       .from('items')
-      .insert({ code: itemCode, name: 'Audit Cement', unit: 'MT' })
+      .insert({ code: itemCode, name: 'Audit Cement', stock_unit: 'MT',
       .select()
       .single();
     itemId = item!.id;
