@@ -285,7 +285,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF is_admin_anywhere(auth.uid()) THEN
+  -- Admin writes are unrestricted (handled by profiles_update policies).
+  -- We also allow the service role (auth.uid() is null) to bypass this check.
+  IF auth.uid() IS NULL OR is_admin_anywhere(auth.uid()) THEN
     RETURN NEW;
   END IF;
   IF auth.uid() IS DISTINCT FROM OLD.id THEN
@@ -634,6 +636,28 @@ CREATE POLICY "sites_select_accessible" ON sites
       )
     )
   );
+
+
+-- =============================================================================
+-- FUNCTIONS
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION is_admin_anywhere(p_user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  SELECT role_id INTO v_role FROM profiles
+   WHERE id = p_user_id AND is_active = true;
+  IF NOT FOUND THEN RETURN false; END IF;
+  IF v_role = 'SUPER_ADMIN' THEN RETURN true; END IF;
+
+  RETURN EXISTS (
+    SELECT 1 FROM site_user_access
+     WHERE user_id = p_user_id AND role_id IN ('SUPER_ADMIN', 'ADMIN')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- =============================================================================
