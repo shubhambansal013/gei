@@ -63,7 +63,6 @@ export default function LoginPage() {
         {/* Brand lockup — monospace wordmark doing double duty as a logo. */}
         <div className="mb-8 flex items-baseline gap-2">
           <span className="text-primary font-mono text-2xl font-bold tracking-tight">GEI</span>
-          <span className="text-muted-foreground text-sm font-medium">inventory</span>
         </div>
 
         <h1 className="mb-1 text-lg font-semibold">Sign in</h1>
