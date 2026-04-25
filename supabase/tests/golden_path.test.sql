@@ -19,8 +19,8 @@ INSERT INTO purchases (site_id, item_id, received_qty, received_unit, unit_conv_
 VALUES ('00000000-0000-0000-0000-000000000300', '00000000-0000-0000-0000-000000000300', 100, 'MT', 1, 'MT');
 
 -- Record Issue
-INSERT INTO issues (site_id, item_id, qty, unit, party_id)
-VALUES ('00000000-0000-0000-0000-000000000300', '00000000-0000-0000-0000-000000000300', 30, 'MT', '00000000-0000-0000-0000-000000000300');
+INSERT INTO issues (site_id, item_id, qty, unit, party_id, issued_to_legacy)
+VALUES ('00000000-0000-0000-0000-000000000300', '00000000-0000-0000-0000-000000000300', 30, 'MT', '00000000-0000-0000-0000-000000000300', 'Test Recipient');
 
 -- Validate balance
 SELECT results_eq(

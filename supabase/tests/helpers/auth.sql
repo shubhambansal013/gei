@@ -2,6 +2,7 @@
 -- Helpers for mocking Supabase Auth in pgTAP tests.
 
 CREATE SCHEMA IF NOT EXISTS tests;
+GRANT USAGE ON SCHEMA tests TO authenticated, anon;
 
 CREATE OR REPLACE FUNCTION tests.create_test_user(
   p_id UUID,
@@ -27,9 +28,14 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION tests.authenticate_as(p_user_id UUID)
 RETURNS VOID AS $$
 BEGIN
-  -- Mock the JWT claims that RLS policies (via auth.uid()) look for.
-  EXECUTE format('SET LOCAL "request.jwt.claims" = %L', json_build_object('sub', p_user_id)::text);
-  -- Also set role if needed, though most policies use auth.uid()
+  -- Mock the JWT claims that RLS policies (via auth.uid() and auth.role()) look for.
+  EXECUTE format(
+    'SET LOCAL "request.jwt.claims" = %L',
+    json_build_object(
+      'sub', p_user_id,
+      'role', 'authenticated'
+    )::text
+  );
   SET LOCAL ROLE authenticated;
 END;
 $$ LANGUAGE plpgsql;
