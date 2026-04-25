@@ -25,10 +25,10 @@ preserving the Excel _feel_ that site-store workers are familiar with.
 
 Before changing anything, read:
 
-1. **Design spec** — `docs/superpowers/specs/2026-04-20-gei-inventory-system-design.md`
-2. **Foundation implementation plan** — `docs/superpowers/plans/2026-04-20-gei-inventory-foundation.md`
+1. **Design spec** — `docs/archive/design-history/2026-04-20-gei-inventory-system-design.md`
+2. **Foundation implementation plan** — `docs/archive/design-history/2026-04-20-gei-inventory-foundation.md`
 3. **Database schema** — `schema.sql`
-4. **CLAUDE.md** — conventions for AI assistants working in this repo
+4. **AGENTS.md** — conventions for AI assistants working in this repo
 
 Spec and plan are treated as living documents. Amendments go in via new
 dated files under the same directories, not by rewriting history.
@@ -49,7 +49,7 @@ dated files under the same directories, not by rewriting history.
 | Package manager     | pnpm 9                                                                |
 | Node                | ≥ 20.11                                                               |
 
-Why these choices — see `docs/superpowers/specs/…-design.md` §5.
+Why these choices — see `docs/archive/design-history/…-design.md` §5.
 
 ## Quick start
 
@@ -69,7 +69,7 @@ pnpm dev                                          # http://localhost:3000
 > your first sign-in, run this in Supabase Studio's SQL editor:
 >
 > ```sql
-> UPDATE profiles SET role_id = 'SUPER_ADMIN' WHERE id = '<your-uid>';
+> UPDATE profiles SET role_id = 'SUPER_ADMIN', is_active = true WHERE id = '<your-uid>';
 > ```
 
 ## Scripts
@@ -130,8 +130,7 @@ tests/
   rls/                      RLS policy tests (Supabase local, node env)
   e2e/                      Playwright smoke + golden paths
 docs/
-  superpowers/specs/        Approved design docs (dated)
-  superpowers/plans/        Implementation plans (dated)
+  archive/design-history/   Historical design docs and plans (dated)
   architecture.md           System overview (coming in Task 22)
   permissions.md            Role × module × action matrix (Task 22)
   runbooks/                 Ops runbooks (Phase 3)
