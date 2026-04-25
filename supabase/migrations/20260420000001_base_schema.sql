@@ -33,6 +33,7 @@ CREATE TABLE units (
 
 INSERT INTO units (id, label, category) VALUES
   ('NOS',  'Numbers',       'count'),
+  ('PCS',  'Pieces',        'count'),
   ('MTR',  'Metre',         'length'),
   ('RMT',  'Running Metre', 'length'),
   ('SQFT', 'Square Feet',   'area'),
@@ -47,6 +48,7 @@ INSERT INTO units (id, label, category) VALUES
   ('PKT',  'Packet',        'count'),
   ('BOX',  'Box',           'count'),
   ('BAG',  'Bag',           'count');
+
 
 
 CREATE TABLE item_categories (
@@ -220,7 +222,7 @@ CREATE TABLE modules (
 INSERT INTO modules (id, label) VALUES
   ('INVENTORY', 'Inventory'),
   ('DPR',       'Daily Progress Report'),
-  ('LABOUR',    'Labour Management'),
+  ('WORKER',    'Worker Management'),
   ('LOCATION',  'Location Master'),
   ('REPORTS',   'Reports & Analytics');
 
@@ -263,7 +265,7 @@ INSERT INTO role_permissions (role_id, module_id, action_id) VALUES
   ('SITE_ENGINEER', 'DPR',       'CREATE'),
   ('SITE_ENGINEER', 'DPR',       'EDIT'),
   ('SITE_ENGINEER', 'INVENTORY', 'VIEW'),
-  ('SITE_ENGINEER', 'LABOUR',    'VIEW'),
+  ('SITE_ENGINEER', 'WORKER',    'VIEW'),
   ('SITE_ENGINEER', 'REPORTS',   'VIEW');
 
 INSERT INTO role_permissions (role_id, module_id, action_id)
