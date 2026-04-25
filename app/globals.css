@@ -226,3 +226,28 @@
     display: table-header-group;
   }
 }
+
+/*
+ * Sonner Snackbar (Toast) Styling
+ * Matches GEI industrial-minimal design tokens.
+ */
+.cn-toast {
+  @apply !bg-popover !text-popover-foreground !border-border !shadow-md !rounded-md font-sans !px-4 !py-3;
+  --normal-bg: var(--popover);
+  --normal-border: var(--border);
+  --normal-text: var(--popover-foreground);
+}
+
+.cn-toast[data-type="success"] {
+  @apply !border-primary/50;
+}
+
+.cn-toast[data-type="error"] {
+  @apply !border-destructive/50;
+}
+
+@media (max-width: 640px) {
+  .cn-toast {
+    @apply !w-[calc(100vw-2rem)] !mx-4 !mb-4;
+  }
+}
