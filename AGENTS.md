@@ -1,9 +1,9 @@
 # Guidance for AI Assistants (AGENTS.md)
 
-This file provides context and guidelines for AI agents working on the GEI Inventory project.
+This file provides context and guidelines for AI agents working on the GEI project.
 
 ## 1. Project Overview
-**GEI Inventory** — a multi-site construction-inventory web app.
+**GEI** — a multi-site construction-inventory web app.
 - **Users:** Google OAuth only.
 - **Roles:** SUPER_ADMIN, ADMIN, STORE_MANAGER, SITE_ENGINEER, VIEWER.
 - **UX:** Excel-look VIEW, form-based ENTRY. Minimal clicks, mobile-friendly.

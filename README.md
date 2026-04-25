@@ -1,4 +1,4 @@
-# GEI Inventory
+# GEI
 
 Construction-site inventory management for GEI. Replaces the legacy Excel
 workflow with a multi-site, role-scoped, auditable web application while
@@ -25,8 +25,8 @@ preserving the Excel _feel_ that site-store workers are familiar with.
 
 Before changing anything, read:
 
-1. **Design spec** — `docs/archive/design-history/2026-04-20-gei-inventory-system-design.md`
-2. **Foundation implementation plan** — `docs/archive/design-history/2026-04-20-gei-inventory-foundation.md`
+1. **Design spec** — `docs/archive/design-history/2026-04-20-gei-system-design.md`
+2. **Foundation implementation plan** — `docs/archive/design-history/2026-04-20-gei-foundation.md`
 3. **Database schema** — `schema.sql`
 4. **AGENTS.md** — conventions for AI assistants working in this repo
 

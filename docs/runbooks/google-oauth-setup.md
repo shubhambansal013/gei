@@ -8,12 +8,12 @@ the app. This runbook enables real Google sign-in.
 
 1. Open https://console.cloud.google.com/apis/credentials.
 2. Pick or create a project (e.g. `gei-inventory-local`).
-3. Configure the OAuth consent screen (External → "GEI Inventory",
+3. Configure the OAuth consent screen (External → "GEI",
    support email = your email, scopes = `email profile openid`, test
    users = your Google address).
 4. Click **Create Credentials → OAuth client ID**.
    - Application type: **Web application**
-   - Name: `GEI Inventory (local)`
+   - Name: `GEI (local)`
    - Authorized JavaScript origins: `http://localhost:3001` (and
      `http://127.0.0.1:3001`)
    - Authorized redirect URIs: `http://127.0.0.1:54321/auth/v1/callback`

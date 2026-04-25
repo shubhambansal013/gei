@@ -1,6 +1,6 @@
 # Runbook — Deploy to production
 
-This guide describes how to deploy the GEI Inventory application using GitHub Actions, including database migrations and Cloudflare Workers deployment.
+This guide describes how to deploy the GEI application using GitHub Actions, including database migrations and Cloudflare Workers deployment.
 
 ## Prerequisites
 

@@ -1,11 +1,11 @@
 ---
-name: GEI Inventory project overview
+name: GEI project overview
 description: Multi-site construction-inventory web app; Next.js 16 + Supabase + Tailwind 4; feature/foundation is the active integration branch
 type: project
 originSessionId: a50c33aa-5bf3-4254-b5b1-73a4385d05c8
 ---
 
-**GEI Inventory** — Google-OAuth multi-site construction inventory app replacing an Excel workflow. RLS is the trust boundary. Audit is non-bypassable. Entry forms are deliberately low-field-count (3-5) for low-literacy site-store workers.
+**GEI** — Google-OAuth multi-site construction inventory app replacing an Excel workflow. RLS is the trust boundary. Audit is non-bypassable. Entry forms are deliberately low-field-count (3-5) for low-literacy site-store workers.
 
 Stack specifics:
 
