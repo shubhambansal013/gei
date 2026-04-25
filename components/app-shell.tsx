@@ -206,12 +206,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           id="app-nav"
           aria-label="Primary"
           className={cn(
-            'print:hide bg-card shrink-0 border-r',
+            'print:hide bg-card shrink-0 border-r overflow-y-auto',
             // Mobile: fixed slide-in drawer.
             'fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-200 ease-out',
             drawerOpen ? 'translate-x-0' : '-translate-x-full',
-            // Desktop: static 52-unit sidebar, no transform.
-            'md:static md:z-auto md:w-52 md:translate-x-0 md:transition-none',
+            // Desktop: sticky 52-unit sidebar, no transform.
+            'md:sticky md:top-12 md:h-[calc(100vh-3rem)] md:z-auto md:w-52 md:translate-x-0 md:transition-none',
           )}
         >
           <div className="flex h-12 items-center justify-between border-b px-3 md:hidden">
