@@ -26,21 +26,41 @@
   "env": {
     "staging": {
       "name": "gei-staging",
+      "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS"
+      },
       "services": [
         {
           "binding": "WORKER_SELF_REFERENCE",
           "service": "gei-staging"
         }
-      ]
+      ],
+      "images": {
+        "binding": "IMAGES"
+      },
+      "observability": {
+        "enabled": true
+      }
     },
     "production": {
       "name": "gei",
+      "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS"
+      },
       "services": [
         {
           "binding": "WORKER_SELF_REFERENCE",
           "service": "gei"
         }
-      ]
+      ],
+      "images": {
+        "binding": "IMAGES"
+      },
+      "observability": {
+        "enabled": true
+      }
     }
   }
 }
