@@ -5,20 +5,26 @@ BEGIN;
 
 -- 1. Create a primary test site
 INSERT INTO sites (code, name)
-VALUES ('S-MAIN', 'Main Site Office')
-ON CONFLICT (code) DO NOTHING;
+SELECT 'S-MAIN', 'Main Site Office'
+WHERE NOT EXISTS (SELECT 1 FROM sites WHERE code = 'S-MAIN');
 
 -- 2. Create sample items
-INSERT INTO items (code, name, stock_unit) VALUES
-  ('I-CEMENT', 'Cement 50kg', 'BAG'),
-  ('I-SAND',   'River Sand',   'CUM'),
-  ('I-REBAR',  'Rebar 12mm',   'MT')
-ON CONFLICT (code) DO NOTHING;
+INSERT INTO items (code, name, stock_unit)
+SELECT 'I-CEMENT', 'Cement 50kg', 'BAG'
+WHERE NOT EXISTS (SELECT 1 FROM items WHERE code = 'I-CEMENT');
+
+INSERT INTO items (code, name, stock_unit)
+SELECT 'I-SAND', 'River Sand', 'CUM'
+WHERE NOT EXISTS (SELECT 1 FROM items WHERE code = 'I-SAND');
+
+INSERT INTO items (code, name, stock_unit)
+SELECT 'I-REBAR', 'Rebar 12mm', 'MT'
+WHERE NOT EXISTS (SELECT 1 FROM items WHERE code = 'I-REBAR');
 
 -- 3. Create a test supplier
 INSERT INTO parties (name, type, short_code)
-VALUES ('Apex Construction Supplies', 'SUPPLIER', 'APEX')
-ON CONFLICT (short_code) DO NOTHING;
+SELECT 'Apex Construction Supplies', 'SUPPLIER', 'APEX'
+WHERE NOT EXISTS (SELECT 1 FROM parties WHERE short_code = 'APEX');
 
 -- 4. Create a test worker
 -- Note: code will be auto-minted by trigger.
