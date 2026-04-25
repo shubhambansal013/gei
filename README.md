@@ -83,6 +83,7 @@ pnpm dev                                          # http://localhost:3000
 | `pnpm format`     | Prettier `--write .`                     |
 | `pnpm test`       | Vitest (unit + component)                |
 | `pnpm test:watch` | Vitest watch mode                        |
+| `pnpm test:db`    | pgTAP (RLS + DB logic)                   |
 | `pnpm e2e`        | Playwright                               |
 | `pnpm db:start`   | `supabase start`                         |
 | `pnpm db:reset`   | Re-apply all migrations from a clean DB  |
