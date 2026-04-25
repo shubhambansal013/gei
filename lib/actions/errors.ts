@@ -29,6 +29,8 @@ const MESSAGES: Record<string, string> = {
   '23514': 'One or more fields are invalid.',
   // not_null_violation
   '23502': 'One or more fields are invalid.',
+  // exclusion_violation — e.g. overlapping dates in worker history.
+  '23P01': 'This change conflicts with an existing record (e.g. date overlap).',
 };
 
 const GENERIC = 'Something went wrong. Please try again.';
@@ -48,6 +50,8 @@ const MESSAGE_PATTERNS: Array<[RegExp, string]> = [
   [/violates check constraint/i, '23514'],
   [/null value in column/i, '23502'],
   [/violates not-null constraint/i, '23502'],
+  [/conflicting key value violates exclusion constraint/i, '23P01'],
+  [/violates exclusion constraint/i, '23P01'],
 ];
 
 function extractCode(e: unknown): string | null {
