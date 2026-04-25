@@ -285,14 +285,29 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  -- 1. BYPASS FOR SYSTEM ADMINISTRATORS
+  -- Allows the SQL Editor (postgres) and Dashboard (service_role) to bypass these checks.
+  -- This is the "Master Key" that prevents you from being locked out.
+  IF current_user = 'postgres' OR auth.role() = 'service_role' THEN
+    RETURN NEW;
+  END IF;
+
+  -- 2. APPLICATION ADMIN CHECK
+  -- If the authenticated user is already an admin, let them do anything.
   IF is_admin_anywhere(auth.uid()) THEN
     RETURN NEW;
   END IF;
+
+  -- 3. SECURITY: BLOCK CROSS-USER UPDATES
+  -- Prevents User A from changing User B's profile.
   IF auth.uid() IS DISTINCT FROM OLD.id THEN
     RAISE EXCEPTION USING
       ERRCODE = '42501',
       MESSAGE = 'Non-admin users may only update their own profile.';
   END IF;
+
+  -- 4. SECURITY: BLOCK SELF-PROMOTION
+  -- Prevents regular users from making themselves admins or activating their accounts.
   IF NEW.role_id     IS DISTINCT FROM OLD.role_id
   OR NEW.is_active   IS DISTINCT FROM OLD.is_active
   OR NEW.approved_at IS DISTINCT FROM OLD.approved_at
@@ -301,6 +316,7 @@ BEGIN
       ERRCODE = '42501',
       MESSAGE = 'Privileged profile columns can only be changed by an administrator.';
   END IF;
+
   RETURN NEW;
 END;
 $$;
