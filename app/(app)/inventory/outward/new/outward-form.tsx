@@ -105,17 +105,22 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       : { ...base, destinationKind: 'party' as const, party_id: partyId! };
 
     startTransition(async () => {
-      const res = await createIssue(payload);
-      if (res.ok) {
-        toast.success('Issue recorded.');
-        setQty('');
-        setItemId(null);
-        setLocationId(null);
-        setPartyId(null);
-        setWorkerId(null);
-        setIssuedTo('');
-      } else {
-        toast.error(res.error);
+      try {
+        const res = await createIssue(payload);
+        if (res.ok) {
+          toast.success('Issue recorded.');
+          setQty('');
+          setItemId(null);
+          setLocationId(null);
+          setPartyId(null);
+          setWorkerId(null);
+          setIssuedTo('');
+        } else {
+          toast.error(res.error);
+        }
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to record issue.');
       }
     });
   };

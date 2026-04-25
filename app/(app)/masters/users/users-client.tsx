@@ -69,44 +69,64 @@ export function UsersClient({ profiles, access, sites, roles, overrides }: Props
 
   const onRoleChange = (user_id: string, role_id: string) => {
     startTransition(async () => {
-      const res = await updateUserRole({ user_id, role_id });
-      if (res.ok) {
-        toast.success('Role updated.');
-        router.refresh();
-      } else toast.error(res.error);
+      try {
+        const res = await updateUserRole({ user_id, role_id });
+        if (res.ok) {
+          toast.success('Role updated.');
+          router.refresh();
+        } else toast.error(res.error);
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to update role.');
+      }
     });
   };
 
   const onToggleActive = (user_id: string, is_active: boolean) => {
     startTransition(async () => {
-      const res = await toggleUserActive({ user_id, is_active });
-      if (res.ok) {
-        toast.success(is_active ? 'Activated.' : 'Deactivated.');
-        router.refresh();
-      } else toast.error(res.error);
+      try {
+        const res = await toggleUserActive({ user_id, is_active });
+        if (res.ok) {
+          toast.success(is_active ? 'Activated.' : 'Deactivated.');
+          router.refresh();
+        } else toast.error(res.error);
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to toggle status.');
+      }
     });
   };
 
   const onGrant = (user_id: string) => {
     if (!grantSiteId) return toast.error('Pick a site.');
     startTransition(async () => {
-      const res = await grantSiteAccess({ user_id, site_id: grantSiteId, role_id: grantRoleId });
-      if (res.ok) {
-        toast.success('Access granted.');
-        setGrantingFor(null);
-        setGrantSiteId(null);
-        router.refresh();
-      } else toast.error(res.error);
+      try {
+        const res = await grantSiteAccess({ user_id, site_id: grantSiteId, role_id: grantRoleId });
+        if (res.ok) {
+          toast.success('Access granted.');
+          setGrantingFor(null);
+          setGrantSiteId(null);
+          router.refresh();
+        } else toast.error(res.error);
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to grant access.');
+      }
     });
   };
 
   const onRevoke = (access_id: string) => {
     startTransition(async () => {
-      const res = await revokeSiteAccess({ access_id });
-      if (res.ok) {
-        toast.success('Access revoked.');
-        router.refresh();
-      } else toast.error(res.error);
+      try {
+        const res = await revokeSiteAccess({ access_id });
+        if (res.ok) {
+          toast.success('Access revoked.');
+          router.refresh();
+        } else toast.error(res.error);
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to revoke access.');
+      }
     });
   };
 

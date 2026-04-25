@@ -335,13 +335,18 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
         confirmLabel="Delete"
         onConfirm={async (reason) => {
           if (!deleteTarget || !reason) return;
-          const fn = deleteTarget.type === 'PURCHASE' ? softDeletePurchase : softDeleteIssue;
-          const res = await fn({ id: deleteTarget.id, reason });
-          if (res.ok) {
-            toast.success('Transaction deleted.');
-            startTransition(() => router.refresh());
-          } else {
-            toast.error(res.error);
+          try {
+            const fn = deleteTarget.type === 'PURCHASE' ? softDeletePurchase : softDeleteIssue;
+            const res = await fn({ id: deleteTarget.id, reason });
+            if (res.ok) {
+              toast.success('Transaction deleted.');
+              startTransition(() => router.refresh());
+            } else {
+              toast.error(res.error);
+            }
+          } catch (e) {
+            console.error(e);
+            toast.error('Failed to delete transaction.');
           }
         }}
       />

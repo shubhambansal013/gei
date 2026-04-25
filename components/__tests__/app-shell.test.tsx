@@ -73,15 +73,15 @@ describe('AppShell Navigation', () => {
       auth: {
         signOut: vi.fn(),
         getUser: mockGetUser,
-      } as any,
+      } as unknown as ReturnType<typeof supabaseBrowser>['auth'],
       from: vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: mockSingle,
           })),
         })),
-      })) as any,
-    } as any);
+      })) as unknown as ReturnType<typeof supabaseBrowser>['from'],
+    } as unknown as ReturnType<typeof supabaseBrowser>);
 
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockSingle.mockResolvedValue({ data: { role_id: 'VIEWER' }, error: null });

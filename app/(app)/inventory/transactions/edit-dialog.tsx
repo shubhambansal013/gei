@@ -59,34 +59,39 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
   const handle = () => {
     if (!target || !canSubmit) return;
     startTransition(async () => {
-      // Only send fields that changed — undefined values get stripped by
-      // the server action's omitUndefined helper so we avoid blowing over
-      // columns the user didn't touch.
-      const qtyChanged = qty !== String(target.currentQty);
-      const unitChanged = isPurchase && receivedUnit !== target.receivedUnit;
-      const factorChanged = isPurchase && convFactor !== String(target.convFactor);
-      const refChanged = ref !== target.currentRef;
-      const payload = isPurchase
-        ? {
-            id: target.id,
-            reason: reason.trim(),
-            ...(qtyChanged ? { received_qty: qty } : {}),
-            ...(unitChanged ? { received_unit: receivedUnit } : {}),
-            ...(factorChanged ? { unit_conv_factor: convFactor } : {}),
-            ...(refChanged ? { invoice_no: ref || null } : {}),
-          }
-        : {
-            id: target.id,
-            reason: reason.trim(),
-            ...(qtyChanged ? { qty } : {}),
-            ...(refChanged ? { issued_to_legacy: ref || null } : {}),
-          };
-      const res = isPurchase ? await editPurchase(payload) : await editIssue(payload);
-      if (res.ok) {
-        toast.success('Saved. Audit log captured the reason.');
-        onSuccess();
-      } else {
-        toast.error(res.error);
+      try {
+        // Only send fields that changed — undefined values get stripped by
+        // the server action's omitUndefined helper so we avoid blowing over
+        // columns the user didn't touch.
+        const qtyChanged = qty !== String(target.currentQty);
+        const unitChanged = isPurchase && receivedUnit !== target.receivedUnit;
+        const factorChanged = isPurchase && convFactor !== String(target.convFactor);
+        const refChanged = ref !== target.currentRef;
+        const payload = isPurchase
+          ? {
+              id: target.id,
+              reason: reason.trim(),
+              ...(qtyChanged ? { received_qty: qty } : {}),
+              ...(unitChanged ? { received_unit: receivedUnit } : {}),
+              ...(factorChanged ? { unit_conv_factor: convFactor } : {}),
+              ...(refChanged ? { invoice_no: ref || null } : {}),
+            }
+          : {
+              id: target.id,
+              reason: reason.trim(),
+              ...(qtyChanged ? { qty } : {}),
+              ...(refChanged ? { issued_to_legacy: ref || null } : {}),
+            };
+        const res = isPurchase ? await editPurchase(payload) : await editIssue(payload);
+        if (res.ok) {
+          toast.success('Saved. Audit log captured the reason.');
+          onSuccess();
+        } else {
+          toast.error(res.error);
+        }
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to save changes.');
       }
     });
   };
