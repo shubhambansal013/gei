@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(6);
+SELECT plan(7);
 
 -- Load helpers
 \ir helpers/auth.sql
@@ -52,11 +52,16 @@ INSERT INTO sites (id, code, name) VALUES ('00000000-0000-0000-0000-000000000900
 INSERT INTO purchases (id, site_id, item_id, received_qty, received_unit, unit_conv_factor, stock_unit)
 VALUES ('00000000-0000-0000-0000-000000000900', '00000000-0000-0000-0000-000000000900', '00000000-0000-0000-0000-000000000900', 1, 'NOS', 1, 'NOS');
 
-SELECT throws_ok(
+-- RLS policy is FOR DELETE USING (false), which results in 0 rows deleted, not an error.
+SELECT lives_ok(
   $$ DELETE FROM purchases WHERE id = '00000000-0000-0000-0000-000000000900' $$,
-  42501,
-  NULL,
-  'Hard delete on purchases is blocked even for SUPER_ADMIN'
+  'DELETE statement itself lives (does not throw)'
+);
+
+SELECT results_eq(
+  $$ SELECT count(*)::int FROM purchases WHERE id = '00000000-0000-0000-0000-000000000900' $$,
+  ARRAY[1],
+  'Row still exists because RLS blocked the DELETE'
 );
 
 SELECT * FROM finish();

@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(4);
+SELECT plan(5);
 
 -- Load helpers
 \ir helpers/auth.sql

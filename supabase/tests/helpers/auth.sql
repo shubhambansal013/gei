@@ -29,6 +29,9 @@ CREATE OR REPLACE FUNCTION tests.authenticate_as(p_user_id UUID)
 RETURNS VOID AS $$
 BEGIN
   -- Mock the JWT claims that RLS policies (via auth.uid() and auth.role()) look for.
+  -- We set both the full JSON and individual claims for compatibility with different auth.uid() definitions.
+  EXECUTE format('SET LOCAL "request.jwt.claim.sub" = %L', p_user_id::text);
+  EXECUTE format('SET LOCAL "request.jwt.claim.role" = %L', 'authenticated');
   EXECUTE format(
     'SET LOCAL "request.jwt.claims" = %L',
     json_build_object(
@@ -43,7 +46,9 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION tests.clear_authentication()
 RETURNS VOID AS $$
 BEGIN
-  RESET "request.jwt.claims";
+  EXECUTE 'SET LOCAL "request.jwt.claim.sub" = ''''';
+  EXECUTE 'SET LOCAL "request.jwt.claim.role" = ''''';
+  EXECUTE 'SET LOCAL "request.jwt.claims" = ''''';
   RESET ROLE;
 END;
 $$ LANGUAGE plpgsql;
