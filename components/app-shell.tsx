@@ -35,6 +35,7 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
   module?: ModuleId;
   action?: ActionId;
+  adminOnly?: boolean;
 };
 
 const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
@@ -46,18 +47,39 @@ const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
       { href: '/inventory/inward/new', label: 'Purchase', icon: ArrowDownToLine, module: 'INVENTORY', action: 'CREATE' },
       { href: '/inventory/transactions', label: 'Transactions', icon: List, module: 'INVENTORY', action: 'VIEW' },
       { href: '/masters/items', label: 'Items', icon: Package, module: 'INVENTORY', action: 'VIEW' },
-      { href: '/masters/units', label: 'Units', icon: Ruler, module: 'INVENTORY', action: 'VIEW' },
+      {
+        href: '/masters/units',
+        label: 'Units',
+        icon: Ruler,
+        module: 'INVENTORY',
+        action: 'VIEW',
+        adminOnly: true,
+      },
     ],
   },
   {
     label: 'Masters',
     items: [
-      { href: '/masters/parties', label: 'Parties', icon: Users2, module: 'INVENTORY', action: 'VIEW' },
+      {
+        href: '/masters/parties',
+        label: 'Parties',
+        icon: Users2,
+        module: 'INVENTORY',
+        action: 'VIEW',
+        adminOnly: true,
+      },
       { href: '/masters/workers', label: 'Workers', icon: HardHat, module: 'WORKERS', action: 'VIEW' },
-      { href: '/masters/sites', label: 'Sites', icon: Building2 },
-      { href: '/masters/locations', label: 'Locations', icon: MapPin, module: 'LOCATION', action: 'VIEW' },
-      { href: '/masters/role-permissions', label: 'Role permissions', icon: ShieldCheck },
-      { href: '/masters/users', label: 'Users', icon: UserCog },
+      { href: '/masters/sites', label: 'Sites', icon: Building2, adminOnly: true },
+      {
+        href: '/masters/locations',
+        label: 'Locations',
+        icon: MapPin,
+        module: 'LOCATION',
+        action: 'VIEW',
+        adminOnly: true,
+      },
+      { href: '/masters/role-permissions', label: 'Role permissions', icon: ShieldCheck, adminOnly: true },
+      { href: '/masters/users', label: 'Users', icon: UserCog, adminOnly: true },
     ],
   },
   {
@@ -94,7 +116,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+  const [userRole, setUserRole] = useState<string | null>(null);
   const canFn = useMemo(() => createCan(supabaseBrowser()), []);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const sb = supabaseBrowser();
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      if (!user || !alive) return;
+
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('role_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profile && alive) {
+        setUserRole(profile.role_id);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!currentSite?.id) return;
@@ -131,10 +178,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isVisible = useCallback(
     (item: NavItem) => {
+      if (item.adminOnly) {
+        if (!userRole) return false;
+        return userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+      }
       if (!item.module || !item.action) return true;
       return permissions[`${item.module}:${item.action}`] ?? false;
     },
-    [permissions],
+    [permissions, userRole],
   );
 
   const signOut = async () => {
