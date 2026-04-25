@@ -110,7 +110,7 @@ export function UnitForm(props: Props) {
                   placeholder="e.g. KG"
                   className="font-mono uppercase"
                   maxLength={16}
-                  disabled={isEdit || submitting}
+                  disabled={isEdit}
                   {...field}
                   value={field.value as string}
                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
@@ -133,7 +133,6 @@ export function UnitForm(props: Props) {
                   maxLength={80}
                   {...field}
                   value={(field.value as string | undefined) ?? ''}
-                  disabled={submitting}
                 />
               </FormControl>
               <FormMessage />
@@ -152,7 +151,6 @@ export function UnitForm(props: Props) {
                 value={(field.value as string | null) ?? null}
                 onChange={(v) => field.onChange(v === '' ? null : v)}
                 placeholder="Select category (optional)"
-                disabled={submitting}
               />
               <FormMessage />
             </FormItem>
@@ -171,7 +169,6 @@ export function UnitForm(props: Props) {
                     placeholder="Why is this change being made?"
                     {...field}
                     value={(field.value as string) ?? ''}
-                    disabled={submitting}
                   />
                 </FormControl>
                 <FormMessage />
