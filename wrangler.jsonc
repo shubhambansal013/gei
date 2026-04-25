@@ -43,7 +43,7 @@
         "enabled": true
       }
     },
-    "production": {
+    "prod": {
       "name": "gei",
       "assets": {
         "directory": ".open-next/assets",
