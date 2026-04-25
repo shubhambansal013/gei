@@ -12,8 +12,8 @@ CREATE OR REPLACE FUNCTION tests.create_test_user(
 BEGIN
   -- Insert into auth.users (mocking the Supabase auth schema)
   -- Note: In local Supabase, the auth schema exists.
-  INSERT INTO auth.users (id, email, confirmed_at, created_at, updated_at)
-  VALUES (p_id, p_email, now(), now(), now())
+  INSERT INTO auth.users (id, email, created_at, updated_at)
+  VALUES (p_id, p_email, now(), now())
   ON CONFLICT (id) DO NOTHING;
 
   -- Profile should be created by trigger, but we ensure role/active status
