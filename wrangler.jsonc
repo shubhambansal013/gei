@@ -22,5 +22,25 @@
   },
   "observability": {
     "enabled": true
+  },
+  "env": {
+    "staging": {
+      "name": "gei-staging",
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "gei-staging"
+        }
+      ]
+    },
+    "production": {
+      "name": "gei",
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "gei"
+        }
+      ]
+    }
   }
 }
