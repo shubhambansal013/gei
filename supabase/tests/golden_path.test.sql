@@ -22,8 +22,7 @@ VALUES ('00000000-0000-0000-0000-000000000300', '00000000-0000-0000-0000-0000000
 INSERT INTO issues (site_id, item_id, qty, unit, party_id)
 VALUES ('00000000-0000-0000-0000-000000000300', '00000000-0000-0000-0000-000000000300', 30, 'MT', '00000000-0000-0000-0000-000000000300');
 
--- Validate balance via a stock view or calculation
--- Assuming there might be a stock calculation function or view, but if not we can use a query
+-- Validate balance
 SELECT results_eq(
   $$
   SELECT (

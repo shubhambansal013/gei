@@ -51,7 +51,6 @@ SELECT lives_ok(
 );
 
 -- 6. Signup approval: new signup defaults to is_active=false
--- Mocking new signup by inserting directly into auth.users (if trigger exists it should create profile)
 SELECT tests.clear_authentication();
 INSERT INTO auth.users (id, email) VALUES ('00000000-0000-0000-0000-000000000007', 'new@test.local');
 SELECT results_eq(

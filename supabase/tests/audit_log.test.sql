@@ -12,18 +12,16 @@ INSERT INTO sites (id, code, name) VALUES ('00000000-0000-0000-0000-000000000200
 INSERT INTO items (id, code, name, stock_unit) VALUES ('00000000-0000-0000-0000-000000000200', 'I2', 'Item 2', 'NOS');
 
 -- 1. Trigger writes before/after JSONB + reason on UPDATE
--- We need a purchase to update
 INSERT INTO purchases (id, site_id, item_id, received_qty, received_unit, unit_conv_factor, stock_unit)
 VALUES ('00000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-000000000200', '00000000-0000-0000-0000-000000000200', 10, 'NOS', 1, 'NOS');
 
--- Set the edit reason via GUC
 SET "app.edit_reason" = 'Testing audit log';
 SELECT tests.authenticate_as('00000000-0000-0000-0000-000000000001');
 
 UPDATE purchases SET received_qty = 15 WHERE id = '00000000-0000-0000-0000-000000000201';
 
 SELECT results_eq(
-  $$ SELECT edit_reason FROM inventory_edit_log WHERE row_id = '00000000-0000-0000-0000-000000000201' $$,
+  $$ SELECT reason FROM inventory_edit_log WHERE row_id = '00000000-0000-0000-0000-000000000201' $$,
   ARRAY['Testing audit log'],
   'Trigger writes reason to audit log'
 );

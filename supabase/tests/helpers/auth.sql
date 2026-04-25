@@ -1,6 +1,8 @@
 -- supabase/tests/helpers/auth.sql
 -- Helpers for mocking Supabase Auth in pgTAP tests.
 
+CREATE SCHEMA IF NOT EXISTS tests;
+
 CREATE OR REPLACE FUNCTION tests.create_test_user(
   p_id UUID,
   p_email TEXT,

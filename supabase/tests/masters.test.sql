@@ -44,7 +44,7 @@ SELECT throws_ok(
   42501
 );
 
--- 6. Hard delete blocked on purchases (from masters.test.ts)
+-- 6. Hard delete blocked on purchases
 SELECT tests.authenticate_as('00000000-0000-0000-0000-000000000001');
 -- Need an item and site first for purchase
 INSERT INTO items (id, code, name, stock_unit) VALUES ('00000000-0000-0000-0000-000000000900', 'I-HARD', 'Hard delete item', 'NOS');

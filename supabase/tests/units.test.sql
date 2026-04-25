@@ -19,8 +19,6 @@ SELECT lives_ok(
   $$ UPDATE units SET label = 'Unit 1 Edited' WHERE id = 'U1' $$,
   'SUPER_ADMIN can update unit'
 );
--- Note: schema might have constraints on units delete, but RLS should allow it if admin
--- In units-admin-write.test.ts it asserts it can delete.
 
 -- 2. STORE_MANAGER cannot insert unit
 SELECT tests.authenticate_as('00000000-0000-0000-0000-000000000003');
