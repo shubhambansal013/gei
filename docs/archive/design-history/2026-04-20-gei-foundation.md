@@ -1,4 +1,4 @@
-# GEI Inventory — Foundation Implementation Plan
+# GEI — Foundation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -978,7 +978,7 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-gray-50">
       <div className="w-[360px] rounded-lg border bg-white p-8 shadow-sm">
-        <h1 className="mb-2 text-xl font-semibold">GEI Inventory</h1>
+        <h1 className="mb-2 text-xl font-semibold">GEI</h1>
         <p className="mb-6 text-sm text-gray-600">Sign in with your Google account.</p>
         <Button className="w-full" onClick={onSignIn}>
           Sign in with Google
@@ -2159,7 +2159,7 @@ git add -A && git commit -m "feat(ui): EmptyState + ConfirmDialog (with reason c
 - [ ] **Step 1: Write `README.md`**
 
 ```md
-# GEI Inventory
+# GEI
 
 Construction-site inventory management. Next.js 15 + Supabase. See
 [docs/architecture.md](docs/architecture.md) for the big picture and

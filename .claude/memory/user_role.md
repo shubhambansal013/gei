@@ -1,13 +1,13 @@
 ---
 name: User role and collaboration context
-description: The user works as Head of Engineering (Vivek Kumar) on GEI Inventory with a stakeholder-partner Shubham who drives product requirements via GitHub issues
+description: The user works as Head of Engineering (Vivek Kumar) on GEI with a stakeholder-partner Shubham who drives product requirements via GitHub issues
 type: user
 originSessionId: a50c33aa-5bf3-4254-b5b1-73a4385d05c8
 ---
 
 User is **Vivek Kumar, Head of Engineering** (git user.email: vkcsenitj@gmail.com; GitHub: leocder07). Signs commits as Vivek Kumar.
 
-Works on **GEI Inventory** alongside **Shubham Bansal (shubhambansal013)** who acts as the primary stakeholder / product voice — files issues on GitHub describing what the app should do, including files new issues WHILE work is in progress.
+Works on **GEI** alongside **Shubham Bansal (shubhambansal013)** who acts as the primary stakeholder / product voice — files issues on GitHub describing what the app should do, including files new issues WHILE work is in progress.
 
 Collaboration pattern:
 
