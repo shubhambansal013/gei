@@ -79,14 +79,19 @@ export function LocationForm(props: Props) {
   const typeOptions = props.types.map((t) => ({ value: t.id, label: t.label }));
 
   async function onSubmit(values: LocationUnitCreate | LocationUnitUpdate) {
-    const res = isEdit ? await updateUnit(values) : await createUnit(values);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
+    try {
+      const res = isEdit ? await updateUnit(values) : await createUnit(values);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(isEdit ? 'Location updated.' : 'Location created.');
+      router.refresh();
+      props.onSuccess?.();
+    } catch (e) {
+      toast.error(isEdit ? 'Failed to update location.' : 'Failed to create location.');
+      console.error(e);
     }
-    toast.success(isEdit ? 'Location updated.' : 'Location created.');
-    router.refresh();
-    props.onSuccess?.();
   }
 
   return (
@@ -120,7 +125,7 @@ export function LocationForm(props: Props) {
               <FormItem>
                 <FormLabel>Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. Block A" maxLength={120} {...field} />
+                  <Input placeholder="e.g. Block A" maxLength={120} {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -140,6 +145,7 @@ export function LocationForm(props: Props) {
                     className="font-mono uppercase"
                     {...field}
                     onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                    disabled={isSubmitting}
                   />
                 </FormControl>
                 <FormMessage />
@@ -160,6 +166,7 @@ export function LocationForm(props: Props) {
                   value={field.value}
                   onChange={field.onChange}
                   placeholder="Select type"
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -179,6 +186,7 @@ export function LocationForm(props: Props) {
                     placeholder="Why is this change being made?"
                     {...field}
                     value={(field.value as string) ?? ''}
+                    disabled={isSubmitting}
                   />
                 </FormControl>
                 <FormMessage />

@@ -134,6 +134,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           value={siteId}
           onChange={setSiteId}
           placeholder="Select site"
+          disabled={pending}
         />
       </div>
 
@@ -144,6 +145,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           value={itemId}
           onChange={setItemId}
           placeholder="Search items…"
+          disabled={pending}
         />
       </div>
 
@@ -159,6 +161,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
             onChange={(e) => setQty(e.target.value)}
             className="font-mono tabular-nums"
             required
+            disabled={pending}
           />
         </div>
         <div className="space-y-1.5">
@@ -179,6 +182,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           value={locationId}
           onChange={setLocationId}
           placeholder="Where on site? (optional)"
+          disabled={pending}
         />
       </div>
       <div className="space-y-1.5">
@@ -188,6 +192,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           value={partyId}
           onChange={setPartyId}
           placeholder="Contractor / customer (optional)"
+          disabled={pending}
         />
       </div>
       <p className="text-muted-foreground text-xs">
@@ -203,6 +208,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
             value={issuedTo}
             onChange={(e) => setIssuedTo(e.target.value)}
             placeholder="Name of person who received (no workers registered)"
+            disabled={pending}
           />
         ) : (
           <WorkerPicker
@@ -210,6 +216,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
             siteId={siteId ?? ''}
             value={workerId}
             onChange={setWorkerId}
+            disabled={pending}
           />
         )}
       </div>

@@ -113,7 +113,7 @@ export function WorkerForm(props: Props) {
               <FormItem>
                 <FormLabel>Full name *</FormLabel>
                 <FormControl>
-                  <Input maxLength={120} {...field} value={(field.value as string) ?? ''} />
+                  <Input maxLength={120} {...field} value={(field.value as string) ?? ''} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -126,7 +126,7 @@ export function WorkerForm(props: Props) {
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input maxLength={20} {...field} value={(field.value as string) ?? ''} />
+                  <Input maxLength={20} {...field} value={(field.value as string) ?? ''} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -139,7 +139,7 @@ export function WorkerForm(props: Props) {
               <FormItem>
                 <FormLabel>Home city</FormLabel>
                 <FormControl>
-                  <Input maxLength={80} {...field} value={(field.value as string) ?? ''} />
+                  <Input maxLength={80} {...field} value={(field.value as string) ?? ''} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -188,6 +188,7 @@ export function WorkerForm(props: Props) {
                   maxLength={120}
                   {...field}
                   value={(field.value as string) ?? ''}
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -207,6 +208,7 @@ export function WorkerForm(props: Props) {
                   maxLength={20}
                   {...field}
                   value={(field.value as string) ?? ''}
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -226,6 +228,7 @@ export function WorkerForm(props: Props) {
                   maxLength={80}
                   {...field}
                   value={(field.value as string) ?? ''}
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -245,6 +248,7 @@ export function WorkerForm(props: Props) {
                   value={(field.value as string) || null}
                   onChange={field.onChange}
                   placeholder="Select site"
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormDescription>Worker is placed at this site on day one.</FormDescription>
@@ -270,6 +274,7 @@ export function WorkerForm(props: Props) {
                     }
                   }}
                   placeholder="Select type"
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -290,6 +295,7 @@ export function WorkerForm(props: Props) {
                     value={(field.value as string) || null}
                     onChange={field.onChange}
                     placeholder="Select contractor"
+                    disabled={isSubmitting}
                   />
                 </FormControl>
                 <FormDescription>

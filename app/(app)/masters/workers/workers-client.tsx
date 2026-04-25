@@ -309,6 +309,7 @@ function TransferDialog({ worker, sites, onClose, onDone }: DlgProps<{ sites: Si
                 value={toSiteId}
                 onChange={setToSiteId}
                 placeholder="Select site"
+                disabled={busy}
               />
             </div>
             <div className="grid gap-1.5">
@@ -318,6 +319,7 @@ function TransferDialog({ worker, sites, onClose, onDone }: DlgProps<{ sites: Si
                 type="date"
                 value={effectiveFrom}
                 onChange={(e) => setEffectiveFrom(e.target.value)}
+                disabled={busy}
               />
             </div>
             <div className="grid gap-1.5">
@@ -328,6 +330,7 @@ function TransferDialog({ worker, sites, onClose, onDone }: DlgProps<{ sites: Si
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Why is this worker being transferred?"
                 maxLength={200}
+                disabled={busy}
               />
             </div>
           </div>
@@ -417,6 +420,7 @@ function AffiliationDialog({
                   if (v === 'DIRECT') setPartyId(null);
                 }}
                 placeholder="Select type"
+                disabled={busy}
               />
             </div>
             {needsParty && (
@@ -427,6 +431,7 @@ function AffiliationDialog({
                   value={partyId}
                   onChange={setPartyId}
                   placeholder="Select contractor"
+                  disabled={busy}
                 />
               </div>
             )}
@@ -437,6 +442,7 @@ function AffiliationDialog({
                 type="date"
                 value={effectiveFrom}
                 onChange={(e) => setEffectiveFrom(e.target.value)}
+                disabled={busy}
               />
             </div>
           </div>

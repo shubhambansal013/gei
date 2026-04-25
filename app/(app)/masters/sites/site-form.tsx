@@ -109,6 +109,7 @@ export function SiteForm(props: Props) {
                   {...field}
                   value={field.value as string}
                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                  disabled={submitting}
                 />
               </FormControl>
               <FormDescription>e.g. RGIPT-SIV</FormDescription>
@@ -129,6 +130,7 @@ export function SiteForm(props: Props) {
                   maxLength={120}
                   {...field}
                   value={field.value as string}
+                  disabled={submitting}
                 />
               </FormControl>
               <FormMessage />
@@ -147,6 +149,7 @@ export function SiteForm(props: Props) {
                   placeholder="hostel, office, residential…"
                   {...field}
                   value={(field.value as string) ?? ''}
+                  disabled={submitting}
                 />
               </FormControl>
               <FormDescription>Free-form — e.g. hostel, office, residential</FormDescription>
@@ -167,6 +170,7 @@ export function SiteForm(props: Props) {
                   maxLength={500}
                   {...field}
                   value={(field.value as string) ?? ''}
+                  disabled={submitting}
                 />
               </FormControl>
               <FormMessage />
@@ -186,6 +190,7 @@ export function SiteForm(props: Props) {
                     placeholder="Why is this change being made?"
                     {...field}
                     value={(field.value as string) ?? ''}
+                    disabled={submitting}
                   />
                 </FormControl>
                 <FormMessage />
