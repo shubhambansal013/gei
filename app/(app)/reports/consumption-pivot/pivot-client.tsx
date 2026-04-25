@@ -114,7 +114,7 @@ export function PivotClient({ issues }: Props) {
   return (
     <div className="space-y-4">
       <header className="print:hide">
-        <h1 className="text-xl font-semibold tracking-tight">Destination × item pivot</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Consumption Pivot</h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Sum of issue qty by destination (rows) and item (columns). Date-range filter applies to
           `issue_date`.

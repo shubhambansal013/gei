@@ -34,7 +34,7 @@ test('protected routes redirect to login', async ({ page }) => {
     '/dashboard',
     '/masters/items',
     '/inventory/transactions',
-    '/inventory/pivot',
+    '/reports/consumption-pivot',
     '/inventory/item/some-uuid',
   ];
 
