@@ -125,7 +125,6 @@ export function ItemForm(props: Props) {
                   maxLength={120}
                   {...field}
                   value={field.value as string}
-                  disabled={submitting}
                 />
               </FormControl>
               <FormMessage />
@@ -148,7 +147,6 @@ export function ItemForm(props: Props) {
                   {...field}
                   value={field.value as string}
                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                  disabled={submitting}
                 />
               </FormControl>
               <FormMessage />
@@ -167,7 +165,6 @@ export function ItemForm(props: Props) {
                 value={(field.value as string) || null}
                 onChange={field.onChange}
                 placeholder="Select stock unit"
-                disabled={submitting}
               />
               <FormDescription>Unit you track stock in (e.g. meter, kg).</FormDescription>
               <FormMessage />
@@ -186,7 +183,6 @@ export function ItemForm(props: Props) {
                 value={(field.value as string | null) ?? null}
                 onChange={(v) => field.onChange(v === '' ? null : v)}
                 placeholder="Select category (optional)"
-                disabled={submitting}
               />
               <FormMessage />
             </FormItem>
@@ -205,7 +201,6 @@ export function ItemForm(props: Props) {
                   maxLength={20}
                   {...field}
                   value={(field.value as string) ?? ''}
-                  disabled={submitting}
                 />
               </FormControl>
               <FormMessage />
@@ -230,7 +225,6 @@ export function ItemForm(props: Props) {
                   onChange={(e) =>
                     field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
                   }
-                  disabled={submitting}
                 />
               </FormControl>
               <FormMessage />
@@ -250,7 +244,6 @@ export function ItemForm(props: Props) {
                     placeholder="Why is this change being made?"
                     {...field}
                     value={(field.value as string) ?? ''}
-                    disabled={submitting}
                   />
                 </FormControl>
                 <FormMessage />

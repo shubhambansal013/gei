@@ -79,28 +79,23 @@ export function PartyForm(props: Props) {
   const typeOptions = props.partyTypes.map((pt) => ({ value: pt.id, label: pt.label }));
 
   async function onSubmit(values: PartyCreate | PartyUpdate) {
-    try {
-      // Normalise the empty string UX-convenience to null so the
-      // validator (and DB CHECK) don't see '' and reject it.
-      const normalised = {
-        ...values,
-        short_code:
-          typeof values.short_code === 'string' && values.short_code.trim().length === 0
-            ? null
-            : values.short_code,
-      } as PartyCreate | PartyUpdate;
-      const res = isEdit ? await updateParty(normalised) : await createParty(normalised);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(isEdit ? 'Party updated.' : 'Party created.');
-      router.refresh();
-      props.onSuccess?.();
-    } catch (e) {
-      toast.error(isEdit ? 'Failed to update party.' : 'Failed to create party.');
-      console.error(e);
+    // Normalise the empty string UX-convenience to null so the
+    // validator (and DB CHECK) don't see '' and reject it.
+    const normalised = {
+      ...values,
+      short_code:
+        typeof values.short_code === 'string' && values.short_code.trim().length === 0
+          ? null
+          : values.short_code,
+    } as PartyCreate | PartyUpdate;
+    const res = isEdit ? await updateParty(normalised) : await createParty(normalised);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
     }
+    toast.success(isEdit ? 'Party updated.' : 'Party created.');
+    router.refresh();
+    props.onSuccess?.();
   }
 
   return (
@@ -113,7 +108,7 @@ export function PartyForm(props: Props) {
             <FormItem>
               <FormLabel>Name *</FormLabel>
               <FormControl>
-                <Input placeholder="Party name" maxLength={120} {...field} disabled={isSubmitting} />
+                <Input placeholder="Party name" maxLength={120} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -132,7 +127,6 @@ export function PartyForm(props: Props) {
                   value={(field.value as string) || null}
                   onChange={field.onChange}
                   placeholder="Select type"
-                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -154,7 +148,6 @@ export function PartyForm(props: Props) {
                   {...field}
                   value={(field.value as string) ?? ''}
                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -175,7 +168,6 @@ export function PartyForm(props: Props) {
                   className="font-mono uppercase"
                   {...field}
                   value={field.value ?? ''}
-                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -195,7 +187,6 @@ export function PartyForm(props: Props) {
                   maxLength={20}
                   {...field}
                   value={field.value ?? ''}
-                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -215,7 +206,6 @@ export function PartyForm(props: Props) {
                   maxLength={500}
                   {...field}
                   value={field.value ?? ''}
-                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />
@@ -235,7 +225,6 @@ export function PartyForm(props: Props) {
                     placeholder="Why is this change being made?"
                     {...field}
                     value={(field.value as string) ?? ''}
-                    disabled={isSubmitting}
                   />
                 </FormControl>
                 <FormMessage />

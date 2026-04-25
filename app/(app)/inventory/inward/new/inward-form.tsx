@@ -66,31 +66,26 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
       return;
     }
     startTransition(async () => {
-      try {
-        const res = await createPurchase({
-          site_id: siteId,
-          item_id: itemId,
-          received_qty: qty,
-          received_unit: receivedUnit,
-          stock_unit: selectedItem?.stock_unit ?? '',
-          unit_conv_factor: convFactor,
-          vendor_id: supplierId ?? null,
-          invoice_no: invoiceNo || null,
-          rate: rate || null,
-          hsn_sac: hsn || null,
-          invoice_date: invoiceDate || null,
-          manufacturer: manufacturer || null,
-          supplier_part_no: partNo || null,
-        });
-        if (res.ok) {
-          toast.success('Purchase recorded.');
-          router.push('/inventory/transactions');
-        } else {
-          toast.error(res.error);
-        }
-      } catch (e) {
-        toast.error('Failed to record purchase.');
-        console.error(e);
+      const res = await createPurchase({
+        site_id: siteId,
+        item_id: itemId,
+        received_qty: qty,
+        received_unit: receivedUnit,
+        stock_unit: selectedItem?.stock_unit ?? '',
+        unit_conv_factor: convFactor,
+        vendor_id: supplierId ?? null,
+        invoice_no: invoiceNo || null,
+        rate: rate || null,
+        hsn_sac: hsn || null,
+        invoice_date: invoiceDate || null,
+        manufacturer: manufacturer || null,
+        supplier_part_no: partNo || null,
+      });
+      if (res.ok) {
+        toast.success('Purchase recorded.');
+        router.push('/inventory/transactions');
+      } else {
+        toast.error(res.error);
       }
     });
   };
@@ -120,7 +115,6 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
           value={siteId}
           onChange={setSiteId}
           placeholder="Select site"
-          disabled={pending}
         />
       </div>
 
@@ -131,7 +125,6 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
           value={itemId}
           onChange={handleItemChange}
           placeholder="Search items…"
-          disabled={pending}
         />
       </div>
 
@@ -147,7 +140,6 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
             onChange={(e) => setQty(e.target.value)}
             className="font-mono tabular-nums"
             required
-            disabled={pending}
           />
         </div>
         <div className="space-y-1.5">
@@ -157,7 +149,6 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
             value={receivedUnit}
             onChange={setReceivedUnit}
             placeholder="Unit"
-            disabled={pending}
           />
         </div>
       </div>
@@ -174,7 +165,6 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
             onChange={(e) => setConvFactor(e.target.value)}
             className="font-mono tabular-nums"
             required
-            disabled={pending}
           />
           <p className="text-muted-foreground text-[10px]">
             {receivedUnit && selectedItem
@@ -197,7 +187,6 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
           type="SUPPLIER"
           value={supplierId}
           onChange={setSupplierId}
-          disabled={pending}
         />
       </div>
 
@@ -208,7 +197,6 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
           value={invoiceNo}
           onChange={(e) => setInvoiceNo(e.target.value)}
           placeholder="e.g. INV-2026-0412"
-          disabled={pending}
         />
       </div>
 
@@ -231,17 +219,11 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
               value={rate}
               onChange={(e) => setRate(e.target.value)}
               className="font-mono tabular-nums"
-              disabled={pending}
             />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="hsn">HSN/SAC</Label>
-            <Input
-              id="hsn"
-              value={hsn}
-              onChange={(e) => setHsn(e.target.value)}
-              disabled={pending}
-            />
+            <Input id="hsn" value={hsn} onChange={(e) => setHsn(e.target.value)} />
           </div>
         </div>
         <div className="space-y-1.5">
@@ -251,7 +233,6 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
             type="date"
             value={invoiceDate}
             onChange={(e) => setInvoiceDate(e.target.value)}
-            disabled={pending}
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -261,17 +242,11 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
               id="mfg"
               value={manufacturer}
               onChange={(e) => setManufacturer(e.target.value)}
-              disabled={pending}
             />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="partNo">Supplier part #</Label>
-            <Input
-              id="partNo"
-              value={partNo}
-              onChange={(e) => setPartNo(e.target.value)}
-              disabled={pending}
-            />
+            <Input id="partNo" value={partNo} onChange={(e) => setPartNo(e.target.value)} />
           </div>
         </div>
       </div>
