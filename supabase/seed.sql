@@ -11,7 +11,7 @@ ON CONFLICT (code) DO NOTHING;
 -- 2. Create sample items
 INSERT INTO items (code, name, stock_unit) VALUES
   ('I-CEMENT', 'Cement 50kg', 'BAG'),
-  ('I-SAND',   'River Sand',   'CFT'),
+  ('I-SAND',   'River Sand',   'CUM'),
   ('I-REBAR',  'Rebar 12mm',   'MT')
 ON CONFLICT (code) DO NOTHING;
 
