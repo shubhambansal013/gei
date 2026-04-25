@@ -92,14 +92,19 @@ export function WorkerForm(props: Props) {
   const { isSubmitting } = form.formState;
 
   async function onSubmit(values: WorkerCreate | WorkerUpdate) {
-    const res = isEdit ? await updateWorker(values) : await createWorker(values);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
+    try {
+      const res = isEdit ? await updateWorker(values) : await createWorker(values);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(isEdit ? 'Worker updated.' : 'Worker created.');
+      router.refresh();
+      props.onSuccess();
+    } catch (e) {
+      console.error(e);
+      toast.error(isEdit ? 'Failed to update worker.' : 'Failed to create worker.');
     }
-    toast.success(isEdit ? 'Worker updated.' : 'Worker created.');
-    router.refresh();
-    props.onSuccess();
   }
 
   if (isEdit) {

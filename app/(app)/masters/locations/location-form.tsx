@@ -79,14 +79,19 @@ export function LocationForm(props: Props) {
   const typeOptions = props.types.map((t) => ({ value: t.id, label: t.label }));
 
   async function onSubmit(values: LocationUnitCreate | LocationUnitUpdate) {
-    const res = isEdit ? await updateUnit(values) : await createUnit(values);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
+    try {
+      const res = isEdit ? await updateUnit(values) : await createUnit(values);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(isEdit ? 'Location updated.' : 'Location created.');
+      router.refresh();
+      props.onSuccess?.();
+    } catch (e) {
+      console.error(e);
+      toast.error(isEdit ? 'Failed to update location.' : 'Failed to create location.');
     }
-    toast.success(isEdit ? 'Location updated.' : 'Location created.');
-    router.refresh();
-    props.onSuccess?.();
   }
 
   return (
