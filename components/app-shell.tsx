@@ -1,4 +1,5 @@
 'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -36,65 +37,52 @@ type NavItem = {
   action?: ActionId;
 };
 
-const DASHBOARD_NAV: readonly NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-] as const;
-
-const INVENTORY_NAV: readonly NavItem[] = [
+const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
+  { items: [{ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] },
   {
-    href: '/inventory/outward/new',
-    label: 'Issue',
-    icon: ArrowUpFromLine,
-    module: 'INVENTORY',
-    action: 'CREATE',
+    label: 'Inventory',
+    items: [
+      { href: '/inventory/outward/new', label: 'Issue', icon: ArrowUpFromLine, module: 'INVENTORY', action: 'CREATE' },
+      { href: '/inventory/inward/new', label: 'Purchase', icon: ArrowDownToLine, module: 'INVENTORY', action: 'CREATE' },
+      { href: '/inventory/transactions', label: 'Transactions', icon: List, module: 'INVENTORY', action: 'VIEW' },
+      { href: '/masters/items', label: 'Items', icon: Package, module: 'INVENTORY', action: 'VIEW' },
+      { href: '/masters/units', label: 'Units', icon: Ruler, module: 'INVENTORY', action: 'VIEW' },
+    ],
   },
   {
-    href: '/inventory/inward/new',
-    label: 'Purchase',
-    icon: ArrowDownToLine,
-    module: 'INVENTORY',
-    action: 'CREATE',
+    label: 'Masters',
+    items: [
+      { href: '/masters/parties', label: 'Parties', icon: Users2, module: 'INVENTORY', action: 'VIEW' },
+      { href: '/masters/workers', label: 'Workers', icon: HardHat, module: 'WORKERS', action: 'VIEW' },
+      { href: '/masters/sites', label: 'Sites', icon: Building2 },
+      { href: '/masters/locations', label: 'Locations', icon: MapPin, module: 'LOCATION', action: 'VIEW' },
+      { href: '/masters/role-permissions', label: 'Role permissions', icon: ShieldCheck },
+      { href: '/masters/users', label: 'Users', icon: UserCog },
+    ],
   },
   {
-    href: '/inventory/transactions',
-    label: 'Transactions',
-    icon: List,
-    module: 'INVENTORY',
-    action: 'VIEW',
+    label: 'Reports',
+    items: [
+      { href: '/reports/items', label: 'Item-wise stock', icon: BarChart3, module: 'REPORTS', action: 'VIEW' },
+      { href: '/reports/consumption-pivot', label: 'Consumption Pivot', icon: Grid3x3, module: 'REPORTS', action: 'VIEW' },
+    ],
   },
-  { href: '/masters/items', label: 'Items', icon: Package, module: 'INVENTORY', action: 'VIEW' },
-  { href: '/masters/units', label: 'Units', icon: Ruler, module: 'INVENTORY', action: 'VIEW' },
-] as const;
+];
 
-// Masters group — Wave 3 adds "Workers" here. Keep this list self-contained
-// and named so that parallel edits don't collide with the Reports group below.
-const MASTERS_NAV: readonly NavItem[] = [
-  { href: '/masters/parties', label: 'Parties', icon: Users2, module: 'INVENTORY', action: 'VIEW' },
-  { href: '/masters/workers', label: 'Workers', icon: HardHat, module: 'WORKERS', action: 'VIEW' },
-  { href: '/masters/sites', label: 'Sites', icon: Building2 },
-  { href: '/masters/locations', label: 'Locations', icon: MapPin, module: 'LOCATION', action: 'VIEW' },
-  { href: '/masters/role-permissions', label: 'Role permissions', icon: ShieldCheck },
-  { href: '/masters/users', label: 'Users', icon: UserCog },
-] as const;
-
-// Reports group — owned by Wave 5.
-const REPORTS_NAV: readonly NavItem[] = [
-  { href: '/reports/items', label: 'Item-wise stock', icon: BarChart3, module: 'REPORTS', action: 'VIEW' },
-  { href: '/reports/consumption-pivot', label: 'Consumption Pivot', icon: Grid3x3, module: 'REPORTS', action: 'VIEW' },
-] as const;
+const ALL_NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
 /**
  * Persistent chrome for all signed-in routes.
  *
  * - Top bar: GEI wordmark + site switcher (left), sign-out (right). On
- *   mobile, a hamburger button opens the sidebar as a slide-in drawer.
+ * mobile, a hamburger button opens the sidebar as a slide-in drawer.
  * - Sidebar: primary nav with icons. Active route gets the amber accent.
- *   On mobile (< md), the sidebar is hidden by default and rendered as a
- *   drawer with a backdrop. On desktop (md+), it sits beside the main
- *   content as before. Nav items carry a 44px minimum touch target so
- *   they are comfortable on low-end phones.
+ * On mobile (< md), the sidebar is hidden by default and rendered as a
+ * drawer with a backdrop. On desktop (md+), it sits beside the main
+ * content as before. Nav items carry a 44px minimum touch target so
+ * they are comfortable on low-end phones.
  * - Both header and sidebar carry `print:hide` so browser-print on any
- *   table page outputs only the data.
+ * table page outputs only the data.
  *
  * Auth routes (`/login`, `/pending`) skip this shell — they sit under
  * `app/(auth)/` which has no layout beyond the root.
@@ -106,14 +94,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
-
   const canFn = useMemo(() => createCan(supabaseBrowser()), []);
 
   useEffect(() => {
     if (!currentSite?.id) return;
 
-    const navs = [...INVENTORY_NAV, ...MASTERS_NAV, ...REPORTS_NAV];
-    const checks = navs
+    const checks = ALL_NAV_ITEMS
       .filter((i) => i.module && i.action)
       .map((i) => ({ module: i.module!, action: i.action! }));
 
@@ -244,38 +230,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <X className="h-5 w-5" aria-hidden />
             </Button>
           </div>
-          <ul className="flex flex-col gap-0.5 py-2" role="list">
-            {DASHBOARD_NAV.map((i) => (
-              <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
-            ))}
-
-            {INVENTORY_NAV.some(isVisible) && (
-              <>
-                <NavSection label="Inventory" />
-                {INVENTORY_NAV.filter(isVisible).map((i) => (
-                  <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
-                ))}
-              </>
-            )}
-
-            {MASTERS_NAV.some(isVisible) && (
-              <>
-                <NavSection label="Masters" />
-                {MASTERS_NAV.filter(isVisible).map((i) => (
-                  <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
-                ))}
-              </>
-            )}
-
-            {REPORTS_NAV.some(isVisible) && (
-              <>
-                <NavSection label="Reports" />
-                {REPORTS_NAV.filter(isVisible).map((i) => (
-                  <NavLink key={i.href} item={i} pathname={pathname} onNavigate={closeDrawer} />
-                ))}
-              </>
-            )}
-          </ul>
+          
+          <SidebarNav 
+            groups={NAV_GROUPS} 
+            pathname={pathname} 
+            isVisible={isVisible} 
+            onNavigate={closeDrawer} 
+          />
         </nav>
 
         <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
@@ -284,14 +245,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function SidebarNav({ 
+  groups, 
+  pathname, 
+  isVisible, 
+  onNavigate 
+}: { 
+  groups: typeof NAV_GROUPS;
+  pathname: string | null;
+  isVisible: (i: NavItem) => boolean;
+  onNavigate: () => void;
+}) {
+  return (
+    <ul className="flex flex-col gap-0.5 py-2" role="list">
+      {groups.map((group, idx) => {
+        const visibleItems = group.items.filter(isVisible);
+        if (visibleItems.length === 0) return null;
+
+        return (
+          <li key={idx}>
+            {group.label && <NavSection label={group.label} />}
+            {visibleItems.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />
+            ))}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function NavSection({ label }: { label: string }) {
   return (
-    <li
+    <div
       aria-hidden
       className="text-muted-foreground mt-2 px-4 pt-2 text-[10px] font-semibold tracking-wider uppercase"
     >
       {label}
-    </li>
+    </div>
   );
 }
 
@@ -308,22 +299,20 @@ function NavLink({
     pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
   const Icon = item.icon;
   return (
-    <li>
-      <Link
-        href={item.href}
-        onClick={onNavigate}
-        aria-current={active ? 'page' : undefined}
-        // 44px (min-h-11) touch target; visually unchanged on desktop.
-        className={cn(
-          'mx-2 flex min-h-11 items-center gap-2.5 rounded-sm px-2.5 py-2 text-sm transition-colors md:min-h-8 md:py-1.5',
-          active
-            ? 'bg-accent text-accent-foreground font-medium'
-            : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
-        )}
-      >
-        <Icon className="h-4 w-4 shrink-0" aria-hidden />
-        <span>{item.label}</span>
-      </Link>
-    </li>
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      aria-current={active ? 'page' : undefined}
+      // 44px (min-h-11) touch target; visually unchanged on desktop.
+      className={cn(
+        'mx-2 flex min-h-11 items-center gap-2.5 rounded-sm px-2.5 py-2 text-sm transition-colors md:min-h-8 md:py-1.5',
+        active
+          ? 'bg-accent text-accent-foreground font-medium'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+      <span>{item.label}</span>
+    </Link>
   );
 }
