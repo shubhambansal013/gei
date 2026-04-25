@@ -66,26 +66,31 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
       return;
     }
     startTransition(async () => {
-      const res = await createPurchase({
-        site_id: siteId,
-        item_id: itemId,
-        received_qty: qty,
-        received_unit: receivedUnit,
-        stock_unit: selectedItem?.stock_unit ?? '',
-        unit_conv_factor: convFactor,
-        vendor_id: supplierId ?? null,
-        invoice_no: invoiceNo || null,
-        rate: rate || null,
-        hsn_sac: hsn || null,
-        invoice_date: invoiceDate || null,
-        manufacturer: manufacturer || null,
-        supplier_part_no: partNo || null,
-      });
-      if (res.ok) {
-        toast.success('Purchase recorded.');
-        router.push('/inventory/transactions');
-      } else {
-        toast.error(res.error);
+      try {
+        const res = await createPurchase({
+          site_id: siteId,
+          item_id: itemId,
+          received_qty: qty,
+          received_unit: receivedUnit,
+          stock_unit: selectedItem?.stock_unit ?? '',
+          unit_conv_factor: convFactor,
+          vendor_id: supplierId ?? null,
+          invoice_no: invoiceNo || null,
+          rate: rate || null,
+          hsn_sac: hsn || null,
+          invoice_date: invoiceDate || null,
+          manufacturer: manufacturer || null,
+          supplier_part_no: partNo || null,
+        });
+        if (res.ok) {
+          toast.success('Purchase recorded.');
+          router.push('/inventory/transactions');
+        } else {
+          toast.error(res.error);
+        }
+      } catch (e) {
+        toast.error('Failed to record purchase.');
+        console.error(e);
       }
     });
   };

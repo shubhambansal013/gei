@@ -69,44 +69,64 @@ export function UsersClient({ profiles, access, sites, roles, overrides }: Props
 
   const onRoleChange = (user_id: string, role_id: string) => {
     startTransition(async () => {
-      const res = await updateUserRole({ user_id, role_id });
-      if (res.ok) {
-        toast.success('Role updated.');
-        router.refresh();
-      } else toast.error(res.error);
+      try {
+        const res = await updateUserRole({ user_id, role_id });
+        if (res.ok) {
+          toast.success('Role updated.');
+          router.refresh();
+        } else toast.error(res.error);
+      } catch (e) {
+        toast.error('Failed to update role.');
+        console.error(e);
+      }
     });
   };
 
   const onToggleActive = (user_id: string, is_active: boolean) => {
     startTransition(async () => {
-      const res = await toggleUserActive({ user_id, is_active });
-      if (res.ok) {
-        toast.success(is_active ? 'Activated.' : 'Deactivated.');
-        router.refresh();
-      } else toast.error(res.error);
+      try {
+        const res = await toggleUserActive({ user_id, is_active });
+        if (res.ok) {
+          toast.success(is_active ? 'Activated.' : 'Deactivated.');
+          router.refresh();
+        } else toast.error(res.error);
+      } catch (e) {
+        toast.error('Failed to toggle active status.');
+        console.error(e);
+      }
     });
   };
 
   const onGrant = (user_id: string) => {
     if (!grantSiteId) return toast.error('Pick a site.');
     startTransition(async () => {
-      const res = await grantSiteAccess({ user_id, site_id: grantSiteId, role_id: grantRoleId });
-      if (res.ok) {
-        toast.success('Access granted.');
-        setGrantingFor(null);
-        setGrantSiteId(null);
-        router.refresh();
-      } else toast.error(res.error);
+      try {
+        const res = await grantSiteAccess({ user_id, site_id: grantSiteId, role_id: grantRoleId });
+        if (res.ok) {
+          toast.success('Access granted.');
+          setGrantingFor(null);
+          setGrantSiteId(null);
+          router.refresh();
+        } else toast.error(res.error);
+      } catch (e) {
+        toast.error('Failed to grant access.');
+        console.error(e);
+      }
     });
   };
 
   const onRevoke = (access_id: string) => {
     startTransition(async () => {
-      const res = await revokeSiteAccess({ access_id });
-      if (res.ok) {
-        toast.success('Access revoked.');
-        router.refresh();
-      } else toast.error(res.error);
+      try {
+        const res = await revokeSiteAccess({ access_id });
+        if (res.ok) {
+          toast.success('Access revoked.');
+          router.refresh();
+        } else toast.error(res.error);
+      } catch (e) {
+        toast.error('Failed to revoke access.');
+        console.error(e);
+      }
     });
   };
 
@@ -157,7 +177,11 @@ export function UsersClient({ profiles, access, sites, roles, overrides }: Props
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Select value={p.role_id} onValueChange={(v) => v && onRoleChange(p.id, v)}>
+                    <Select
+                      value={p.role_id}
+                      onValueChange={(v) => v && onRoleChange(p.id, v)}
+                      disabled={pending}
+                    >
                       <SelectTrigger className="h-8 w-[160px] text-xs">
                         <SelectValue />
                       </SelectTrigger>
@@ -207,11 +231,16 @@ export function UsersClient({ profiles, access, sites, roles, overrides }: Props
                           value={grantSiteId}
                           onChange={setGrantSiteId}
                           placeholder="Pick site"
+                          disabled={pending}
                         />
                       </div>
                       <div>
                         <label className="text-muted-foreground mb-1 block text-xs">Role</label>
-                        <Select value={grantRoleId} onValueChange={(v) => v && setGrantRoleId(v)}>
+                        <Select
+                          value={grantRoleId}
+                          onValueChange={(v) => v && setGrantRoleId(v)}
+                          disabled={pending}
+                        >
                           <SelectTrigger className="h-9 w-[160px]">
                             <SelectValue />
                           </SelectTrigger>
@@ -267,7 +296,7 @@ export function UsersClient({ profiles, access, sites, roles, overrides }: Props
                               <button
                                 type="button"
                                 onClick={() => onRevoke(a.id)}
-                                className="text-muted-foreground hover:text-destructive"
+                                className="text-muted-foreground hover:text-destructive disabled:opacity-50"
                                 aria-label="Revoke"
                                 disabled={pending}
                               >

@@ -40,28 +40,36 @@ export function OverridesPanel({ accessId, overrides }: Props) {
   const cycle = (module_id: string, action_id: string) => {
     const existing = byKey.get(`${module_id}:${action_id}`);
     startTransition(async () => {
-      // State machine: none → grant(true) → deny(false) → none
-      if (!existing) {
-        const res = await upsertPermissionOverride({
-          access_id: accessId,
-          module_id,
-          action_id,
-          granted: true,
-        });
-        if (!res.ok) toast.error(res.error);
-      } else if (existing.granted) {
-        const res = await upsertPermissionOverride({
-          access_id: accessId,
-          module_id,
-          action_id,
-          granted: false,
-        });
-        if (!res.ok) toast.error(res.error);
-      } else {
-        const res = await deletePermissionOverride({ override_id: existing.id });
-        if (!res.ok) toast.error(res.error);
+      try {
+        // State machine: none → grant(true) → deny(false) → none
+        if (!existing) {
+          const res = await upsertPermissionOverride({
+            access_id: accessId,
+            module_id,
+            action_id,
+            granted: true,
+          });
+          if (!res.ok) toast.error(res.error);
+          else toast.success(`Granted ${module_id}.${action_id}`);
+        } else if (existing.granted) {
+          const res = await upsertPermissionOverride({
+            access_id: accessId,
+            module_id,
+            action_id,
+            granted: false,
+          });
+          if (!res.ok) toast.error(res.error);
+          else toast.success(`Denied ${module_id}.${action_id}`);
+        } else {
+          const res = await deletePermissionOverride({ override_id: existing.id });
+          if (!res.ok) toast.error(res.error);
+          else toast.success(`Reset ${module_id}.${action_id} to default`);
+        }
+        router.refresh();
+      } catch (e) {
+        toast.error('Failed to update permission.');
+        console.error(e);
       }
-      router.refresh();
     });
   };
 
