@@ -109,7 +109,7 @@ New Google sign-ups land as `VIEWER`. Seed the first SUPER_ADMIN with
 a one-time SQL command in Supabase Studio:
 
 ```sql
-UPDATE profiles SET role_id = 'SUPER_ADMIN' WHERE id = '<user-uid>';
+UPDATE profiles SET role_id = 'SUPER_ADMIN', is_active = true WHERE id = '<user-uid>';
 ```
 
 After that, all further role and site-access changes happen through

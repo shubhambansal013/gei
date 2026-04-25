@@ -1,4 +1,4 @@
-# GEI Inventory — Design System
+# GEI — Design System
 
 **Direction:** Industrial-minimal. The product is a tool a site-store
 worker stares at for six hours a day. Visual noise is their tax. The

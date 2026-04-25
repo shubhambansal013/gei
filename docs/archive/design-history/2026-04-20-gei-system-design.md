@@ -1,4 +1,4 @@
-# GEI Inventory System — Design
+# GEI System — Design
 
 **Status:** Approved for planning
 **Date:** 2026-04-20
