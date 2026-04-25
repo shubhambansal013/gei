@@ -47,7 +47,9 @@ export function SiteSwitcher() {
       }}
     >
       <SelectTrigger className="w-[220px]">
-        <SelectValue placeholder="Select site" />
+        <SelectValue placeholder="Select site">
+          {currentSite ? `${currentSite.code} — ${currentSite.name}` : null}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {sites.map((s) => (
