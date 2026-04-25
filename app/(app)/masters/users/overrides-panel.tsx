@@ -40,28 +40,45 @@ export function OverridesPanel({ accessId, overrides }: Props) {
   const cycle = (module_id: string, action_id: string) => {
     const existing = byKey.get(`${module_id}:${action_id}`);
     startTransition(async () => {
-      // State machine: none → grant(true) → deny(false) → none
-      if (!existing) {
-        const res = await upsertPermissionOverride({
-          access_id: accessId,
-          module_id,
-          action_id,
-          granted: true,
-        });
-        if (!res.ok) toast.error(res.error);
-      } else if (existing.granted) {
-        const res = await upsertPermissionOverride({
-          access_id: accessId,
-          module_id,
-          action_id,
-          granted: false,
-        });
-        if (!res.ok) toast.error(res.error);
-      } else {
-        const res = await deletePermissionOverride({ override_id: existing.id });
-        if (!res.ok) toast.error(res.error);
+      try {
+        // State machine: none → grant(true) → deny(false) → none
+        if (!existing) {
+          const res = await upsertPermissionOverride({
+            access_id: accessId,
+            module_id,
+            action_id,
+            granted: true,
+          });
+          if (res.ok) {
+            toast.success('Override granted.');
+          } else {
+            toast.error(res.error);
+          }
+        } else if (existing.granted) {
+          const res = await upsertPermissionOverride({
+            access_id: accessId,
+            module_id,
+            action_id,
+            granted: false,
+          });
+          if (res.ok) {
+            toast.success('Override denied.');
+          } else {
+            toast.error(res.error);
+          }
+        } else {
+          const res = await deletePermissionOverride({ override_id: existing.id });
+          if (res.ok) {
+            toast.success('Override removed.');
+          } else {
+            toast.error(res.error);
+          }
+        }
+        router.refresh();
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to update override.');
       }
-      router.refresh();
     });
   };
 

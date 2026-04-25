@@ -12,13 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export default async function UsersPage() {
   const sb = await supabaseServer();
-  const [
-    { data: profiles },
-    { data: access },
-    { data: sites },
-    { data: roles },
-    { data: overrides },
-  ] = await Promise.all([
+  const [profilesRes, accessRes, sitesRes, rolesRes, overridesRes] = await Promise.all([
     sb
       .from('profiles')
       .select('id, full_name, phone, role_id, is_active, created_at')
@@ -34,13 +28,19 @@ export default async function UsersPage() {
       .select('id, access_id, module_id, action_id, granted'),
   ]);
 
+  if (profilesRes.error) console.error('[UsersPage] profiles error:', profilesRes.error);
+  if (accessRes.error) console.error('[UsersPage] access error:', accessRes.error);
+  if (sitesRes.error) console.error('[UsersPage] sites error:', sitesRes.error);
+  if (rolesRes.error) console.error('[UsersPage] roles error:', rolesRes.error);
+  if (overridesRes.error) console.error('[UsersPage] overrides error:', overridesRes.error);
+
   return (
     <UsersClient
-      profiles={profiles ?? []}
-      access={access ?? []}
-      sites={sites ?? []}
-      roles={roles ?? []}
-      overrides={overrides ?? []}
+      profiles={profilesRes.data ?? []}
+      access={accessRes.data ?? []}
+      sites={sitesRes.data ?? []}
+      roles={rolesRes.data ?? []}
+      overrides={overridesRes.data ?? []}
     />
   );
 }
