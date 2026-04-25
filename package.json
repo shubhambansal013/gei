@@ -21,6 +21,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rls": "vitest run -c vitest.rls.config.ts",
+    "test:db": "supabase test db",
     "e2e": "playwright test",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
@@ -83,5 +84,15 @@
     "typescript": "^5",
     "vitest": "^4.1.4",
     "wrangler": "^4.85.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "msw",
+      "sharp",
+      "supabase",
+      "unrs-resolver",
+      "workerd"
+    ]
   }
 }

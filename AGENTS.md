@@ -28,6 +28,11 @@ This file provides context and guidelines for AI agents working on the GEI proje
 
 ## 4. Working Patterns
 - **TDD:** Follow Test-Driven Development if specified in the plan.
+- **Mandatory Testing:** Every PR must include relevant tests:
+  - New DB triggers/functions? Add a pgTAP test in `supabase/tests/`.
+  - New UI flow? Add/update a Playwright spec in `tests/e2e/`.
+  - New business logic? Add a Vitest unit test in `**/__tests__/`.
+  - New RLS policy? Add a Vitest RLS test in `tests/rls/`.
 - **Conventional Commits:** Use `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
 - **One Responsibility per File:** Keep files focused; split if they exceed ~300 lines.
 - **No Direct Supabase Calls Skipping RLS:** Always respect the security model.
