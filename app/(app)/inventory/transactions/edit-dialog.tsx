@@ -110,7 +110,7 @@ export function EditDialog({ target, units, workers, onOpenChange, onSuccess }: 
         <DialogHeader>
           <DialogTitle>Edit {isPurchase ? 'purchase' : 'issue'} transaction</DialogTitle>
           <p className="text-muted-foreground text-sm">
-            Only qty and {isPurchase ? 'invoice #' : 'issued-to'} can be edited inline. For
+            Only qty and {isPurchase ? 'invoice #' : 'issue to'} can be edited inline. For
             destination changes, soft-delete and re-enter.
           </p>
         </DialogHeader>
@@ -173,7 +173,7 @@ export function EditDialog({ target, units, workers, onOpenChange, onSuccess }: 
 
           {!isPurchase && target?.siteId && (
             <div className="space-y-1.5">
-              <Label>Worker</Label>
+              <Label>Issue to</Label>
               <WorkerPicker
                 workers={workers}
                 siteId={target.siteId}
@@ -183,10 +183,12 @@ export function EditDialog({ target, units, workers, onOpenChange, onSuccess }: 
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-ref">{isPurchase ? 'Invoice #' : 'Issued to (Legacy)'}</Label>
-            <Input id="edit-ref" value={ref} onChange={(e) => setRef(e.target.value)} />
-          </div>
+          {isPurchase && (
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-ref">Invoice #</Label>
+              <Input id="edit-ref" value={ref} onChange={(e) => setRef(e.target.value)} />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="edit-reason">
