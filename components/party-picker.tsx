@@ -40,7 +40,7 @@ type Props = {
   value: string | null;
   onChange: (partyId: string | null) => void;
   placeholder?: string;
-  id?: string;
+  id?: string | undefined;
 };
 
 /**

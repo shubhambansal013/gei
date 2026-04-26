@@ -31,7 +31,7 @@ type Props = {
   siteId: string;
   value: string | null;
   onChange: (workerId: string | null) => void;
-  id?: string;
+  id?: string | undefined;
 };
 
 /**
