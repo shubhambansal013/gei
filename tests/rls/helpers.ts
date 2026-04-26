@@ -47,7 +47,13 @@ export async function asUser(email: string): Promise<SupabaseClient> {
  * exercise the inactive path set `is_active` back to false explicitly.
  */
 export async function setGlobalRole(userId: string, roleId: string) {
-  await service().from('profiles').update({ role_id: roleId, is_active: true }).eq('id', userId);
+  const { error } = await service().from('profiles').upsert({
+    id: userId,
+    role_id: roleId,
+    is_active: true,
+    full_name: 'Test User',
+  });
+  if (error) throw error;
 }
 
 /** Wipes rows inserted by a test — call in afterEach/afterAll blocks. */

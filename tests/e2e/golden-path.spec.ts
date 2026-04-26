@@ -111,17 +111,17 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
 
     // Site is auto-selected (first accessible) — just verify it's populated
     // Item: open the combobox, pick the seeded item
-    const itemCombo = page.locator('[role="combobox"]').nth(1);
+    const itemCombo = page.getByRole('combobox', { name: 'Search items…' });
     await itemCombo.click();
-    await page.getByPlaceholder('Search...').fill(itemCode);
-    await page.getByRole('option', { name: new RegExp(`E2E Cement ${unique}`) }).click();
+    await page.locator('[data-slot="popover-content"]').getByPlaceholder('Search...').fill(itemCode);
+    await page.getByRole('option').filter({ hasText: `E2E Cement ${unique}` }).click();
 
     await page.getByLabel('Qty *').fill('100');
 
-    const supplierCombo = page.locator('[role="combobox"]').nth(2);
+    const supplierCombo = page.getByRole('combobox', { name: 'Pick a party' });
     await supplierCombo.click();
-    await page.getByPlaceholder('Search...').fill(unique);
-    await page.getByRole('option', { name: supplierName }).click();
+    await page.locator('[data-slot="popover-content"]').getByPlaceholder('Search...').fill(unique);
+    await page.getByRole('option').filter({ hasText: supplierName }).click();
 
     await page.getByLabel('Invoice #').fill(`INV-${unique}`);
 
@@ -138,18 +138,18 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
     await page.goto('/inventory/outward/new');
     await expect(page.getByRole('heading', { name: 'New issue' })).toBeVisible();
 
-    const itemCombo = page.locator('[role="combobox"]').nth(1);
+    const itemCombo = page.getByRole('combobox', { name: 'Search items…' });
     await itemCombo.click();
-    await page.getByPlaceholder('Search...').fill(itemCode);
-    await page.getByRole('option', { name: new RegExp(`E2E Cement ${unique}`) }).click();
+    await page.locator('[data-slot="popover-content"]').getByPlaceholder('Search...').fill(itemCode);
+    await page.getByRole('option').filter({ hasText: `E2E Cement ${unique}` }).click();
 
     await page.getByLabel('Qty *').fill('30');
 
     // Destination: the supplier (party)
-    const destCombo = page.locator('[role="combobox"]').nth(2);
+    const destCombo = page.getByRole('combobox', { name: 'Contractor / customer (optional)' });
     await destCombo.click();
-    await page.getByPlaceholder('Search...').fill(unique);
-    await page.getByRole('option', { name: supplierName }).click();
+    await page.locator('[data-slot="popover-content"]').getByPlaceholder('Search...').fill(unique);
+    await page.getByRole('option').filter({ hasText: supplierName }).click();
 
     await page.getByLabel('Issued to').fill('E2E QA foreman');
 

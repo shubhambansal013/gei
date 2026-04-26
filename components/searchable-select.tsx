@@ -69,6 +69,7 @@ export function SearchableSelect<V extends string = string>({
             aria-label={placeholder}
             aria-expanded={open}
             tabIndex={disabled ? undefined : 0}
+            onClick={() => !disabled && setOpen(true)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
