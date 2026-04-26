@@ -22,7 +22,8 @@ This file provides context and guidelines for AI agents working on the GEI proje
 - **Testing:**
   - `lib/**/*.test.ts`: Logic unit tests (Vitest).
   - `components/**/*.test.tsx`: Component tests (RTL + Vitest).
-  - `tests/rls/**/*.test.ts`: RLS policy tests (requires `supabase start`).
+  - `tests/rls/**/*.test.ts`: RLS policy tests (requires `supabase start`). Ensure full coverage of policies in `schema.sql`.
+  - `supabase/tests/*.sql`: Database logic tests (pgTAP).
   - `tests/e2e/**/*.spec.ts`: Playwright e2e tests.
 - **Linting & Types:** `pnpm lint` and `pnpm typecheck` must be clean.
 

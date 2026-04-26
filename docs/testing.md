@@ -58,10 +58,29 @@ supabase status -o env | grep ^SERVICE_ROLE_KEY= | sed 's/SERVICE_ROLE_KEY=/SUPA
 
 ## Continuous Integration (CI)
 
-All tests are executed automatically on every Pull Request.
+All tests are executed automatically on every Pull Request via the following jobs:
 
-- `lint-typecheck-unit`: Checks code style, types, and runs Unit tests.
-- `database`: Starts a local Supabase instance and runs pgTAP and RLS tests.
+- `static-analysis`: Runs `pnpm lint` and `pnpm typecheck`.
+- `unit-tests`: Runs `pnpm test` (Vitest unit tests).
+- `coverage`: Runs `pnpm test --coverage` and reports unit test coverage.
+- `database-pgtap`: Starts Supabase and runs `pnpm test:db`.
+- `database-rls`: Starts Supabase and runs `pnpm test:rls`.
+
+## Maintaining Database Tests
+
+### pgTAP (SQL)
+
+- **When to add:** New triggers, functions, or complex constraints in `schema.sql`.
+- **Where:** `supabase/tests/*.sql`.
+- **How:** Follow the pattern in `00001_audit_log.sql`. Use `BEGIN;` ... `ROLLBACK;` to keep tests isolated and idempotent.
+- **Verification:** Run `pnpm test:db` locally.
+
+### RLS (Vitest)
+
+- **When to add:** New tables or updated RLS policies in `schema.sql`.
+- **Where:** `tests/rls/*.test.ts`.
+- **How:** Use the `asUser` and `setGlobalRole` helpers from `helpers.ts` to simulate different roles.
+- **Verification:** Run `pnpm test:rls` locally. Ensure that all new policies in `schema.sql` are exercised by at least one test case to maintain "human-verified" coverage.
 
 ## Quality Gates
 
