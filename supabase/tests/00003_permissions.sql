@@ -3,8 +3,8 @@ SELECT plan(4);
 
 -- 1. Setup: Site and User
 INSERT INTO sites (code, name) VALUES ('T-PERM', 'Permission Test Site');
-INSERT INTO profiles (id, email, role_id, is_active)
-VALUES ('00000000-0000-0000-0000-000000000001', 'test-user@gei.local', 'VIEWER', true);
+INSERT INTO profiles (id, full_name, role_id, is_active)
+VALUES ('00000000-0000-0000-0000-000000000001', 'Test User', 'VIEWER', true);
 
 -- 2. Test can_user with no access
 SELECT is(
@@ -24,8 +24,8 @@ SELECT is(
 );
 
 -- 4. Test can_user with SUPER_ADMIN global role
-INSERT INTO profiles (id, email, role_id, is_active)
-VALUES ('00000000-0000-0000-0000-000000000002', 'super@gei.local', 'SUPER_ADMIN', true);
+INSERT INTO profiles (id, full_name, role_id, is_active)
+VALUES ('00000000-0000-0000-0000-000000000002', 'Super Admin', 'SUPER_ADMIN', true);
 
 SELECT is(
     can_user('00000000-0000-0000-0000-000000000002', (SELECT id FROM sites WHERE code = 'T-PERM'), 'MASTERS', 'DELETE'),
@@ -34,7 +34,7 @@ SELECT is(
 );
 
 -- 5. Test inactive user
-UPDATE profiles SET is_active = false WHERE email = 'super@gei.local';
+UPDATE profiles SET is_active = false WHERE id = '00000000-0000-0000-0000-000000000002';
 
 SELECT is(
     can_user('00000000-0000-0000-0000-000000000002', (SELECT id FROM sites WHERE code = 'T-PERM'), 'MASTERS', 'DELETE'),
