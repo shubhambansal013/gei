@@ -1,8 +1,11 @@
 BEGIN;
 SELECT plan(4);
 
--- 1. Setup: Site and User
+-- 1. Setup: Drop the Foreign Key to auth.users during this test to avoid dependency on real users
+ALTER TABLE profiles DROP CONSTRAINT profiles_id_fkey;
+
 INSERT INTO sites (code, name) VALUES ('T-PERM', 'Permission Test Site');
+
 INSERT INTO profiles (id, full_name, role_id, is_active)
 VALUES ('00000000-0000-0000-0000-000000000001', 'Test User', 'VIEWER', true);
 
