@@ -286,9 +286,8 @@ SET search_path = public
 AS $$
 BEGIN
   -- 1. BYPASS FOR SYSTEM ADMINISTRATORS
-  -- Allows the SQL Editor (postgres) and Dashboard (service_role) to bypass these checks.
-  -- This is the "Master Key" that prevents you from being locked out.
-  IF current_user = 'postgres' OR auth.role() = 'service_role' THEN
+  -- Allows the SQL Editor, migrations (postgres) and service_role to bypass.
+  IF session_user = 'postgres' OR auth.role() = 'service_role' OR auth.uid() IS NULL THEN
     RETURN NEW;
   END IF;
 
