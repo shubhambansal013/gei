@@ -354,6 +354,24 @@ CREATE TABLE site_user_permission_overrides (
 );
 
 
+CREATE OR REPLACE FUNCTION is_admin_anywhere(p_user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  SELECT role_id INTO v_role FROM profiles
+   WHERE id = p_user_id AND is_active = true;
+  IF NOT FOUND THEN RETURN false; END IF;
+  IF v_role = 'SUPER_ADMIN' THEN RETURN true; END IF;
+
+  RETURN EXISTS (
+    SELECT 1 FROM site_user_access
+     WHERE user_id = p_user_id AND role_id IN ('SUPER_ADMIN', 'ADMIN')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
 -- can_user must be defined after profiles, site_user_access,
 -- site_user_permission_overrides, and role_permissions
 CREATE OR REPLACE FUNCTION can_user(
