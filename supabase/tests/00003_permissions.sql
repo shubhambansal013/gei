@@ -1,11 +1,18 @@
 BEGIN;
 SELECT plan(4);
 
--- 1. Setup: Drop the Foreign Key to auth.users during this test to avoid dependency on real users
-ALTER TABLE profiles DROP CONSTRAINT profiles_id_fkey;
+-- Setup: Mock auth.users for FK dependency
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE TABLE IF NOT EXISTS auth.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT,
+    raw_user_meta_data JSONB
+);
 
 INSERT INTO sites (code, name) VALUES ('T-PERM', 'Permission Test Site');
 
+-- 1. Setup User
+INSERT INTO auth.users (id, email) VALUES ('00000000-0000-0000-0000-000000000001', 'test@gei.local');
 INSERT INTO profiles (id, full_name, role_id, is_active)
 VALUES ('00000000-0000-0000-0000-000000000001', 'Test User', 'VIEWER', true);
 
@@ -27,6 +34,7 @@ SELECT is(
 );
 
 -- 4. Test can_user with SUPER_ADMIN global role
+INSERT INTO auth.users (id, email) VALUES ('00000000-0000-0000-0000-000000000002', 'super@gei.local');
 INSERT INTO profiles (id, full_name, role_id, is_active)
 VALUES ('00000000-0000-0000-0000-000000000002', 'Super Admin', 'SUPER_ADMIN', true);
 

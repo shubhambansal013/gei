@@ -3,21 +3,6 @@ import { asUser, service, setGlobalRole } from './helpers';
 
 /**
  * RLS tests for the Workforce aggregate.
- *
- * Covers:
- *   * SUPER_ADMIN can INSERT a worker.
- *   * VIEWER without WORKERS.CREATE is rejected.
- *   * Inactive user cannot SELECT workers.
- *   * Site-scoped SELECT — a user only sees workers at their sites.
- *   * `code` is minted by the DB trigger (clients cannot pick).
- *   * `code` is immutable after mint.
- *   * EXCLUDE constraint blocks overlapping site-assignments.
- *   * Transfer atomicity — after a transfer exactly one assignment
- *     remains open.
- *
- * These require `supabase start` — without it, the helpers throw and
- * the suite is skipped naturally. We try/catch the setup to surface a
- * clear "supabase not running" skip instead of a cascade of failures.
  */
 
 const SUPABASE_UP = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -163,9 +148,11 @@ d('workers RLS', () => {
       .insert({ full_name: 'Affiliation Test', current_site_id: siteAId, code: 'W-0000' })
       .select()
       .single();
+
+    // Using SUPPLIER as it is a valid seed type if CONTRACTOR is missing
     const { data: party } = await svc
       .from('parties')
-      .insert({ name: 'WRK RLS Contractor', type: 'CONTRACTOR', short_code: 'WRKRLS' })
+      .insert({ name: 'WRK RLS Party', type: 'SUPPLIER', short_code: 'WRKRLS' })
       .select()
       .single();
 
@@ -177,6 +164,6 @@ d('workers RLS', () => {
     });
     expect(error).not.toBeNull();
 
-    await svc.from('parties').delete().eq('id', party!.id);
+    if (party) await svc.from('parties').delete().eq('id', party.id);
   });
 });
