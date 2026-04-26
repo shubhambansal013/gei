@@ -22,7 +22,6 @@
     "test:watch": "vitest",
     "test:rls": "vitest run -c vitest.rls.config.ts",
     "test:db": "supabase test db",
-    "e2e": "playwright test",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",

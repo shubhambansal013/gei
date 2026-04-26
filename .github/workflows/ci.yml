@@ -44,24 +44,3 @@ jobs:
         run: pnpm test:db
       - name: Run RLS tests
         run: pnpm test:rls
-
-  # e2e:
-  #   if: github.event_name == 'pull_request'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v4
-  #       with: { version: 9 }
-  #     - uses: actions/setup-node@v4
-  #       with: { node-version: 20, cache: 'pnpm' }
-  #     - uses: supabase/setup-cli@v1
-  #       with: { version: latest }
-  #     - run: supabase start
-  #     - run: pnpm install --frozen-lockfile
-  #     - name: Load env
-  #       run: |
-  #         supabase status -o env | grep ^API_URL= | sed 's/API_URL=/NEXT_PUBLIC_SUPABASE_URL=/' | sed 's/"//g' >> $GITHUB_ENV
-  #         supabase status -o env | grep ^ANON_KEY= | sed 's/ANON_KEY=/NEXT_PUBLIC_SUPABASE_ANON_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
-  #         supabase status -o env | grep ^SERVICE_ROLE_KEY= | sed 's/SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
-  #     - run: pnpm exec playwright install --with-deps chromium
-  #     - run: pnpm e2e
