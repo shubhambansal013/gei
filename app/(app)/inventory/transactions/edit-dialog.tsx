@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SearchableSelect } from '@/components/searchable-select';
 import { editPurchase, editIssue } from './actions';
+import { WorkerPicker, type WorkerOption } from '@/components/worker-picker';
 
 export type EditTarget = {
   id: string;
@@ -22,6 +23,8 @@ export type EditTarget = {
   currentRef: string;
   receivedUnit?: string | null;
   convFactor?: number | null;
+  workerId?: string | null;
+  siteId?: string;
 };
 
 type Unit = { id: string; label: string; category: string | null };
@@ -29,6 +32,7 @@ type Unit = { id: string; label: string; category: string | null };
 type Props = {
   target: EditTarget | null;
   units: Unit[];
+  workers: WorkerOption[];
   onOpenChange: (o: boolean) => void;
   onSuccess: () => void;
 };
@@ -41,7 +45,7 @@ type Props = {
  * and the audit trigger writes before/after JSONB into
  * `inventory_edit_log`.
  */
-export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
+export function EditDialog({ target, units, workers, onOpenChange, onSuccess }: Props) {
   // Derive initial form state from the target. The dialog instance is
   // keyed on target.id by the parent (React re-mounts between targets),
   // so these useState hooks read the target at mount time — no effect
@@ -50,6 +54,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
   const [receivedUnit, setReceivedUnit] = useState(target?.receivedUnit ?? '');
   const [convFactor, setConvFactor] = useState(target ? String(target.convFactor) : '1');
   const [ref, setRef] = useState(target?.currentRef ?? '');
+  const [workerId, setWorkerId] = useState<string | null>(target?.workerId ?? null);
   const [reason, setReason] = useState('');
   const [pending, startTransition] = useTransition();
 
@@ -66,7 +71,9 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
         const qtyChanged = qty !== String(target.currentQty);
         const unitChanged = isPurchase && receivedUnit !== target.receivedUnit;
         const factorChanged = isPurchase && convFactor !== String(target.convFactor);
-        const refChanged = ref !== target.currentRef;
+        const refChanged = !isPurchase && ref !== target.currentRef;
+        const workerChanged = !isPurchase && workerId !== target.workerId;
+
         const payload = isPurchase
           ? {
               id: target.id,
@@ -74,12 +81,13 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
               ...(qtyChanged ? { received_qty: qty } : {}),
               ...(unitChanged ? { received_unit: receivedUnit } : {}),
               ...(factorChanged ? { unit_conv_factor: convFactor } : {}),
-              ...(refChanged ? { invoice_no: ref || null } : {}),
+              ...(ref !== target.currentRef ? { invoice_no: ref || null } : {}),
             }
           : {
               id: target.id,
               reason: reason.trim(),
               ...(qtyChanged ? { qty } : {}),
+              ...(workerChanged ? { worker_id: workerId } : {}),
               ...(refChanged ? { issued_to_legacy: ref || null } : {}),
             };
         const res = isPurchase ? await editPurchase(payload) : await editIssue(payload);
@@ -163,8 +171,20 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
             </div>
           )}
 
+          {!isPurchase && target?.siteId && (
+            <div className="space-y-1.5">
+              <Label>Worker</Label>
+              <WorkerPicker
+                workers={workers}
+                siteId={target.siteId}
+                value={workerId}
+                onChange={setWorkerId}
+              />
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <Label htmlFor="edit-ref">{isPurchase ? 'Invoice #' : 'Issued to'}</Label>
+            <Label htmlFor="edit-ref">{isPurchase ? 'Invoice #' : 'Issued to (Legacy)'}</Label>
             <Input id="edit-ref" value={ref} onChange={(e) => setRef(e.target.value)} />
           </div>
 
