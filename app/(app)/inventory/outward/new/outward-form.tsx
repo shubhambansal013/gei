@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/searchable-select';
 import { WorkerPicker, type WorkerOption } from '@/components/worker-picker';
 import { PartyPicker, type PartyOption } from '@/components/party-picker';
+import { Checkbox } from '@/components/ui/checkbox';
 import { createIssue } from './actions';
 
 type Site = { id: string; name: string; code: string };
@@ -38,8 +39,10 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
   const [siteId, setSiteId] = useState<string | null>(sites[0]?.id ?? null);
   const [itemId, setItemId] = useState<string | null>(null);
   const [qty, setQty] = useState('');
+  const [isTransfer, setIsTransfer] = useState(false);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [partyId, setPartyId] = useState<string | null>(null);
+  const [destSiteId, setDestSiteId] = useState<string | null>(null);
   const [workerId, setWorkerId] = useState<string | null>(null);
   const [issuedTo, setIssuedTo] = useState('');
 
@@ -60,6 +63,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
   );
 
   const siteOptions = sites.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` }));
+  const destSiteOptions = sites
+    .filter((s) => s.id !== siteId)
+    .map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` }));
   const itemOptions = items.map((i) => ({
     value: i.id,
     label: i.name,
@@ -72,7 +78,12 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       toast.error('Site, item, and qty are required.');
       return;
     }
-    if (!locationId && !partyId) {
+    if (isTransfer) {
+      if (!destSiteId) {
+        toast.error('Pick the destination site.');
+        return;
+      }
+    } else if (!locationId && !partyId) {
       toast.error('Pick at least one of Location or Party.');
       return;
     }
@@ -95,14 +106,27 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       issued_to_legacy: useLegacyInput ? issuedTo.trim() || null : null,
     };
 
-    const payload = locationId
-      ? {
-          ...base,
-          destinationKind: 'location' as const,
-          location_unit_id: locationId,
-          party_id: partyId,
-        }
-      : { ...base, destinationKind: 'party' as const, party_id: partyId! };
+    let payload;
+    if (isTransfer) {
+      payload = {
+        ...base,
+        destinationKind: 'site' as const,
+        dest_site_id: destSiteId!,
+      };
+    } else if (locationId) {
+      payload = {
+        ...base,
+        destinationKind: 'location' as const,
+        location_unit_id: locationId,
+        party_id: partyId,
+      };
+    } else {
+      payload = {
+        ...base,
+        destinationKind: 'party' as const,
+        party_id: partyId!,
+      };
+    }
 
     startTransition(async () => {
       try {
@@ -113,6 +137,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           setItemId(null);
           setLocationId(null);
           setPartyId(null);
+          setDestSiteId(null);
           setWorkerId(null);
           setIssuedTo('');
         } else {
@@ -172,28 +197,53 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Location</Label>
-        <SearchableSelect
-          options={locationOptions}
-          value={locationId}
-          onChange={setLocationId}
-          placeholder="Where on site? (optional)"
+      <div className="flex items-center gap-2 py-2">
+        <Checkbox
+          id="isTransfer"
+          checked={isTransfer}
+          onCheckedChange={(checked) => setIsTransfer(!!checked)}
         />
+        <Label htmlFor="isTransfer" className="text-sm font-normal cursor-pointer">
+          Transfer to another site
+        </Label>
       </div>
-      <div className="space-y-1.5">
-        <Label>Party</Label>
-        <PartyPicker
-          parties={parties}
-          value={partyId}
-          onChange={setPartyId}
-          placeholder="Contractor / customer (optional)"
-        />
-      </div>
-      <p className="text-muted-foreground text-xs">
-        Fill at least one. Both is fine — e.g. &ldquo;KB&rsquo;s crew working on Block 3&rdquo; sets
-        Location <span className="font-medium">and</span> Party.
-      </p>
+
+      {isTransfer ? (
+        <div className="space-y-1.5">
+          <Label>Destination Site *</Label>
+          <SearchableSelect
+            options={destSiteOptions}
+            value={destSiteId}
+            onChange={setDestSiteId}
+            placeholder="Select destination site"
+          />
+        </div>
+      ) : (
+        <>
+          <div className="space-y-1.5">
+            <Label>Location</Label>
+            <SearchableSelect
+              options={locationOptions}
+              value={locationId}
+              onChange={setLocationId}
+              placeholder="Where on site? (optional)"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Party</Label>
+            <PartyPicker
+              parties={parties}
+              value={partyId}
+              onChange={setPartyId}
+              placeholder="Contractor / customer (optional)"
+            />
+          </div>
+          <p className="text-muted-foreground text-xs">
+            Fill at least one. Both is fine — e.g. &ldquo;KB&rsquo;s crew working on Block 3&rdquo;
+            sets Location <span className="font-medium">and</span> Party.
+          </p>
+        </>
+      )}
 
       <div className="space-y-1.5">
         <Label>Issued to {useLegacyInput ? '' : '*'}</Label>
