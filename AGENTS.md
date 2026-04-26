@@ -15,6 +15,7 @@ This file provides context and guidelines for AI agents working on the GEI proje
 - **Soft Delete Only:** `is_deleted` flags are used. Hard DELETEs are blocked by policy.
 - **Multi-site:** Every query and mutation must be scoped by `site_id`.
 - **Modular Code:** Reuse components like `SearchableSelect`, `DataGrid`, `PermissionGate`, `ExportButton`, `PrintButton`.
+- **Consistent UX:** Master record creation and editing should use right-side sliders (`Sheet`) instead of popups/dialogs for a consistent user experience.
 
 ## 3. Technical Guidelines
 - **Tailwind CSS v4:** Theme tokens in `app/globals.css`. No `tailwind.config.ts`.
