@@ -153,8 +153,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label>Site *</Label>
+        <Label htmlFor="site-select">Site *</Label>
         <SearchableSelect
+          id="site-select"
           options={siteOptions}
           value={siteId}
           onChange={setSiteId}
@@ -163,8 +164,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       </div>
 
       <div className="space-y-1.5">
-        <Label>Item *</Label>
+        <Label htmlFor="item-select">Item *</Label>
         <SearchableSelect
+          id="item-select"
           options={itemOptions}
           value={itemId}
           onChange={setItemId}
@@ -210,8 +212,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
 
       {isTransfer ? (
         <div className="space-y-1.5">
-          <Label>Destination Site *</Label>
+          <Label htmlFor="dest-site-select">Destination Site *</Label>
           <SearchableSelect
+            id="dest-site-select"
             options={destSiteOptions}
             value={destSiteId}
             onChange={setDestSiteId}
@@ -221,8 +224,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       ) : (
         <>
           <div className="space-y-1.5">
-            <Label>Location</Label>
+            <Label htmlFor="location-select">Location</Label>
             <SearchableSelect
+              id="location-select"
               options={locationOptions}
               value={locationId}
               onChange={setLocationId}

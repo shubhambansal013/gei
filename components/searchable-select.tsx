@@ -26,6 +26,7 @@ type Props<V extends string> = {
   onChange: (v: V) => void;
   placeholder?: string;
   disabled?: boolean;
+  id?: string;
 };
 
 /**
@@ -47,6 +48,7 @@ export function SearchableSelect<V extends string = string>({
   onChange,
   placeholder,
   disabled,
+  id,
 }: Props<V>) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
@@ -62,6 +64,7 @@ export function SearchableSelect<V extends string = string>({
       <PopoverTrigger
         render={
           <Button
+            id={id}
             role="combobox"
             aria-expanded={open}
             disabled={disabled}

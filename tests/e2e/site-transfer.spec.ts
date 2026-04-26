@@ -89,7 +89,7 @@ test.describe('Site Transfer', () => {
     await expect(page.locator('h1')).toHaveText('New issue');
 
     // Select Site A
-    await page.getByRole('combobox', { name: 'Select site' }).click();
+    await page.getByLabel('Site *').click();
     await page.getByRole('option', { name: new RegExp(SITE_A_CODE) }).click();
 
     // Verify initial state: Location and Party are visible
@@ -107,14 +107,14 @@ test.describe('Site Transfer', () => {
 
     // Fill the rest of the form
     // Select Item
-    await page.getByRole('combobox', { name: 'Search items…' }).click();
+    await page.getByLabel('Item *').click();
     await page.getByRole('option', { name: new RegExp(ITEM_CODE) }).click();
 
     // Qty
     await page.fill('input[id="qty"]', '10');
 
     // Select Destination Site (Site B)
-    await page.getByRole('combobox', { name: 'Select destination site' }).click();
+    await page.getByLabel('Destination Site *').click();
     await page.getByRole('option', { name: new RegExp(SITE_B_CODE) }).click();
 
     // Issued to (legacy because no workers registered for Site A)
