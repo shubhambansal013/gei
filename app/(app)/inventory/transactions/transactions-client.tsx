@@ -15,6 +15,7 @@ import { Trash2, Pencil } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { softDeletePurchase, softDeleteIssue } from './actions';
 import { EditDialog, type EditTarget } from './edit-dialog';
+import { type WorkerOption } from '@/components/worker-picker';
 
 /**
  * A unified row shape that both purchases and issues flatten into.
@@ -31,16 +32,18 @@ type UnifiedRow = {
   qty: number;
   unit: string;
   party: string;
-  destination: string;
+  location: string;
   ref: string; // invoice or issued-to
-  amount: number | null;
-  receivedUnit?: string | null;
-  convFactor?: number | null;
-  receivedQty?: number; // Only for PURCHASE
+  receivedUnit?: string | null | undefined;
+  convFactor?: number | null | undefined;
+  receivedQty?: number | undefined; // Only for PURCHASE
+  siteId?: string | undefined;
+  workerId?: string | null | undefined;
 };
 
-type PurchaseRow = {
+export type PurchaseRow = {
   id: string;
+  site_id: string;
   receipt_date: string;
   received_qty: number;
   received_unit: string;
@@ -52,8 +55,9 @@ type PurchaseRow = {
   vendor: { id: string; name: string } | null;
 };
 
-type IssueRow = {
+export type IssueRow = {
   id: string;
+  site_id: string;
   issue_date: string;
   qty: number;
   unit: string;
@@ -68,9 +72,14 @@ type IssueRow = {
 
 type Unit = { id: string; label: string; category: string | null };
 
-type Props = { purchases: PurchaseRow[]; issues: IssueRow[]; units: Unit[] };
+type Props = {
+  purchases: PurchaseRow[];
+  issues: IssueRow[];
+  units: Unit[];
+  workers: WorkerOption[];
+};
 
-export function TransactionsClient({ purchases, issues, units }: Props) {
+export function TransactionsClient({ purchases, issues, units, workers }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [search, setSearch] = useState('');
@@ -92,15 +101,14 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
       qty: p.stock_qty ?? 0,
       unit: p.item?.stock_unit ?? '',
       party: p.vendor?.name ?? '',
-      destination: p.vendor?.name ?? '',
+      location: '',
       ref: p.invoice_no ?? '',
-      amount: p.total_amount,
       receivedUnit: p.received_unit,
       convFactor: p.unit_conv_factor,
       receivedQty: p.received_qty,
+      siteId: p.site_id,
     }));
     const outRows: UnifiedRow[] = issues.map((i) => {
-      const dest = i.location?.name ?? i.party?.name ?? (i.dest ? `→ ${i.dest.code}` : '—');
       return {
         id: i.id,
         type: 'ISSUE',
@@ -111,9 +119,10 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
         qty: i.qty,
         unit: i.unit,
         party: i.party?.name ?? '',
-        destination: dest,
-        ref: i.worker ? `${i.worker.full_name} (${i.worker.code})` : (i.issued_to_legacy ?? ''),
-        amount: null,
+        location: i.location?.name ?? (i.dest ? `→ ${i.dest.code}` : ''),
+        ref: i.issued_to_legacy ?? '',
+        siteId: i.site_id,
+        workerId: i.worker_id,
       };
     });
     return [...inRows, ...outRows].sort((a, b) => b.date.localeCompare(a.date));
@@ -127,7 +136,8 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
       return (
         r.itemCode.toLowerCase().includes(lower) ||
         r.itemName.toLowerCase().includes(lower) ||
-        r.destination.toLowerCase().includes(lower) ||
+        r.party.toLowerCase().includes(lower) ||
+        r.location.toLowerCase().includes(lower) ||
         r.ref.toLowerCase().includes(lower)
       );
     });
@@ -157,17 +167,12 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
     {
       accessorKey: 'itemCode',
       header: 'Code',
-      cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue() ?? '')}</span>,
-    },
-    {
-      accessorKey: 'itemName',
-      header: 'Item',
       cell: ({ row }) => (
         <Link
           href={`/inventory/item/${row.original.itemId}`}
-          className="text-foreground hover:text-primary underline-offset-2 hover:underline"
+          className="font-mono text-xs text-foreground hover:text-primary underline-offset-2 hover:underline"
         >
-          {row.original.itemName}
+          {String(row.original.itemCode ?? '')}
         </Link>
       ),
     },
@@ -195,18 +200,20 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
       },
     },
     { accessorKey: 'unit', header: 'Unit' },
-    { accessorKey: 'destination', header: 'Party / Location' },
-    { accessorKey: 'ref', header: 'Ref' },
+    { accessorKey: 'party', header: 'Party' },
+    { accessorKey: 'location', header: 'Location' },
     {
-      accessorKey: 'amount',
-      header: 'Amount (₹)',
-      cell: ({ getValue }) => {
-        const v = getValue() as number | null;
-        return (
-          <span className="block text-right tabular-nums">
-            {v != null ? v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—'}
-          </span>
-        );
+      accessorKey: 'ref',
+      header: 'Ref',
+      cell: ({ row }) => {
+        const r = row.original;
+        if (r.type === 'PURCHASE') return r.ref;
+        // For issues, if we have a worker record, show that. Otherwise show the legacy text.
+        if (r.workerId) {
+          const w = workers.find((w) => w.id === r.workerId);
+          if (w) return `${w.full_name} (${w.code})`;
+        }
+        return r.ref;
       },
     },
     {
@@ -225,6 +232,8 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
                 currentRef: row.original.ref,
                 receivedUnit: row.original.receivedUnit ?? null,
                 convFactor: row.original.convFactor ?? null,
+                workerId: row.original.workerId ?? null,
+                siteId: row.original.siteId,
               })
             }
             className="text-muted-foreground hover:text-foreground"
@@ -251,12 +260,11 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
     { key: 'date', header: 'Date' },
     { key: 'type', header: 'Type' },
     { key: 'itemCode', header: 'Code' },
-    { key: 'itemName', header: 'Item' },
     { key: 'qty', header: 'Qty', numFmt: '#,##0.00' },
     { key: 'unit', header: 'Unit' },
-    { key: 'destination', header: 'Party / Location' },
+    { key: 'party', header: 'Party' },
+    { key: 'location', header: 'Location' },
     { key: 'ref', header: 'Ref' },
-    { key: 'amount', header: 'Amount', numFmt: '₹#,##,##0.00' },
   ];
 
   return (
@@ -314,6 +322,7 @@ export function TransactionsClient({ purchases, issues, units }: Props) {
         key={editTarget?.id ?? 'none'}
         target={editTarget}
         units={units}
+        workers={workers}
         onOpenChange={(o) => {
           if (!o) setEditTarget(null);
         }}
