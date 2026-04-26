@@ -128,8 +128,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label>Site *</Label>
+        <Label htmlFor="site">Site *</Label>
         <SearchableSelect
+          id="site"
           options={siteOptions}
           value={siteId}
           onChange={setSiteId}
@@ -138,8 +139,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       </div>
 
       <div className="space-y-1.5">
-        <Label>Item *</Label>
+        <Label htmlFor="item">Item *</Label>
         <SearchableSelect
+          id="item"
           options={itemOptions}
           value={itemId}
           onChange={setItemId}
@@ -173,8 +175,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       </div>
 
       <div className="space-y-1.5">
-        <Label>Location</Label>
+        <Label htmlFor="location">Location</Label>
         <SearchableSelect
+          id="location"
           options={locationOptions}
           value={locationId}
           onChange={setLocationId}
@@ -182,8 +185,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
         />
       </div>
       <div className="space-y-1.5">
-        <Label>Party</Label>
+        <Label htmlFor="party">Party</Label>
         <PartyPicker
+          id="party"
           parties={parties}
           value={partyId}
           onChange={setPartyId}
@@ -196,7 +200,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       </p>
 
       <div className="space-y-1.5">
-        <Label>Issued to {useLegacyInput ? '' : '*'}</Label>
+        <Label htmlFor="issuedTo">Issued to {useLegacyInput ? '' : '*'}</Label>
         {useLegacyInput ? (
           <Input
             id="issuedTo"
@@ -206,6 +210,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           />
         ) : (
           <WorkerPicker
+            id="issuedTo"
             workers={workers}
             siteId={siteId ?? ''}
             value={workerId}

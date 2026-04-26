@@ -31,6 +31,7 @@ type Props = {
   siteId: string;
   value: string | null;
   onChange: (workerId: string | null) => void;
+  id?: string;
 };
 
 /**
@@ -44,7 +45,7 @@ type Props = {
  *   creations still go through /masters/workers where contractor
  *   selection is required.
  */
-export function WorkerPicker({ workers, siteId, value, onChange }: Props) {
+export function WorkerPicker({ workers, siteId, value, onChange, id }: Props) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
@@ -117,6 +118,7 @@ export function WorkerPicker({ workers, siteId, value, onChange }: Props) {
   return (
     <>
       <SearchableSelect
+        id={id}
         options={withNew}
         value={value}
         onChange={handleSelect}

@@ -27,6 +27,7 @@ type Props<V extends string> = {
   placeholder?: string;
   disabled?: boolean;
   clearable?: boolean;
+  id?: string | undefined;
 };
 
 /**
@@ -49,6 +50,7 @@ export function SearchableSelect<V extends string = string>({
   placeholder,
   disabled,
   clearable,
+  id,
 }: Props<V>) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
@@ -65,6 +67,7 @@ export function SearchableSelect<V extends string = string>({
         nativeButton={false}
         render={
           <div
+            id={id}
             role="combobox"
             aria-expanded={open}
             aria-label={selected ? selected.label : (placeholder ?? 'Select')}

@@ -116,6 +116,7 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
       <div className="space-y-1.5">
         <Label htmlFor="site">Site *</Label>
         <SearchableSelect
+          id="site"
           options={siteOptions}
           value={siteId}
           onChange={setSiteId}
@@ -126,6 +127,7 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
       <div className="space-y-1.5">
         <Label htmlFor="item">Item *</Label>
         <SearchableSelect
+          id="item"
           options={itemOptions}
           value={itemId}
           onChange={handleItemChange}
@@ -150,6 +152,7 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
         <div className="space-y-1.5">
           <Label htmlFor="receivedUnit">Received Unit *</Label>
           <SearchableSelect
+            id="receivedUnit"
             options={unitOptions}
             value={receivedUnit}
             onChange={setReceivedUnit}
@@ -186,8 +189,9 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label>Supplier (optional)</Label>
+        <Label htmlFor="supplier">Supplier (optional)</Label>
         <PartyPicker
+          id="supplier"
           parties={suppliers}
           type="SUPPLIER"
           value={supplierId}
