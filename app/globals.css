@@ -197,6 +197,13 @@
 .excel-grid td {
   @apply border-border border px-2 py-1;
 }
+
+@media (max-width: 640px) {
+  .excel-grid th,
+  .excel-grid td {
+    @apply py-1.5;
+  }
+}
 .excel-grid thead th {
   @apply bg-muted text-foreground sticky top-0 z-10 text-left font-semibold;
 }
