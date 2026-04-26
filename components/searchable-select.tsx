@@ -26,7 +26,7 @@ type Props<V extends string> = {
   onChange: (v: V | null) => void;
   placeholder?: string;
   disabled?: boolean;
-  clearable?: boolean;
+  clearable?: boolean | undefined;
 };
 
 /**
