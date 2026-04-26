@@ -1,20 +1,23 @@
 BEGIN;
 SELECT plan(3);
 
--- 1. Setup: Ensure we have a site and an item
-INSERT INTO sites (code, name) VALUES ('T-AUDIT', 'Audit Test Site');
-INSERT INTO items (code, name, stock_unit) VALUES ('I-AUDIT', 'Audit Test Item', 'NOS');
+-- Setup: Unique identifiers
+DO $$
+DECLARE
+    u_code TEXT := substring(gen_random_uuid()::text, 1, 8);
+    s_id UUID;
+    i_id UUID;
+BEGIN
+    INSERT INTO sites (code, name) VALUES ('T-AUDIT-' || u_code, 'Audit Test Site ' || u_code) RETURNING id INTO s_id;
+    INSERT INTO items (code, name, stock_unit) VALUES ('I-AUDIT-' || u_code, 'Audit Test Item ' || u_code, 'NOS') RETURNING id INTO i_id;
 
--- 2. Setup: A purchase to update
-INSERT INTO purchases (site_id, item_id, received_qty, received_unit, unit_conv_factor, stock_unit)
-SELECT
-    (SELECT id FROM sites WHERE code = 'T-AUDIT'),
-    (SELECT id FROM items WHERE code = 'I-AUDIT'),
-    10, 'NOS', 1, 'NOS';
+    INSERT INTO purchases (site_id, item_id, received_qty, received_unit, unit_conv_factor, stock_unit)
+    VALUES (s_id, i_id, 10, 'NOS', 1, 'NOS');
 
--- 3. Test Update Audit
-SET LOCAL "app.edit_reason" = 'Test update audit';
-UPDATE purchases SET received_qty = 20 WHERE item_id = (SELECT id FROM items WHERE code = 'I-AUDIT');
+    -- Test Update Audit
+    EXECUTE 'SET LOCAL "app.edit_reason" = ''Test update audit''';
+    UPDATE purchases SET received_qty = 20 WHERE item_id = i_id;
+END $$;
 
 SELECT is(
     (SELECT reason FROM inventory_edit_log WHERE table_name = 'purchases' ORDER BY changed_at DESC LIMIT 1),

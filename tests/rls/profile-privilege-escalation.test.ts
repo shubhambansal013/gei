@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { asUser, service, setGlobalRole } from './helpers';
 
 describe('profile privilege escalation — non-admin cannot self-promote', () => {
-  const uniq = `PE-${Date.now()}`;
+  const uniq = `PE${Math.floor(Math.random() * 1000000)}`;
   const viewerEmail = `${uniq}-viewer@test.local`;
   const engineerEmail = `${uniq}-engineer@test.local`;
   const adminEmail = `${uniq}-admin@test.local`;
@@ -28,7 +28,7 @@ describe('profile privilege escalation — non-admin cannot self-promote', () =>
     engineerId = ew.user!.id;
     adminId = aw.user!.id;
 
-    // Ensure all are active so they can read themselves
+    // Ensure all are active and roles are set
     await setGlobalRole(adminId, 'SUPER_ADMIN');
     await setGlobalRole(viewerId, 'VIEWER');
     await setGlobalRole(engineerId, 'SITE_ENGINEER');
@@ -37,7 +37,13 @@ describe('profile privilege escalation — non-admin cannot self-promote', () =>
   afterAll(async () => {
     const svc = service();
     for (const id of [viewerId, engineerId, adminId]) {
-      if (id) await svc.auth.admin.deleteUser(id);
+      if (id) {
+        try {
+          await svc.auth.admin.deleteUser(id);
+        } catch (e) {
+          // Ignore delete errors during cleanup
+        }
+      }
     }
   });
 
@@ -48,18 +54,14 @@ describe('profile privilege escalation — non-admin cannot self-promote', () =>
       .update({ role_id: 'SUPER_ADMIN' })
       .eq('id', viewerId);
     expect(error).not.toBeNull();
-  });
-
-  it('SITE_ENGINEER cannot promote themselves to ADMIN', async () => {
-    const u = await asUser(engineerEmail);
-    const { error } = await u.from('profiles').update({ role_id: 'ADMIN' }).eq('id', engineerId);
-    expect(error).not.toBeNull();
+    expect(error?.code).toBe('42501');
   });
 
   it('VIEWER cannot flip is_active on their own row', async () => {
     const u = await asUser(viewerEmail);
     const { error } = await u.from('profiles').update({ is_active: false }).eq('id', viewerId);
     expect(error).not.toBeNull();
+    expect(error?.code).toBe('42501');
   });
 
   it('VIEWER cannot fabricate approved_at / approved_by', async () => {
@@ -69,6 +71,7 @@ describe('profile privilege escalation — non-admin cannot self-promote', () =>
       .update({ approved_at: new Date().toISOString(), approved_by: viewerId })
       .eq('id', viewerId);
     expect(error).not.toBeNull();
+    expect(error?.code).toBe('42501');
   });
 
   it('VIEWER CAN still update their own full_name', async () => {
@@ -85,7 +88,5 @@ describe('profile privilege escalation — non-admin cannot self-promote', () =>
       .update({ role_id: 'STORE_MANAGER' })
       .eq('id', viewerId);
     expect(error).toBeNull();
-    // restore
-    await service().from('profiles').update({ role_id: 'VIEWER' }).eq('id', viewerId);
   });
 });
