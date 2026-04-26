@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, Check } from 'lucide-react';
+import { ChevronsUpDown, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type SearchableOption<V extends string = string> = {
@@ -23,9 +23,10 @@ export type SearchableOption<V extends string = string> = {
 type Props<V extends string> = {
   options: SearchableOption<V>[];
   value: V | null;
-  onChange: (v: V) => void;
+  onChange: (v: V | null) => void;
   placeholder?: string;
   disabled?: boolean;
+  clearable?: boolean;
 };
 
 /**
@@ -37,9 +38,9 @@ type Props<V extends string> = {
  *   - Arrow keys to navigate matches
  *   - Enter to select, Esc to close
  *
- * Uses shadcn/ui `base-nova` primitives (@base-ui/react under the hood),
- * so `PopoverTrigger` takes a `render={<Button .../>}` prop rather than
- * Radix's `asChild` pattern.
+ * Uses shadcn/ui `base-nova` primitives (@base-ui/react under the hood).
+ * The trigger is a `div` to avoid button-in-button nesting when the
+ * `clearable` 'X' is present.
  */
 export function SearchableSelect<V extends string = string>({
   options,
@@ -47,6 +48,7 @@ export function SearchableSelect<V extends string = string>({
   onChange,
   placeholder,
   disabled,
+  clearable,
 }: Props<V>) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
@@ -60,21 +62,51 @@ export function SearchableSelect<V extends string = string>({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        nativeButton={false}
         render={
-          <Button
+          <div
             role="combobox"
             aria-expanded={open}
-            disabled={disabled}
-            variant="outline"
-            className="w-full justify-between"
-          >
-            {selected ? (
-              selected.label
-            ) : (
-              <span className="text-gray-400">{placeholder ?? 'Select'}</span>
+            aria-label={selected ? selected.label : (placeholder ?? 'Select')}
+            tabIndex={disabled ? -1 : 0}
+            className={cn(
+              'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
+              disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
             )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-          </Button>
+            onClick={() => !disabled && setOpen(true)}
+            onKeyDown={(e) => {
+              if (disabled) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setOpen(true);
+              }
+            }}
+          >
+            <div className="flex items-center gap-2 truncate">
+              {selected ? (
+                <span>{selected.label}</span>
+              ) : (
+                <span className="text-muted-foreground">{placeholder ?? 'Select'}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 shrink-0 ml-2">
+              {clearable && value && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 opacity-50 hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange(null);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+              <ChevronsUpDown className="h-4 w-4 opacity-50" />
+            </div>
+          </div>
         }
       />
       <PopoverContent className="w-(--anchor-width) p-0">
