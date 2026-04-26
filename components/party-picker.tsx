@@ -40,6 +40,7 @@ type Props = {
   value: string | null;
   onChange: (partyId: string | null) => void;
   placeholder?: string;
+  id?: string;
 };
 
 /**
@@ -56,6 +57,7 @@ export function PartyPicker({
   value,
   onChange,
   placeholder = 'Pick a party',
+  id,
 }: Props) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -116,6 +118,7 @@ export function PartyPicker({
   return (
     <>
       <SearchableSelect
+        id={id}
         options={withNew}
         value={value}
         onChange={handleSelect}

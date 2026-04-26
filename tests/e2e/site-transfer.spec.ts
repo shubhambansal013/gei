@@ -103,7 +103,7 @@ test.describe('Site Transfer', () => {
     // Verify toggled state: Location and Party are hidden, Destination Site is visible
     await expect(page.getByText('Location', { exact: true })).not.toBeVisible();
     await expect(page.getByText('Party', { exact: true })).not.toBeVisible();
-    await expect(page.getByText('Destination Site', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Destination Site *')).toBeVisible();
 
     // Fill the rest of the form
     // Select Item
@@ -118,7 +118,7 @@ test.describe('Site Transfer', () => {
     await page.getByRole('option', { name: new RegExp(SITE_B_CODE) }).click();
 
     // Issued to (legacy because no workers registered for Site A)
-    await page.fill('input[id="issuedTo"]', 'E2E Receiver');
+    await page.getByLabel('Issued to').fill('E2E Receiver');
 
     // Submit
     await page.click('button[type="submit"]');

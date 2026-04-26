@@ -138,6 +138,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           setLocationId(null);
           setPartyId(null);
           setDestSiteId(null);
+          setIsTransfer(false);
           setWorkerId(null);
           setIssuedTo('');
         } else {
@@ -234,8 +235,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Party</Label>
+            <Label htmlFor="party-select">Party</Label>
             <PartyPicker
+              id="party-select"
               parties={parties}
               value={partyId}
               onChange={setPartyId}
@@ -250,7 +252,9 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       )}
 
       <div className="space-y-1.5">
-        <Label>Issued to {useLegacyInput ? '' : '*'}</Label>
+        <Label htmlFor={useLegacyInput ? 'issuedTo' : 'worker-select'}>
+          Issued to {useLegacyInput ? '' : '*'}
+        </Label>
         {useLegacyInput ? (
           <Input
             id="issuedTo"
@@ -260,6 +264,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           />
         ) : (
           <WorkerPicker
+            id="worker-select"
             workers={workers}
             siteId={siteId ?? ''}
             value={workerId}
