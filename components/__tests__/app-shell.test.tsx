@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AppShell } from '../app-shell';
 import { usePathname } from 'next/navigation';
+import { APP_NAME } from '@/lib/constants';
 import { useSiteStore } from '@/lib/stores/site';
 import { createCan } from '@/lib/permissions/can';
 import { supabaseBrowser } from '@/lib/supabase/browser';
@@ -99,6 +100,8 @@ describe('AppShell Navigation', () => {
     render(<AppShell>Content</AppShell>);
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText(APP_NAME)).toBeInTheDocument();
+    expect(screen.getByLabelText(`${APP_NAME} home`)).toBeInTheDocument();
   });
 
   it('hides admin-only items for non-admins', async () => {
