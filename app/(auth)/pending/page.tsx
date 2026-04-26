@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 
 /**
  * Shown to any signed-in user whose profile is `is_active=false`.
- * The `proxy.ts` middleware sends every non-auth, non-asset request
- * from a pending user here until an admin approves them via
- * `approveUser` (see `lib/actions/approvals.ts`).
+ * The `middleware.ts` sends every non-auth, non-asset request
+ * from a pending user here until an admin approves them (via
+ * the Users master page).
  *
  * Client component so the Sign-out button can call
  * `supabase.auth.signOut()` directly — users who want to try a

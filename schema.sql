@@ -256,7 +256,7 @@ CREATE TABLE profiles (
 );
 
 -- Create the profile inactive — an admin flips the bit via the
--- approveUser server action. See 20260423000002_signup_approval.sql.
+-- Users master page. See 20260423000002_signup_approval.sql.
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
