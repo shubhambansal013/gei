@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 // Mock the components that might use server-side stuff
 vi.mock('@/components/worker-picker', () => ({
-  WorkerPicker: ({ onChange, value }: any) => (
+  WorkerPicker: ({ onChange, value }: { onChange: (v: string) => void; value: string | null }) => (
     <div data-testid="worker-picker" onClick={() => onChange('w2')}>
       Worker Picker: {value}
     </div>
@@ -14,7 +14,7 @@ vi.mock('@/components/worker-picker', () => ({
 }));
 
 vi.mock('@/components/searchable-select', () => ({
-  SearchableSelect: ({ onChange, value }: any) => (
+  SearchableSelect: ({ onChange, value }: { onChange: (v: string) => void; value: string }) => (
     <div data-testid="searchable-select" onClick={() => onChange('BAGS')}>
       Searchable Select: {value}
     </div>
@@ -101,7 +101,7 @@ describe('EditDialog', () => {
   });
 
   it('calls editPurchase with updated fields', async () => {
-    vi.mocked(actions.editPurchase).mockResolvedValue({ ok: true, data: {} } as any);
+    vi.mocked(actions.editPurchase).mockResolvedValue({ ok: true, data: {} } as never);
     const target: EditTarget = {
       id: 'p1',
       type: 'PURCHASE',
@@ -148,7 +148,7 @@ describe('EditDialog', () => {
   });
 
   it('calls editIssue with updated fields', async () => {
-    vi.mocked(actions.editIssue).mockResolvedValue({ ok: true, data: {} } as any);
+    vi.mocked(actions.editIssue).mockResolvedValue({ ok: true, data: {} } as never);
     const target: EditTarget = {
       id: 'is1',
       type: 'ISSUE',
@@ -190,7 +190,7 @@ describe('EditDialog', () => {
   });
 
   it('handles editPurchase failure', async () => {
-    vi.mocked(actions.editPurchase).mockResolvedValue({ ok: false, error: 'Database error' } as any);
+    vi.mocked(actions.editPurchase).mockResolvedValue({ ok: false, error: 'Database error' } as never);
     const target: EditTarget = {
       id: 'p1',
       type: 'PURCHASE',
@@ -249,7 +249,7 @@ describe('EditDialog', () => {
   });
 
   it('does not send unchanged fields in payload', async () => {
-    vi.mocked(actions.editPurchase).mockResolvedValue({ ok: true, data: {} } as any);
+    vi.mocked(actions.editPurchase).mockResolvedValue({ ok: true, data: {} } as never);
     const target: EditTarget = {
       id: 'p1',
       type: 'PURCHASE',
@@ -282,7 +282,7 @@ describe('EditDialog', () => {
   });
 
   it('handles null ref for purchase', async () => {
-    vi.mocked(actions.editPurchase).mockResolvedValue({ ok: true, data: {} } as any);
+    vi.mocked(actions.editPurchase).mockResolvedValue({ ok: true, data: {} } as never);
     const target: EditTarget = {
       id: 'p1',
       type: 'PURCHASE',
