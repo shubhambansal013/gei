@@ -21,10 +21,10 @@ export type EditTarget = {
   type: 'PURCHASE' | 'ISSUE';
   currentQty: number;
   currentRef: string;
-  receivedUnit?: string | null;
-  convFactor?: number | null;
-  workerId?: string | null;
-  siteId?: string;
+  receivedUnit?: string | null | undefined;
+  convFactor?: number | null | undefined;
+  workerId?: string | null | undefined;
+  siteId?: string | undefined;
 };
 
 type Unit = { id: string; label: string; category: string | null };

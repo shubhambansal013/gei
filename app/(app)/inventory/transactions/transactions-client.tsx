@@ -34,11 +34,11 @@ type UnifiedRow = {
   party: string;
   location: string;
   ref: string; // invoice or issued-to
-  receivedUnit?: string | null;
-  convFactor?: number | null;
-  receivedQty?: number; // Only for PURCHASE
-  siteId?: string;
-  workerId?: string | null;
+  receivedUnit?: string | null | undefined;
+  convFactor?: number | null | undefined;
+  receivedQty?: number | undefined; // Only for PURCHASE
+  siteId?: string | undefined;
+  workerId?: string | null | undefined;
 };
 
 type PurchaseRow = {
@@ -120,7 +120,7 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
         unit: i.unit,
         party: i.party?.name ?? '',
         location: i.location?.name ?? (i.dest ? `→ ${i.dest.code}` : ''),
-        ref: i.worker ? `${i.worker.full_name} (${i.worker.code})` : (i.issued_to_legacy ?? ''),
+        ref: i.issued_to_legacy ?? '',
         siteId: i.site_id,
         workerId: i.worker_id,
       };
@@ -202,7 +202,20 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
     { accessorKey: 'unit', header: 'Unit' },
     { accessorKey: 'party', header: 'Party' },
     { accessorKey: 'location', header: 'Location' },
-    { accessorKey: 'ref', header: 'Ref' },
+    {
+      accessorKey: 'ref',
+      header: 'Ref',
+      cell: ({ row }) => {
+        const r = row.original;
+        if (r.type === 'PURCHASE') return r.ref;
+        // For issues, if we have a worker record, show that. Otherwise show the legacy text.
+        if (r.workerId) {
+          const w = workers.find((w) => w.id === r.workerId);
+          if (w) return `${w.full_name} (${w.code})`;
+        }
+        return r.ref;
+      },
+    },
     {
       id: 'actions',
       header: '',
