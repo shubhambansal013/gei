@@ -54,7 +54,13 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
       email_confirm: true,
     });
     userId = created.data.user!.id;
-    await svc.from('profiles').update({ role_id: 'SUPER_ADMIN' }).eq('id', userId);
+    const { error: profileError } = await svc.from('profiles').upsert({
+      id: userId,
+      full_name: 'E2E Test User',
+      role_id: 'SUPER_ADMIN',
+      is_active: true,
+    });
+    if (profileError) throw profileError;
 
     // 2. Seed masters via service role (avoids clicking through 3 forms)
     await svc.from('sites').insert({ code: siteCode, name: `E2E ${unique}` });
