@@ -342,7 +342,8 @@ BEGIN
 
   -- 2. APPLICATION ADMIN CHECK
   -- If the authenticated user is already an admin, let them do anything.
-  IF is_admin_anywhere(auth.uid()) THEN
+  -- Use explicit check to handle potential NULL from auth.uid() in service_role context.
+  IF auth.uid() IS NOT NULL AND is_admin_anywhere(auth.uid()) THEN
     RETURN NEW;
   END IF;
 

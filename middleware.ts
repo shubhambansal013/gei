@@ -2,7 +2,7 @@ import { type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
 /**
- * Next.js 16+ "proxy" convention (was `middleware`). Refreshes the
+ * Next.js 16+ convention. Refreshes the
  * Supabase session cookie on every request and redirects unauthenticated
  * traffic to `/login`. See `lib/supabase/middleware.ts` for the body.
  */
