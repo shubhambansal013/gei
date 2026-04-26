@@ -4,7 +4,7 @@ SELECT plan(4);
 -- 1. Setup: Unique identifiers
 DO $$
 DECLARE
-    u_code TEXT := substring(gen_random_uuid()::text, 1, 8);
+    u_code TEXT := upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 8));
     s_id UUID;
     w_id UUID;
     p_id UUID;
@@ -23,7 +23,7 @@ BEGIN
 
     -- 5. Test Affiliation Overlap
     INSERT INTO parties (name, type, short_code)
-    VALUES ('Contractor ' || u_code, 'CONTRACTOR', substring(u_code, 1, 7)) RETURNING id INTO p_id;
+    VALUES ('Contractor ' || u_code, 'CONTRACTOR', substring(u_code, 1, 8)) RETURNING id INTO p_id;
 
     INSERT INTO worker_affiliations (worker_id, employment_type, contractor_party_id, effective_from, effective_to)
     VALUES (w_id, 'CONTRACTOR_EMPLOYEE', p_id, '2026-01-01', '2026-01-10');

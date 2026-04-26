@@ -1,10 +1,10 @@
 BEGIN;
 SELECT plan(3);
 
--- Setup: Unique identifiers
+-- Setup: Unique alphanumeric identifiers
 DO $$
 DECLARE
-    u_code TEXT := substring(gen_random_uuid()::text, 1, 8);
+    u_code TEXT := upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 8));
     s_id UUID;
     i_id UUID;
 BEGIN
