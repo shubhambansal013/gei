@@ -257,10 +257,10 @@ CREATE TABLE profiles (
 
 -- Create the profile inactive — an admin flips the bit via the
 -- approveUser server action. See 20260423000002_signup_approval.sql.
-CREATE OR REPLACE FUNCTION handle_new_user()
+CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, full_name, role_id, is_active)
+  INSERT INTO public.profiles (id, full_name, role_id, is_active)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
@@ -270,6 +270,54 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- 20260420000004_masters_rls.sql
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+
+CREATE TABLE site_user_access (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id    UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  role_id    TEXT NOT NULL REFERENCES roles(id),
+  granted_at TIMESTAMPTZ DEFAULT now(),
+  granted_by UUID REFERENCES profiles(id),
+
+  UNIQUE (site_id, user_id)
+);
+
+
+CREATE TABLE site_user_permission_overrides (
+  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  access_id UUID NOT NULL REFERENCES site_user_access(id) ON DELETE CASCADE,
+  module_id TEXT NOT NULL REFERENCES modules(id),
+  action_id TEXT NOT NULL REFERENCES actions(id),
+  granted   BOOLEAN NOT NULL DEFAULT true,
+
+  UNIQUE (access_id, module_id, action_id)
+);
+
+-- 20260420000004_masters_rls.sql
+-- Masters (items, parties, sites) are tenant-wide. Any authenticated user
+-- can SELECT. Only SUPER_ADMIN globally, or ADMIN on any site, can write.
+CREATE OR REPLACE FUNCTION is_admin_anywhere(p_user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  SELECT role_id INTO v_role FROM profiles
+   WHERE id = p_user_id AND is_active = true;
+  IF NOT FOUND THEN RETURN false; END IF;
+  IF v_role = 'SUPER_ADMIN' THEN RETURN true; END IF;
+
+  RETURN EXISTS (
+    SELECT 1 FROM site_user_access
+     WHERE user_id = p_user_id AND role_id IN ('SUPER_ADMIN', 'ADMIN')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Issue #22 — privilege-escalation block. The profiles RLS policy
 -- allows a user to UPDATE their own row (so they can edit full_name
@@ -326,33 +374,43 @@ CREATE TRIGGER profiles_block_self_privilege_escalation_trg
   FOR EACH ROW
   EXECUTE FUNCTION public.profiles_block_self_privilege_escalation();
 
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
-
-CREATE TABLE site_user_access (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  site_id    UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
-  user_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  role_id    TEXT NOT NULL REFERENCES roles(id),
-  granted_at TIMESTAMPTZ DEFAULT now(),
-  granted_by UUID REFERENCES profiles(id),
-
-  UNIQUE (site_id, user_id)
+CREATE TABLE inventory_edit_log (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  table_name  TEXT NOT NULL CHECK (table_name IN ('purchases', 'issues')),
+  row_id      UUID NOT NULL,
+  changed_by  UUID REFERENCES profiles(id),
+  changed_at  TIMESTAMPTZ DEFAULT now(),
+  reason      TEXT,
+  before_data JSONB NOT NULL,
+  after_data  JSONB NOT NULL
 );
 
+CREATE INDEX idx_edit_log_table_row   ON inventory_edit_log(table_name, row_id);
+CREATE INDEX idx_edit_log_changed_at  ON inventory_edit_log(changed_at DESC);
 
-CREATE TABLE site_user_permission_overrides (
-  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  access_id UUID NOT NULL REFERENCES site_user_access(id) ON DELETE CASCADE,
-  module_id TEXT NOT NULL REFERENCES modules(id),
-  action_id TEXT NOT NULL REFERENCES actions(id),
-  granted   BOOLEAN NOT NULL DEFAULT true,
+CREATE OR REPLACE FUNCTION log_inventory_edit()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_reason TEXT;
+BEGIN
+  -- current_setting with missing_ok=true returns '' if not set.
+  v_reason := current_setting('app.edit_reason', true);
 
-  UNIQUE (access_id, module_id, action_id)
-);
-
+  INSERT INTO inventory_edit_log (
+    table_name, row_id, changed_by, reason, before_data, after_data
+  )
+  VALUES (
+    TG_TABLE_NAME,
+    NEW.id,
+    auth.uid(),
+    NULLIF(v_reason, ''),
+    to_jsonb(OLD),
+    to_jsonb(NEW)
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- can_user must be defined after profiles, site_user_access,
 -- site_user_permission_overrides, and role_permissions
@@ -505,6 +563,14 @@ CREATE TABLE issues (
   )
 );
 
+CREATE TRIGGER trg_purchases_audit
+  AFTER UPDATE ON purchases
+  FOR EACH ROW EXECUTE FUNCTION log_inventory_edit();
+
+CREATE TRIGGER trg_issues_audit
+  AFTER UPDATE ON issues
+  FOR EACH ROW EXECUTE FUNCTION log_inventory_edit();
+
 
 -- =============================================================================
 -- VIEWS
@@ -554,6 +620,11 @@ GROUP BY site_id, item_id;
 ALTER TABLE purchases           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE issues              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE location_units      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE items               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE parties             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sites               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_user_access    ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "purchases_select" ON purchases
   FOR SELECT USING (can_user(auth.uid(), site_id, 'INVENTORY', 'VIEW'));
@@ -587,27 +658,27 @@ CREATE POLICY "location_units_update_admin" ON location_units
 CREATE POLICY "location_units_delete_admin" ON location_units
   FOR DELETE USING (is_admin_anywhere(auth.uid()));
 
+-- profiles: user sees own profile; admins see all.
+CREATE POLICY "profiles_select_self_or_admin" ON profiles
+  FOR SELECT USING (
+    id = auth.uid() OR is_admin_anywhere(auth.uid())
+  );
+CREATE POLICY "profiles_update_self_or_admin" ON profiles
+  FOR UPDATE USING (
+    id = auth.uid() OR is_admin_anywhere(auth.uid())
+  );
+
+-- site_user_access: user sees own access; admins see all.
+CREATE POLICY "sua_select_self_or_admin" ON site_user_access
+  FOR SELECT USING (
+    user_id = auth.uid() OR is_admin_anywhere(auth.uid())
+  );
+CREATE POLICY "sua_write_admin" ON site_user_access
+  FOR ALL USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+
 -- site_user_permission_overrides: RLS enabled by
 -- 20260423000001_write_policies.sql.
-ALTER TABLE site_user_permission_overrides ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "overrides_select_self_or_admin" ON site_user_permission_overrides
-  FOR SELECT USING (
-    is_admin_anywhere(auth.uid())
-    OR EXISTS (
-      SELECT 1 FROM site_user_access sua
-      WHERE sua.id = site_user_permission_overrides.access_id
-        AND sua.user_id = auth.uid()
-    )
-  );
-CREATE POLICY "overrides_insert_admin" ON site_user_permission_overrides
-  FOR INSERT WITH CHECK (is_admin_anywhere(auth.uid()));
-CREATE POLICY "overrides_update_admin" ON site_user_permission_overrides
-  FOR UPDATE USING (is_admin_anywhere(auth.uid()))
-  WITH CHECK (is_admin_anywhere(auth.uid()));
-CREATE POLICY "overrides_delete_admin" ON site_user_permission_overrides
-  FOR DELETE USING (is_admin_anywhere(auth.uid()));
-
 -- -----------------------------------------------------------------------
 -- Masters SELECT policies, post-Security-Wave-1 (20260423000002):
 -- authenticated AND is_active=true. Keeps the pre-approval pipeline
@@ -621,6 +692,9 @@ CREATE POLICY "items_select_all" ON items
       WHERE id = auth.uid() AND is_active = true
     )
   );
+CREATE POLICY "items_write_admin" ON items
+  FOR ALL USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
 
 CREATE POLICY "parties_select_all" ON parties
   FOR SELECT USING (
@@ -630,6 +704,9 @@ CREATE POLICY "parties_select_all" ON parties
       WHERE id = auth.uid() AND is_active = true
     )
   );
+CREATE POLICY "parties_write_admin" ON parties
+  FOR ALL USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
 
 CREATE POLICY "sites_select_accessible" ON sites
   FOR SELECT USING (
@@ -650,6 +727,9 @@ CREATE POLICY "sites_select_accessible" ON sites
       )
     )
   );
+CREATE POLICY "sites_write_admin" ON sites
+  FOR ALL USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
 
 
 -- =============================================================================
@@ -770,10 +850,185 @@ CREATE INDEX wa_open_idx       ON worker_affiliations(worker_id)
   WHERE effective_to IS NULL;
 
 -- Mint + freeze triggers (see migration for definitions).
--- BEFORE INSERT: `code := 'W-' || lpad(nextval('worker_code_seq')::text, 4, '0')`
--- BEFORE UPDATE: raise if NEW.code <> OLD.code.
--- RLS policies follow the can_user(..., 'WORKERS', ...) pattern for
--- writes; reads require is_active AND (admin-anywhere OR site access).
+-- Mint `code` before insert from the monotonic sequence.
+CREATE OR REPLACE FUNCTION mint_worker_code()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.code := 'W-' || lpad(nextval('worker_code_seq')::text, 4, '0');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER mint_worker_code_trg
+  BEFORE INSERT ON workers
+  FOR EACH ROW EXECUTE FUNCTION mint_worker_code();
+
+-- Code is immutable after mint.
+CREATE OR REPLACE FUNCTION freeze_worker_code()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.code IS DISTINCT FROM OLD.code THEN
+    RAISE EXCEPTION 'workers.code is immutable once minted';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER freeze_worker_code_trg
+  BEFORE UPDATE ON workers
+  FOR EACH ROW EXECUTE FUNCTION freeze_worker_code();
+
+-- -----------------------------------------------------------------------
+-- RLS
+-- -----------------------------------------------------------------------
+ALTER TABLE workers                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE worker_site_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE worker_affiliations     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_user_permission_overrides ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory_edit_log  ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "edit_log_select" ON inventory_edit_log
+  FOR SELECT USING (
+    (
+      table_name = 'purchases'
+      AND EXISTS (
+        SELECT 1 FROM purchases p
+        WHERE p.id = row_id
+          AND can_user(auth.uid(), p.site_id, 'INVENTORY', 'VIEW')
+      )
+    )
+    OR
+    (
+      table_name = 'issues'
+      AND EXISTS (
+        SELECT 1 FROM issues i
+        WHERE i.id = row_id
+          AND can_user(auth.uid(), i.site_id, 'INVENTORY', 'VIEW')
+      )
+    )
+  );
+
+CREATE POLICY "overrides_select_self_or_admin" ON site_user_permission_overrides
+  FOR SELECT USING (
+    is_admin_anywhere(auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM site_user_access sua
+      WHERE sua.id = site_user_permission_overrides.access_id
+        AND sua.user_id = auth.uid()
+    )
+  );
+CREATE POLICY "overrides_insert_admin" ON site_user_permission_overrides
+  FOR INSERT WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "overrides_update_admin" ON site_user_permission_overrides
+  FOR UPDATE USING (is_admin_anywhere(auth.uid()))
+  WITH CHECK (is_admin_anywhere(auth.uid()));
+CREATE POLICY "overrides_delete_admin" ON site_user_permission_overrides
+  FOR DELETE USING (is_admin_anywhere(auth.uid()));
+
+CREATE POLICY "workers_select" ON workers
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM profiles WHERE id = auth.uid() AND is_active = true
+    )
+    AND (
+      EXISTS (
+        SELECT 1 FROM profiles
+         WHERE id = auth.uid() AND role_id = 'SUPER_ADMIN'
+      )
+      OR EXISTS (
+        SELECT 1 FROM site_user_access
+         WHERE user_id = auth.uid()
+           AND (site_id = workers.current_site_id
+                OR role_id IN ('SUPER_ADMIN', 'ADMIN'))
+      )
+    )
+  );
+
+CREATE POLICY "workers_insert" ON workers
+  FOR INSERT WITH CHECK (
+    can_user(auth.uid(), current_site_id, 'WORKERS', 'CREATE')
+  );
+
+CREATE POLICY "workers_update" ON workers
+  FOR UPDATE USING (
+    can_user(auth.uid(), current_site_id, 'WORKERS', 'EDIT')
+  )
+  WITH CHECK (
+    can_user(auth.uid(), current_site_id, 'WORKERS', 'EDIT')
+  );
+
+CREATE POLICY "workers_no_delete" ON workers
+  FOR DELETE USING (false);
+
+CREATE POLICY "wsa_select" ON worker_site_assignments
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM workers w
+       WHERE w.id = worker_site_assignments.worker_id
+         AND (
+           EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role_id = 'SUPER_ADMIN' AND p.is_active = true)
+           OR EXISTS (
+             SELECT 1 FROM site_user_access
+              WHERE user_id = auth.uid()
+                AND (site_id = w.current_site_id OR role_id IN ('SUPER_ADMIN','ADMIN'))
+           )
+         )
+    )
+  );
+
+CREATE POLICY "wsa_insert" ON worker_site_assignments
+  FOR INSERT WITH CHECK (
+    can_user(auth.uid(), site_id, 'WORKERS', 'EDIT')
+  );
+
+CREATE POLICY "wsa_update" ON worker_site_assignments
+  FOR UPDATE USING (
+    can_user(auth.uid(), site_id, 'WORKERS', 'EDIT')
+  )
+  WITH CHECK (
+    can_user(auth.uid(), site_id, 'WORKERS', 'EDIT')
+  );
+
+CREATE POLICY "wsa_no_delete" ON worker_site_assignments
+  FOR DELETE USING (false);
+
+CREATE POLICY "wa_select" ON worker_affiliations
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM workers w
+       WHERE w.id = worker_affiliations.worker_id
+         AND (
+           EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role_id = 'SUPER_ADMIN' AND p.is_active = true)
+           OR EXISTS (
+             SELECT 1 FROM site_user_access
+              WHERE user_id = auth.uid()
+                AND (site_id = w.current_site_id OR role_id IN ('SUPER_ADMIN','ADMIN'))
+           )
+         )
+    )
+  );
+
+CREATE POLICY "wa_insert" ON worker_affiliations
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM workers w
+       WHERE w.id = worker_affiliations.worker_id
+         AND can_user(auth.uid(), w.current_site_id, 'WORKERS', 'EDIT')
+    )
+  );
+
+CREATE POLICY "wa_update" ON worker_affiliations
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM workers w
+       WHERE w.id = worker_affiliations.worker_id
+         AND can_user(auth.uid(), w.current_site_id, 'WORKERS', 'EDIT')
+    )
+  );
+
+CREATE POLICY "wa_no_delete" ON worker_affiliations
+  FOR DELETE USING (false);
 
 
 -- =============================================================================
