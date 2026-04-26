@@ -15,15 +15,13 @@ BEGIN
     INSERT INTO workers (full_name, current_site_id)
     VALUES ('John Doe ' || u_code, s_id) RETURNING id INTO w_id;
 
-    -- 3. Test Code Immutability handled by trigger, will be tested via SELECT throws_ok below
-
     -- 4. Test Site Assignment Overlap (EXCLUDE constraint)
     INSERT INTO worker_site_assignments (worker_id, site_id, effective_from, effective_to)
     VALUES (w_id, s_id, '2026-01-01', '2026-01-10');
 
     -- 5. Test Affiliation Overlap
     INSERT INTO parties (name, type, short_code)
-    VALUES ('Contractor ' || u_code, 'CONTRACTOR', substring(u_code, 1, 8)) RETURNING id INTO p_id;
+    VALUES ('Contractor ' || u_code, 'CONTRACTOR', u_code) RETURNING id INTO p_id;
 
     INSERT INTO worker_affiliations (worker_id, employment_type, contractor_party_id, effective_from, effective_to)
     VALUES (w_id, 'CONTRACTOR_EMPLOYEE', p_id, '2026-01-01', '2026-01-10');
