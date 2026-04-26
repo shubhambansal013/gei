@@ -131,7 +131,7 @@ export function EditDialog({ target, units, onOpenChange, onSuccess }: Props) {
                     group: u.category,
                   }))}
                   value={receivedUnit}
-                  onChange={setReceivedUnit}
+                  onChange={(v) => v && setReceivedUnit(v)}
                   placeholder="Select unit"
                 />
               </div>
