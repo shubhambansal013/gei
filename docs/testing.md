@@ -53,6 +53,24 @@ supabase status -o env | grep ^SERVICE_ROLE_KEY= | sed 's/SERVICE_ROLE_KEY=/SUPA
 - **Unit Tests:** `pnpm test`
 - **Database (pgTAP):** `pnpm test:db`
 - **RLS (Vitest):** `pnpm test:rls`
+- **E2E Tests (Playwright):** `pnpm test:e2e`
+
+---
+
+## 4. End-to-End Tests (Playwright)
+
+- **Scope:** Full user flows, navigation, and multi-page interactions.
+- **Location:** `tests/e2e/*.spec.ts`
+- **Execution:** `pnpm test:e2e`
+- **Philosophy:** Verify the "Golden Path" — the most critical user journeys — ensuring that the frontend, backend, and database work together as expected.
+
+### Running E2E Tests Locally
+
+1. **Start the Local Environment:** `pnpm db:start` (Ensure Docker is running).
+2. **Install Browsers:** `pnpm exec playwright install`
+3. **Run Tests:** `pnpm test:e2e`
+
+The tests will automatically build the application and start a local server at `http://localhost:3000`.
 
 ---
 

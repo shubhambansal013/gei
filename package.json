@@ -27,6 +27,7 @@
     "db:reset": "supabase db reset",
     "db:migrate": "supabase migration up --local",
     "db:diff": "supabase db diff -f",
+    "test:e2e": "playwright test",
     "prepare": "husky"
   },
   "dependencies": {
