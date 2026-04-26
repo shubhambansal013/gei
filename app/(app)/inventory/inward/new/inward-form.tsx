@@ -192,6 +192,7 @@ export function PurchaseForm({ sites, items, suppliers, units }: Props) {
           type="SUPPLIER"
           value={supplierId}
           onChange={setSupplierId}
+          clearable
         />
       </div>
 

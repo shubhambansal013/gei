@@ -40,6 +40,7 @@ type Props = {
   value: string | null;
   onChange: (partyId: string | null) => void;
   placeholder?: string;
+  clearable?: boolean;
 };
 
 /**
@@ -56,6 +57,7 @@ export function PartyPicker({
   value,
   onChange,
   placeholder = 'Pick a party',
+  clearable,
 }: Props) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -120,6 +122,7 @@ export function PartyPicker({
         value={value}
         onChange={handleSelect}
         placeholder={placeholder}
+        clearable={clearable}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

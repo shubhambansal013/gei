@@ -179,6 +179,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           value={locationId}
           onChange={setLocationId}
           placeholder="Where on site? (optional)"
+          clearable
         />
       </div>
       <div className="space-y-1.5">
@@ -188,6 +189,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           value={partyId}
           onChange={setPartyId}
           placeholder="Contractor / customer (optional)"
+          clearable
         />
       </div>
       <p className="text-muted-foreground text-xs">

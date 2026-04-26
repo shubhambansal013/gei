@@ -9,8 +9,8 @@ import {
   CommandItem,
 } from '@/components/ui/command';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, Check } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { ChevronsUpDown, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type SearchableOption<V extends string = string> = {
@@ -23,9 +23,10 @@ export type SearchableOption<V extends string = string> = {
 type Props<V extends string> = {
   options: SearchableOption<V>[];
   value: V | null;
-  onChange: (v: V) => void;
+  onChange: (v: V | null) => void;
   placeholder?: string;
   disabled?: boolean;
+  clearable?: boolean;
 };
 
 /**
@@ -47,6 +48,7 @@ export function SearchableSelect<V extends string = string>({
   onChange,
   placeholder,
   disabled,
+  clearable = false,
 }: Props<V>) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
@@ -60,21 +62,39 @@ export function SearchableSelect<V extends string = string>({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        nativeButton={false}
         render={
-          <Button
+          <div
             role="combobox"
             aria-expanded={open}
-            disabled={disabled}
-            variant="outline"
-            className="w-full justify-between"
-          >
-            {selected ? (
-              selected.label
-            ) : (
-              <span className="text-gray-400">{placeholder ?? 'Select'}</span>
+            className={cn(
+              buttonVariants({ variant: 'outline' }),
+              'w-full justify-between cursor-pointer font-normal',
+              disabled && 'pointer-events-none opacity-50',
             )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-          </Button>
+          >
+            <div className="flex flex-1 items-center justify-between min-w-0">
+              {selected ? (
+                <span className="truncate">{selected.label}</span>
+              ) : (
+                <span className="text-gray-400 truncate">{placeholder ?? 'Select'}</span>
+              )}
+              {selected && !disabled && clearable && (
+                <button
+                  type="button"
+                  aria-label="Clear selection"
+                  className="ml-auto p-0.5 rounded-sm hover:bg-muted-foreground/10 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange(null);
+                  }}
+                >
+                  <X className="h-3.5 w-3.5 opacity-50 hover:opacity-100" />
+                </button>
+              )}
+            </div>
+            <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
+          </div>
         }
       />
       <PopoverContent className="w-(--anchor-width) p-0">

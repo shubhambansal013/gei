@@ -80,7 +80,7 @@ export function WorkerPicker({ workers, siteId, value, onChange }: Props) {
     { value: NEW_SENTINEL, label: '+ New worker (quick create)', sub: 'opens dialog' },
   ];
 
-  function handleSelect(v: string) {
+  function handleSelect(v: string | null) {
     if (v === NEW_SENTINEL) {
       setDialogOpen(true);
       return;
