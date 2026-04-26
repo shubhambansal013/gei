@@ -41,7 +41,7 @@ type UnifiedRow = {
   workerId?: string | null | undefined;
 };
 
-type PurchaseRow = {
+export type PurchaseRow = {
   id: string;
   site_id: string;
   receipt_date: string;
@@ -55,7 +55,7 @@ type PurchaseRow = {
   vendor: { id: string; name: string } | null;
 };
 
-type IssueRow = {
+export type IssueRow = {
   id: string;
   site_id: string;
   issue_date: string;

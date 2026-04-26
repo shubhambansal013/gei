@@ -1,5 +1,6 @@
 import { supabaseServer } from '@/lib/supabase/server';
-import { TransactionsClient } from './transactions-client';
+import { TransactionsClient, type PurchaseRow, type IssueRow } from './transactions-client';
+import { type WorkerOption } from '@/components/worker-picker';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,10 +60,10 @@ export default async function TransactionsPage() {
 
   return (
     <TransactionsClient
-      purchases={purchases ?? []}
-      issues={issues ?? []}
+      purchases={(purchases as unknown as PurchaseRow[]) ?? []}
+      issues={(issues as unknown as IssueRow[]) ?? []}
       units={units ?? []}
-      workers={(workers as any) ?? []}
+      workers={(workers as unknown as WorkerOption[]) ?? []}
     />
   );
 }

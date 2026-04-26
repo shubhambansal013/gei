@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { TransactionsClient } from '../transactions-client';
+import { TransactionsClient, type PurchaseRow, type IssueRow } from '../transactions-client';
+import { type WorkerOption } from '@/components/worker-picker';
 
 // Mock useRouter
 vi.mock('next/navigation', () => ({
@@ -67,10 +68,10 @@ describe('TransactionsClient', () => {
   it('renders transactions table with correct columns', () => {
     render(
       <TransactionsClient
-        purchases={mockPurchases as any}
-        issues={mockIssues as any}
+        purchases={mockPurchases as unknown as PurchaseRow[]}
+        issues={mockIssues as unknown as IssueRow[]}
         units={mockUnits}
-        workers={mockWorkers as any}
+        workers={mockWorkers as unknown as WorkerOption[]}
       />
     );
 
