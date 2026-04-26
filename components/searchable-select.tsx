@@ -66,7 +66,15 @@ export function SearchableSelect<V extends string = string>({
         render={
           <div
             role="combobox"
+            aria-label={placeholder}
             aria-expanded={open}
+            tabIndex={disabled ? undefined : 0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setOpen(true);
+              }
+            }}
             className={cn(
               buttonVariants({ variant: 'outline' }),
               'w-full justify-between cursor-pointer font-normal',
@@ -80,17 +88,25 @@ export function SearchableSelect<V extends string = string>({
                 <span className="text-gray-400 truncate">{placeholder ?? 'Select'}</span>
               )}
               {selected && !disabled && clearable && (
-                <button
-                  type="button"
+                <div
+                  role="button"
                   aria-label="Clear selection"
-                  className="ml-auto p-0.5 rounded-sm hover:bg-muted-foreground/10 transition-colors"
+                  tabIndex={0}
+                  className="ml-auto p-0.5 rounded-sm hover:bg-muted-foreground/10 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
                   onClick={(e) => {
                     e.stopPropagation();
                     onChange(null);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onChange(null);
+                    }
+                  }}
                 >
                   <X className="h-3.5 w-3.5 opacity-50 hover:opacity-100" />
-                </button>
+                </div>
               )}
             </div>
             <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />

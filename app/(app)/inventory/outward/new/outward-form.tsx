@@ -217,7 +217,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? 'Saving…' : 'Submit'}
+        {pending ? 'Saving…' : 'Record issue'}
       </Button>
     </form>
   );

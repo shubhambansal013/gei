@@ -54,7 +54,16 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
       email_confirm: true,
     });
     userId = created.data.user!.id;
-    await svc.from('profiles').update({ role_id: 'SUPER_ADMIN' }).eq('id', userId);
+    const { error: profileError } = await svc.from('profiles').upsert({
+      id: userId,
+      full_name: 'E2E Admin',
+      role_id: 'SUPER_ADMIN',
+      is_active: true,
+    });
+    if (profileError) {
+      console.error('Bootstrap: Failed to upsert profile', profileError);
+      throw profileError;
+    }
 
     // 2. Seed masters via service role (avoids clicking through 3 forms)
     await svc.from('sites').insert({ code: siteCode, name: `E2E ${unique}` });
@@ -102,14 +111,14 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
 
     // Site is auto-selected (first accessible) — just verify it's populated
     // Item: open the combobox, pick the seeded item
-    const itemCombo = page.locator('button[role="combobox"]').nth(1);
+    const itemCombo = page.locator('[role="combobox"]').nth(1);
     await itemCombo.click();
     await page.getByPlaceholder('Search...').fill(itemCode);
     await page.getByRole('option', { name: new RegExp(`E2E Cement ${unique}`) }).click();
 
     await page.getByLabel('Qty *').fill('100');
 
-    const supplierCombo = page.locator('button[role="combobox"]').nth(2);
+    const supplierCombo = page.locator('[role="combobox"]').nth(2);
     await supplierCombo.click();
     await page.getByPlaceholder('Search...').fill(unique);
     await page.getByRole('option', { name: supplierName }).click();
@@ -129,7 +138,7 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
     await page.goto('/inventory/outward/new');
     await expect(page.getByRole('heading', { name: 'New issue' })).toBeVisible();
 
-    const itemCombo = page.locator('button[role="combobox"]').nth(1);
+    const itemCombo = page.locator('[role="combobox"]').nth(1);
     await itemCombo.click();
     await page.getByPlaceholder('Search...').fill(itemCode);
     await page.getByRole('option', { name: new RegExp(`E2E Cement ${unique}`) }).click();
@@ -137,7 +146,7 @@ test.describe('golden path — purchase → issue → ledger balance', () => {
     await page.getByLabel('Qty *').fill('30');
 
     // Destination: the supplier (party)
-    const destCombo = page.locator('button[role="combobox"]').nth(2);
+    const destCombo = page.locator('[role="combobox"]').nth(2);
     await destCombo.click();
     await page.getByPlaceholder('Search...').fill(unique);
     await page.getByRole('option', { name: supplierName }).click();
