@@ -57,4 +57,27 @@ describe('createCan', () => {
       expect.objectContaining({ p_user_id: 'pre-known-uid' }),
     );
   });
+
+  it('handles client without auth gracefully', async () => {
+    const client = { rpc: vi.fn().mockResolvedValue({ data: true, error: null }) };
+    const can = createCan(client);
+    await can({ siteId: 'S1', module: 'INVENTORY', action: 'VIEW' });
+    expect(client.rpc).toHaveBeenCalledWith(
+      'can_user',
+      expect.objectContaining({ p_user_id: '' }),
+    );
+  });
+
+  it('handles getUser returning no user gracefully', async () => {
+    const client = {
+      rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    };
+    const can = createCan(client);
+    await can({ siteId: 'S1', module: 'INVENTORY', action: 'VIEW' });
+    expect(client.rpc).toHaveBeenCalledWith(
+      'can_user',
+      expect.objectContaining({ p_user_id: '' }),
+    );
+  });
 });
