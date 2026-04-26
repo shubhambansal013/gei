@@ -8,7 +8,12 @@ on:
   workflow_dispatch:
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
   migrate:
+    needs: ci
     runs-on: ubuntu-latest
     name: Run Supabase Migrations
     environment: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
@@ -60,4 +65,4 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build and Deploy
-        run: pnpm run  ${{ github.ref_name == 'main' && 'deploy:prod' || 'deploy:staging' }}
+        run: pnpm run ${{ github.ref_name == 'main' && 'deploy:prod' || 'deploy:staging' }}
