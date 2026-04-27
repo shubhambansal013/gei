@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SiteSwitcher } from './site-switcher';
+import { ModeToggle } from './mode-toggle';
 import { Button } from '@/components/ui/button';
 import { APP_NAME } from '@/lib/constants';
 import { supabaseBrowser } from '@/lib/supabase/browser';
@@ -234,9 +235,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <SiteSwitcher />
         </div>
-        <Button variant="ghost" size="sm" onClick={signOut} className="min-h-11 md:h-8">
-          Sign out
-        </Button>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <ModeToggle />
+          <Button variant="ghost" size="sm" onClick={signOut} className="min-h-11 md:h-8">
+            Sign out
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-1">

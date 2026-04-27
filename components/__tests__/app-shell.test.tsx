@@ -54,6 +54,8 @@ vi.mock('lucide-react', () => ({
   BarChart3: () => <div data-testid="icon-chart" />,
   Menu: () => <div data-testid="icon-menu" />,
   X: () => <div data-testid="icon-x" />,
+  Sun: () => <div data-testid="icon-sun" />,
+  Moon: () => <div data-testid="icon-moon" />,
 }));
 
 vi.mock('../site-switcher', () => ({
