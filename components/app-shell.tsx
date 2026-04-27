@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SiteSwitcher } from './site-switcher';
 import { Button } from '@/components/ui/button';
+import { APP_NAME } from '@/lib/constants';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { createCan } from '@/lib/permissions/can';
 import { useSiteStore } from '@/lib/stores/site';
@@ -228,8 +229,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Menu className="h-5 w-5" aria-hidden />
           </Button>
-          <Link href="/dashboard" aria-label="GEI home" className="flex items-baseline gap-1.5">
-            <span className="text-primary font-mono text-base font-bold tracking-tight">GEI</span>
+          <Link href="/dashboard" aria-label={`${APP_NAME} home`} className="flex items-baseline gap-1.5">
+            <span className="text-primary font-mono text-base font-bold tracking-tight">{APP_NAME}</span>
           </Link>
           <SiteSwitcher />
         </div>

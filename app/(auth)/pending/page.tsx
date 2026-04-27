@@ -1,6 +1,7 @@
 'use client';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { Button } from '@/components/ui/button';
+import { APP_NAME } from '@/lib/constants';
 
 /**
  * Shown to any signed-in user whose profile is `is_active=false`.
@@ -22,7 +23,7 @@ export default function PendingPage() {
     <main className="bg-muted/30 grid min-h-screen place-items-center p-6">
       <div className="bg-card w-full max-w-[420px] rounded-md border p-8 text-center shadow-sm">
         <div className="mb-6 flex items-baseline justify-center gap-2">
-          <span className="text-primary font-mono text-2xl font-bold tracking-tight">GEI</span>
+          <span className="text-primary font-mono text-2xl font-bold tracking-tight">{APP_NAME}</span>
           <span className="text-muted-foreground text-sm font-medium">inventory</span>
         </div>
 
