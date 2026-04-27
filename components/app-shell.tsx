@@ -28,6 +28,7 @@ import {
   BarChart3,
   Menu,
   X,
+  LogOut,
 } from 'lucide-react';
 import type { ModuleId, ActionId } from '@/lib/permissions/types';
 
@@ -217,7 +218,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-muted/30 flex min-h-screen flex-col">
       <header className="print:hide bg-card sticky top-0 z-30 flex h-12 items-center justify-between border-b px-3 sm:px-4">
-        <div className="flex items-center gap-2 sm:gap-5">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-5">
           <Button
             type="button"
             variant="ghost"
@@ -230,15 +231,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Menu className="h-5 w-5" aria-hidden />
           </Button>
-          <Link href="/dashboard" aria-label={`${APP_NAME} home`} className="flex items-baseline gap-1.5">
+          <Link href="/dashboard" aria-label={`${APP_NAME} home`} className="flex shrink-0 items-baseline gap-1.5">
             <span className="text-primary font-mono text-base font-bold tracking-tight">{APP_NAME}</span>
           </Link>
           <SiteSwitcher />
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
           <ModeToggle />
-          <Button variant="ghost" size="sm" onClick={signOut} className="min-h-11 md:h-8">
-            Sign out
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={signOut}
+            className="min-h-11 px-2 md:h-8 md:px-2.5"
+            aria-label="Sign out"
+          >
+            <LogOut className="h-4 w-4 md:mr-2" aria-hidden />
+            <span className="hidden md:inline">Sign out</span>
           </Button>
         </div>
       </header>
