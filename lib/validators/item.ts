@@ -30,7 +30,7 @@ export const itemCreateSchema = z.object({
     .min(1)
     .max(40)
     .regex(/^[A-Z0-9_-]+$/i, 'Code must be letters, digits, dash, or underscore'),
-  category_id: z.string().nullable().optional(),
+  category_id: z.string().nullable().default('ELECTRICAL'),
   stock_unit: stockUnitSchema,
   hsn_code: z.string().max(20).nullable().optional(),
   reorder_level: z.coerce.number().nonnegative().nullable().optional(),

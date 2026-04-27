@@ -58,6 +58,18 @@ describe('itemCreateSchema', () => {
     }
   });
 
+  it('defaults category_id to ELECTRICAL if not provided', () => {
+    const result = itemCreateSchema.safeParse({
+      name: 'Generic Wire',
+      code: 'WIRE-001',
+      stock_unit: 'MTR',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.category_id).toBe('ELECTRICAL');
+    }
+  });
+
   it('coerces string reorder_level "10" to number 10', () => {
     const result = itemCreateSchema.safeParse({
       name: 'River Sand',

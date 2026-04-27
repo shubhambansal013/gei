@@ -85,7 +85,7 @@ export function ItemForm(props: Props) {
           name: '',
           code: '',
           stock_unit: '',
-          category_id: null,
+          category_id: 'ELECTRICAL',
           hsn_code: '',
           reorder_level: undefined,
         },
