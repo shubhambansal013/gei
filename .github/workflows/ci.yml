@@ -73,11 +73,22 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
-      - name: Build
+      - name: Build (OpenNext)
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy
-        run: pnpm build
+        run: pnpm opennextjs-cloudflare build
+      - name: Check Worker Size
+        run: |
+          # Cloudflare free plan limit is 3MB (gzipped)
+          # We check the handler size as it's the main contributor
+          SIZE=$(gzip -c .open-next/server-functions/default/handler.mjs | wc -c)
+          LIMIT=3145728 # 3 MiB
+          echo "Worker handler gzipped size: $SIZE bytes"
+          if [ "$SIZE" -gt "$LIMIT" ]; then
+            echo "Error: Worker size exceeds 3MB limit!"
+            exit 1
+          fi
 
   database-tests:
     runs-on: ubuntu-latest
