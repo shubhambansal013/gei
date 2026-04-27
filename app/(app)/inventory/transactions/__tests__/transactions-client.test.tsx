@@ -78,15 +78,15 @@ describe('TransactionsClient', () => {
     // Verify headers
     expect(screen.getByText('Date')).toBeDefined();
     expect(screen.getByText('Type')).toBeDefined();
-    expect(screen.getByText('Code')).toBeDefined();
+    expect(screen.getByText('Item')).toBeDefined();
     expect(screen.getByText('Qty')).toBeDefined();
     expect(screen.getByText('Unit')).toBeDefined();
     expect(screen.getByText('Party')).toBeDefined();
     expect(screen.getByText('Location')).toBeDefined();
-    expect(screen.getByText('Ref')).toBeDefined();
+    expect(screen.getByText('Issue to')).toBeDefined();
 
-    // Verify "Item" (name) and "Amount" headers are NOT present
-    expect(screen.queryByText('Item')).toBeNull();
+    // Verify old "Code" and "Amount" headers are NOT present
+    expect(screen.queryByText('Code')).toBeNull();
     expect(screen.queryByText('Amount (₹)')).toBeNull();
 
     // Verify data

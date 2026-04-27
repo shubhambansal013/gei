@@ -146,6 +146,19 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
   const columns: ColumnDef<UnifiedRow, unknown>[] = [
     { accessorKey: 'date', header: 'Date' },
     {
+      accessorKey: 'itemCode',
+      header: 'Item',
+      cell: ({ row }) => (
+        <Link
+          href={`/inventory/item/${row.original.itemId}`}
+          className="font-mono text-xs text-foreground hover:text-primary underline-offset-2 hover:underline"
+        >
+          {String(row.original.itemCode ?? '')}
+        </Link>
+      ),
+    },
+    { accessorKey: 'location', header: 'Location' },
+    {
       accessorKey: 'type',
       header: 'Type',
       cell: ({ getValue }) => {
@@ -163,18 +176,6 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
           </Badge>
         );
       },
-    },
-    {
-      accessorKey: 'itemCode',
-      header: 'Code',
-      cell: ({ row }) => (
-        <Link
-          href={`/inventory/item/${row.original.itemId}`}
-          className="font-mono text-xs text-foreground hover:text-primary underline-offset-2 hover:underline"
-        >
-          {String(row.original.itemCode ?? '')}
-        </Link>
-      ),
     },
     {
       accessorKey: 'qty',
@@ -201,10 +202,9 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
     },
     { accessorKey: 'unit', header: 'Unit' },
     { accessorKey: 'party', header: 'Party' },
-    { accessorKey: 'location', header: 'Location' },
     {
       accessorKey: 'ref',
-      header: 'Ref',
+      header: 'Issue to',
       cell: ({ row }) => {
         const r = row.original;
         if (r.type === 'PURCHASE') return r.ref;
@@ -258,13 +258,13 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
 
   const exportCols: { key: keyof UnifiedRow; header: string; numFmt?: string }[] = [
     { key: 'date', header: 'Date' },
+    { key: 'itemCode', header: 'Item' },
+    { key: 'location', header: 'Location' },
     { key: 'type', header: 'Type' },
-    { key: 'itemCode', header: 'Code' },
     { key: 'qty', header: 'Qty', numFmt: '#,##0.00' },
     { key: 'unit', header: 'Unit' },
     { key: 'party', header: 'Party' },
-    { key: 'location', header: 'Location' },
-    { key: 'ref', header: 'Ref' },
+    { key: 'ref', header: 'Issue to' },
   ];
 
   return (
