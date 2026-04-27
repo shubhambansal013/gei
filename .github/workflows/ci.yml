@@ -116,10 +116,14 @@ jobs:
         with: { node-version: 20, cache: 'pnpm' }
       - uses: supabase/setup-cli@v1
         with: { version: latest }
-      - run: supabase start
-      - run: pnpm install --frozen-lockfile
-      - name: Install Playwright Browsers
-        run: pnpm exec playwright install --with-deps
+      - name: Parallel Setup
+        run: |
+          supabase start &
+          SUPABASE_PID=$!
+          (pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps) &
+          INSTALL_PID=$!
+          wait $SUPABASE_PID || exit 1
+          wait $INSTALL_PID || exit 1
       - name: Load local Supabase env
         run: |
           supabase status -o env | grep ^API_URL= | sed 's/API_URL=/NEXT_PUBLIC_SUPABASE_URL=/' | sed 's/"//g' >> $GITHUB_ENV
