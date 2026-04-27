@@ -95,6 +95,15 @@ for the full repo map. Key directories:
 - CI (`.github/workflows/ci.yml`) runs lint/typecheck/unit on every PR,
   RLS tests against a local Supabase spin-up, and Playwright e2e on PRs
   to `main`.
+- **Worker Size Monitoring:** The CI build job verifies that the gzipped size of the Cloudflare Worker handler stays under the 3 MiB limit imposed by the Cloudflare Workers Free plan.
+
+## Deployment & Worker Limits
+
+- **Platform:** Cloudflare Workers via OpenNext.
+- **Limits:** 3 MiB gzipped bundle size (Free plan).
+- **Optimizations:**
+  - **Dynamic Imports:** Large libraries like `exceljs` are dynamically imported within their respective utility functions to move them out of the main server bundle.
+  - **Package Import Optimization:** `next.config.ts` uses `optimizePackageImports` for `lucide-react` to ensure efficient tree-shaking of icons.
 
 ## Phases
 

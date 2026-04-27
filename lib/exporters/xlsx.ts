@@ -1,5 +1,3 @@
-import ExcelJS from 'exceljs';
-
 export type XlsxColumn<T> = {
   key: keyof T;
   header: string;
@@ -23,6 +21,7 @@ export async function buildXlsx<T>({
   columns,
   rows,
 }: XlsxInput<T>): Promise<ArrayBuffer> {
+  const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet(sheetName);
 
