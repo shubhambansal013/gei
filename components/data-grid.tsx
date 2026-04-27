@@ -66,7 +66,7 @@ export function DataGrid<T>({
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: pagination ? getPaginationRowModel() : undefined,
+    ...(pagination ? { getPaginationRowModel: getPaginationRowModel() } : {}),
     initialState: {
       pagination: {
         pageSize: pageSize,
