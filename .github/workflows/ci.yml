@@ -78,54 +78,57 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy
         run: pnpm build
-
-  database-tests:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test-group: [db, rls]
-      fail-fast: false
-    name: Database Tests (${{ matrix.test-group }})
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: 'pnpm' }
-      - uses: supabase/setup-cli@v1
-        with: { version: latest }
-      - run: supabase start
-      - run: pnpm install --frozen-lockfile
-      - name: Load env (RLS only)
-        if: matrix.test-group == 'rls'
-        run: |
-          supabase status -o env | grep ^API_URL= | sed 's/API_URL=/NEXT_PUBLIC_SUPABASE_URL=/' | sed 's/"//g' >> $GITHUB_ENV
-          supabase status -o env | grep ^ANON_KEY= | sed 's/ANON_KEY=/NEXT_PUBLIC_SUPABASE_ANON_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
-          supabase status -o env | grep ^SERVICE_ROLE_KEY= | sed 's/SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
-      - name: Run tests
-        run: pnpm test:${{ matrix.test-group }}
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            .next
+            public
+            package.json
+            pnpm-lock.yaml
+            next.config.ts
 
   playwright-tests:
     runs-on: ubuntu-latest
-    needs: [build, database-tests]
+    needs: [build]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: 'pnpm' }
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
       - uses: supabase/setup-cli@v1
         with: { version: latest }
-      - run: supabase start
-      - run: pnpm install --frozen-lockfile
-      - name: Install Playwright Browsers
-        run: pnpm exec playwright install --with-deps
+      - name: Parallel Setup (Supabase & Playwright)
+        run: |
+          supabase start &
+          (pnpm install --frozen-lockfile && [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ] && pnpm exec playwright install --with-deps || pnpm exec playwright install-deps) &
+          wait
       - name: Load local Supabase env
         run: |
           supabase status -o env | grep ^API_URL= | sed 's/API_URL=/NEXT_PUBLIC_SUPABASE_URL=/' | sed 's/"//g' >> $GITHUB_ENV
           supabase status -o env | grep ^ANON_KEY= | sed 's/ANON_KEY=/NEXT_PUBLIC_SUPABASE_ANON_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
           supabase status -o env | grep ^SERVICE_ROLE_KEY= | sed 's/SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
+      - name: Run Database tests
+        run: pnpm test:db
+      - name: Run RLS tests
+        run: pnpm test:rls
       - name: Run Playwright tests
+        env:
+          PLAYWRIGHT_WEBSERVER_COMMAND: pnpm start
         run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: always()
