@@ -56,6 +56,7 @@ vi.mock('lucide-react', () => ({
   X: () => <div data-testid="icon-x" />,
   Sun: () => <div data-testid="icon-sun" />,
   Moon: () => <div data-testid="icon-moon" />,
+  LogOut: () => <div data-testid="icon-logout" />,
 }));
 
 vi.mock('../site-switcher', () => ({
