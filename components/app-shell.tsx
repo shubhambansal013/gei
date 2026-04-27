@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SiteSwitcher } from './site-switcher';
+import { ModeToggle } from './mode-toggle';
 import { Button } from '@/components/ui/button';
+import { APP_NAME } from '@/lib/constants';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { createCan } from '@/lib/permissions/can';
 import { useSiteStore } from '@/lib/stores/site';
@@ -228,14 +230,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Menu className="h-5 w-5" aria-hidden />
           </Button>
-          <Link href="/dashboard" aria-label="GEI home" className="flex items-baseline gap-1.5">
-            <span className="text-primary font-mono text-base font-bold tracking-tight">GEI</span>
+          <Link href="/dashboard" aria-label={`${APP_NAME} home`} className="flex items-baseline gap-1.5">
+            <span className="text-primary font-mono text-base font-bold tracking-tight">{APP_NAME}</span>
           </Link>
           <SiteSwitcher />
         </div>
-        <Button variant="ghost" size="sm" onClick={signOut} className="min-h-11 md:h-8">
-          Sign out
-        </Button>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <ModeToggle />
+          <Button variant="ghost" size="sm" onClick={signOut} className="min-h-11 md:h-8">
+            Sign out
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-1">

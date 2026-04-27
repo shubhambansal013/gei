@@ -79,23 +79,28 @@ export function PartyForm(props: Props) {
   const typeOptions = props.partyTypes.map((pt) => ({ value: pt.id, label: pt.label }));
 
   async function onSubmit(values: PartyCreate | PartyUpdate) {
-    // Normalise the empty string UX-convenience to null so the
-    // validator (and DB CHECK) don't see '' and reject it.
-    const normalised = {
-      ...values,
-      short_code:
-        typeof values.short_code === 'string' && values.short_code.trim().length === 0
-          ? null
-          : values.short_code,
-    } as PartyCreate | PartyUpdate;
-    const res = isEdit ? await updateParty(normalised) : await createParty(normalised);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
+    try {
+      // Normalise the empty string UX-convenience to null so the
+      // validator (and DB CHECK) don't see '' and reject it.
+      const normalised = {
+        ...values,
+        short_code:
+          typeof values.short_code === 'string' && values.short_code.trim().length === 0
+            ? null
+            : values.short_code,
+      } as PartyCreate | PartyUpdate;
+      const res = isEdit ? await updateParty(normalised) : await createParty(normalised);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(isEdit ? 'Party updated.' : 'Party created.');
+      router.refresh();
+      props.onSuccess?.();
+    } catch (e) {
+      console.error(e);
+      toast.error(isEdit ? 'Failed to update party.' : 'Failed to create party.');
     }
-    toast.success(isEdit ? 'Party updated.' : 'Party created.');
-    router.refresh();
-    props.onSuccess?.();
   }
 
   return (

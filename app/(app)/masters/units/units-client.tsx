@@ -8,7 +8,7 @@ import { MasterShell } from '@/components/master-shell';
 import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { UnitForm } from './unit-form';
 import { deleteUnit } from './actions';
@@ -36,7 +36,7 @@ type Props = {
 export function UnitsClient({ units }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<UnitRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UnitRow | null>(null);
 
@@ -87,11 +87,11 @@ export function UnitsClient({ units }: Props) {
 
   const openCreate = () => {
     setEditing(null);
-    setDialogOpen(true);
+    setSheetOpen(true);
   };
 
   const handleSuccess = () => {
-    setDialogOpen(false);
+    setSheetOpen(false);
     setEditing(null);
   };
 
@@ -105,7 +105,7 @@ export function UnitsClient({ units }: Props) {
     const unit = filtered[rowIndex];
     if (unit) {
       setEditing(unit);
-      setDialogOpen(true);
+      setSheetOpen(true);
     }
   };
 
@@ -160,32 +160,34 @@ export function UnitsClient({ units }: Props) {
         )}
       </MasterShell>
 
-      <Dialog
-        open={dialogOpen}
+      <Sheet
+        open={sheetOpen}
         onOpenChange={(open) => {
-          setDialogOpen(open);
+          setSheetOpen(open);
           if (!open) setEditing(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Edit unit' : 'New unit'}</DialogTitle>
-          </DialogHeader>
-          {editing ? (
-            <UnitForm
-              mode="edit"
-              unit={editing}
-              onSuccess={handleSuccess}
-              onRequestDelete={() => {
-                setDeleteTarget(editing);
-                setDialogOpen(false);
-              }}
-            />
-          ) : (
-            <UnitForm mode="create" onSuccess={handleSuccess} />
-          )}
-        </DialogContent>
-      </Dialog>
+        <SheetContent side="right" className="w-full overflow-y-auto p-6 sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{editing ? 'Edit unit' : 'New unit'}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {editing ? (
+              <UnitForm
+                mode="edit"
+                unit={editing}
+                onSuccess={handleSuccess}
+                onRequestDelete={() => {
+                  setDeleteTarget(editing);
+                  setSheetOpen(false);
+                }}
+              />
+            ) : (
+              <UnitForm mode="create" onSuccess={handleSuccess} />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={deleteTarget !== null}

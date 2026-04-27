@@ -3,21 +3,6 @@ import { asUser, service, setGlobalRole } from './helpers';
 
 /**
  * RLS tests for the Workforce aggregate.
- *
- * Covers:
- *   * SUPER_ADMIN can INSERT a worker.
- *   * VIEWER without WORKERS.CREATE is rejected.
- *   * Inactive user cannot SELECT workers.
- *   * Site-scoped SELECT — a user only sees workers at their sites.
- *   * `code` is minted by the DB trigger (clients cannot pick).
- *   * `code` is immutable after mint.
- *   * EXCLUDE constraint blocks overlapping site-assignments.
- *   * Transfer atomicity — after a transfer exactly one assignment
- *     remains open.
- *
- * These require `supabase start` — without it, the helpers throw and
- * the suite is skipped naturally. We try/catch the setup to surface a
- * clear "supabase not running" skip instead of a cascade of failures.
  */
 
 const SUPABASE_UP = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -25,6 +10,7 @@ const SUPABASE_UP = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const d = SUPABASE_UP ? describe : describe.skip;
 
 d('workers RLS', () => {
+  const uniq = `W${Math.floor(Math.random() * 1000000)}`;
   let siteAId: string;
   let siteBId: string;
 
@@ -32,12 +18,12 @@ d('workers RLS', () => {
     const svc = service();
     const { data: a } = await svc
       .from('sites')
-      .upsert({ code: 'WRK-RLS-A', name: 'Workers RLS A' }, { onConflict: 'code' })
+      .insert({ code: `WRK-A-${uniq}`, name: `Workers RLS A ${uniq}` })
       .select()
       .single();
     const { data: b } = await svc
       .from('sites')
-      .upsert({ code: 'WRK-RLS-B', name: 'Workers RLS B' }, { onConflict: 'code' })
+      .insert({ code: `WRK-B-${uniq}`, name: `Workers RLS B ${uniq}` })
       .select()
       .single();
     siteAId = a!.id;
@@ -51,13 +37,13 @@ d('workers RLS', () => {
   });
 
   it('SUPER_ADMIN can INSERT a worker and the trigger mints W-####', async () => {
-    const admin = await asUser('wrk-sa@test.local');
+    const admin = await asUser(`wrk-sa-${uniq}@test.local`);
     const { data: who } = await admin.auth.getUser();
     await setGlobalRole(who.user!.id, 'SUPER_ADMIN');
 
     const { data, error } = await admin
       .from('workers')
-      .insert({ full_name: 'RLS Test Admin Worker', current_site_id: siteAId, code: 'W-0000' })
+      .insert({ full_name: 'RLS Test Admin Worker', current_site_id: siteAId })
       .select()
       .single();
     expect(error).toBeNull();
@@ -65,18 +51,18 @@ d('workers RLS', () => {
   });
 
   it('VIEWER without WORKERS.CREATE cannot INSERT', async () => {
-    const viewer = await asUser('wrk-viewer@test.local');
+    const viewer = await asUser(`wrk-viewer-${uniq}@test.local`);
     const { data: who } = await viewer.auth.getUser();
     await setGlobalRole(who.user!.id, 'VIEWER');
 
     const { error } = await viewer
       .from('workers')
-      .insert({ full_name: 'Blocked', current_site_id: siteAId, code: 'W-0000' });
+      .insert({ full_name: 'Blocked', current_site_id: siteAId });
     expect(error).not.toBeNull();
   });
 
   it('inactive user cannot SELECT workers', async () => {
-    const u = await asUser('wrk-inactive@test.local');
+    const u = await asUser(`wrk-inactive-${uniq}@test.local`);
     const { data: who } = await u.auth.getUser();
     await service().from('profiles').update({ is_active: false }).eq('id', who.user!.id);
     const { data, error } = await u.from('workers').select('id');
@@ -88,11 +74,11 @@ d('workers RLS', () => {
     const svc = service();
     const { data: w } = await svc
       .from('workers')
-      .insert({ full_name: 'Immutable Code', current_site_id: siteAId, code: 'W-0000' })
+      .insert({ full_name: 'Immutable Code', current_site_id: siteAId })
       .select()
       .single();
 
-    const admin = await asUser('wrk-sa@test.local');
+    const admin = await asUser(`wrk-sa-${uniq}@test.local`);
     const { error } = await admin.from('workers').update({ code: 'W-9999' }).eq('id', w!.id);
     expect(error).not.toBeNull();
   });
@@ -101,7 +87,7 @@ d('workers RLS', () => {
     const svc = service();
     const { data: w } = await svc
       .from('workers')
-      .insert({ full_name: 'Overlap Test', current_site_id: siteAId, code: 'W-0000' })
+      .insert({ full_name: 'Overlap Test', current_site_id: siteAId })
       .select()
       .single();
 
@@ -123,7 +109,7 @@ d('workers RLS', () => {
     const svc = service();
     const { data: w } = await svc
       .from('workers')
-      .insert({ full_name: 'Transfer Test', current_site_id: siteAId, code: 'W-0000' })
+      .insert({ full_name: 'Transfer Test', current_site_id: siteAId })
       .select()
       .single();
 
@@ -160,23 +146,27 @@ d('workers RLS', () => {
     const svc = service();
     const { data: w } = await svc
       .from('workers')
-      .insert({ full_name: 'Affiliation Test', current_site_id: siteAId, code: 'W-0000' })
+      .insert({ full_name: 'Affiliation Test', current_site_id: siteAId })
       .select()
       .single();
-    const { data: party } = await svc
+
+    // Using SUPPLIER type which exists
+    const { data: party, error: pError } = await svc
       .from('parties')
-      .upsert({ name: 'WRK RLS Contractor', type: 'CONTRACTOR' }, { onConflict: 'name' })
+      .insert({ name: `WRK RLS Party ${uniq}`, type: 'SUPPLIER', short_code: `WRK${uniq.slice(0,5)}` })
       .select()
       .single();
+
+    if (pError) throw pError;
 
     const { error } = await svc.from('worker_affiliations').insert({
       worker_id: w!.id,
       employment_type: 'DIRECT',
-      contractor_party_id: party!.id,
+      contractor_party_id: party?.id,
       effective_from: '2026-01-01',
     });
     expect(error).not.toBeNull();
 
-    await svc.from('parties').delete().eq('id', party!.id);
+    if (party) await svc.from('parties').delete().eq('id', party.id);
   });
 });

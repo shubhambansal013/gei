@@ -6,7 +6,7 @@ import { MasterShell } from '@/components/master-shell';
 import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ItemForm } from './item-form';
 import type { Database } from '@/lib/supabase/types';
 
@@ -34,7 +34,7 @@ type Props = {
 
 export function ItemsClient({ items, categories, units }: Props) {
   const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<ItemWithCategory | null>(null);
 
   const filtered = useMemo(() => {
@@ -93,11 +93,11 @@ export function ItemsClient({ items, categories, units }: Props) {
 
   const openCreate = () => {
     setEditing(null);
-    setDialogOpen(true);
+    setSheetOpen(true);
   };
 
   const handleSuccess = () => {
-    setDialogOpen(false);
+    setSheetOpen(false);
     setEditing(null);
   };
 
@@ -112,7 +112,7 @@ export function ItemsClient({ items, categories, units }: Props) {
     const item = filtered[rowIndex];
     if (item) {
       setEditing(item);
-      setDialogOpen(true);
+      setSheetOpen(true);
     }
   };
 
@@ -153,35 +153,37 @@ export function ItemsClient({ items, categories, units }: Props) {
         )}
       </MasterShell>
 
-      <Dialog
-        open={dialogOpen}
+      <Sheet
+        open={sheetOpen}
         onOpenChange={(open) => {
-          setDialogOpen(open);
+          setSheetOpen(open);
           if (!open) setEditing(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Edit item' : 'New item'}</DialogTitle>
-          </DialogHeader>
-          {editing ? (
-            <ItemForm
-              mode="edit"
-              item={editing}
-              categories={categories}
-              units={units}
-              onSuccess={handleSuccess}
-            />
-          ) : (
-            <ItemForm
-              mode="create"
-              categories={categories}
-              units={units}
-              onSuccess={handleSuccess}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        <SheetContent side="right" className="w-full overflow-y-auto p-6 sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{editing ? 'Edit item' : 'New item'}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {editing ? (
+              <ItemForm
+                mode="edit"
+                item={editing}
+                categories={categories}
+                units={units}
+                onSuccess={handleSuccess}
+              />
+            ) : (
+              <ItemForm
+                mode="create"
+                categories={categories}
+                units={units}
+                onSuccess={handleSuccess}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

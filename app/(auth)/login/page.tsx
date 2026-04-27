@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { APP_NAME } from '@/lib/constants';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
 /**
@@ -62,7 +63,7 @@ export default function LoginPage() {
       <div className="bg-card w-full max-w-[420px] rounded-md border p-8 shadow-sm">
         {/* Brand lockup — monospace wordmark doing double duty as a logo. */}
         <div className="mb-8 flex items-baseline gap-2">
-          <span className="text-primary font-mono text-2xl font-bold tracking-tight">GEI</span>
+          <span className="text-primary font-mono text-2xl font-bold tracking-tight">{APP_NAME}</span>
         </div>
 
         <h1 className="mb-1 text-lg font-semibold">Sign in</h1>
@@ -146,7 +147,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      <p className="text-muted-foreground mt-6 text-xs">GEI · multi-site, role-scoped, audited</p>
+      <p className="text-muted-foreground mt-6 text-xs">{APP_NAME} · multi-site, role-scoped, audited</p>
     </main>
   );
 }

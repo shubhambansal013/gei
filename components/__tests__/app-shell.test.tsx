@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AppShell } from '../app-shell';
 import { usePathname } from 'next/navigation';
+import { APP_NAME } from '@/lib/constants';
 import { useSiteStore } from '@/lib/stores/site';
 import { createCan } from '@/lib/permissions/can';
 import { supabaseBrowser } from '@/lib/supabase/browser';
@@ -53,6 +54,8 @@ vi.mock('lucide-react', () => ({
   BarChart3: () => <div data-testid="icon-chart" />,
   Menu: () => <div data-testid="icon-menu" />,
   X: () => <div data-testid="icon-x" />,
+  Sun: () => <div data-testid="icon-sun" />,
+  Moon: () => <div data-testid="icon-moon" />,
 }));
 
 vi.mock('../site-switcher', () => ({
@@ -73,15 +76,15 @@ describe('AppShell Navigation', () => {
       auth: {
         signOut: vi.fn(),
         getUser: mockGetUser,
-      } as any,
+      } as unknown as ReturnType<typeof supabaseBrowser>['auth'],
       from: vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: mockSingle,
           })),
         })),
-      })) as any,
-    } as any);
+      })) as unknown as ReturnType<typeof supabaseBrowser>['from'],
+    } as unknown as ReturnType<typeof supabaseBrowser>);
 
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockSingle.mockResolvedValue({ data: { role_id: 'VIEWER' }, error: null });
@@ -99,6 +102,8 @@ describe('AppShell Navigation', () => {
     render(<AppShell>Content</AppShell>);
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText(APP_NAME)).toBeInTheDocument();
+    expect(screen.getByLabelText(`${APP_NAME} home`)).toBeInTheDocument();
   });
 
   it('hides admin-only items for non-admins', async () => {

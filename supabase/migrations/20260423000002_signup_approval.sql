@@ -10,7 +10,7 @@
 --
 -- Fix: new signups start with `is_active=false`. The masters SELECT
 -- policies additionally require `is_active=true`. An admin flips the
--- gate via `approveUser`. `can_user()` already returned false for
+-- gate via `is_active`. `can_user()` already returned false for
 -- inactive users, so transactional RLS needed no change.
 
 -- -----------------------------------------------------------------------

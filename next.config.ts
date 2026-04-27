@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   // prints so both the owner and anyone on the same Wi-Fi can load the
   // app during development. Production (`next start`) ignores this list.
   allowedDevOrigins: ['localhost', '127.0.0.1', '10.0.6.19'],
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
 };
 
 export default nextConfig;

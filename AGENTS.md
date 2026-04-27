@@ -15,6 +15,7 @@ This file provides context and guidelines for AI agents working on the GEI proje
 - **Soft Delete Only:** `is_deleted` flags are used. Hard DELETEs are blocked by policy.
 - **Multi-site:** Every query and mutation must be scoped by `site_id`.
 - **Modular Code:** Reuse components like `SearchableSelect`, `DataGrid`, `PermissionGate`, `ExportButton`, `PrintButton`.
+- **Consistent UX:** Master record creation and editing should use right-side sliders (`Sheet`) instead of popups/dialogs for a consistent user experience.
 
 ## 3. Technical Guidelines
 - **Tailwind CSS v4:** Theme tokens in `app/globals.css`. No `tailwind.config.ts`.
@@ -28,6 +29,11 @@ This file provides context and guidelines for AI agents working on the GEI proje
 
 ## 4. Working Patterns
 - **TDD:** Follow Test-Driven Development if specified in the plan.
+- **Mandatory Testing:** Every PR must include relevant tests:
+  - New DB triggers/functions? Add a pgTAP test in `supabase/tests/`.
+  - New UI flow? Add/update a Playwright spec in `tests/e2e/`.
+  - New business logic? Add a Vitest unit test in `**/__tests__/`.
+  - New RLS policy? Add a Vitest RLS test in `tests/rls/`.
 - **Conventional Commits:** Use `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
 - **One Responsibility per File:** Keep files focused; split if they exceed ~300 lines.
 - **No Direct Supabase Calls Skipping RLS:** Always respect the security model.

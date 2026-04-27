@@ -1,8 +1,8 @@
 name: CI
 on:
   pull_request:
-  push:
-    branches: [main]
+    branches: [main, staging]
+  workflow_call:
 
 env:
   NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
@@ -10,7 +10,7 @@ env:
   SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
 jobs:
-  lint-typecheck-unit:
+  static-analysis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,12 +19,84 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm test
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
 
-  rls:
+  unit-tests:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - name: Run Tests
+        run: pnpm test
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - name: Run Coverage
+        run: |
+          set -o pipefail
+          NO_COLOR=1 pnpm test -- --coverage | tee vitest-output.txt
+      - name: Report Coverage Summary
+        if: always()
+        run: |
+          echo "### Unit Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          # Extract the coverage table
+          grep -A 100 "% Lines" vitest-output.txt >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+      - name: Upload Coverage Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - name: Build (OpenNext)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy
+        run: pnpm opennextjs-cloudflare build
+      - name: Check Worker Size
+        run: |
+          # Cloudflare free plan limit is 3MB (gzipped)
+          # We check the handler size as it's the main contributor
+          SIZE=$(gzip -c .open-next/server-functions/default/handler.mjs | wc -c)
+          LIMIT=3145728 # 3 MiB
+          echo "Worker handler gzipped size: $SIZE bytes"
+          if [ "$SIZE" -gt "$LIMIT" ]; then
+            echo "Error: Worker size exceeds 3MB limit!"
+            exit 1
+          fi
+
+  database-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-group: [db, rls]
+      fail-fast: false
+    name: Database Tests (${{ matrix.test-group }})
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,16 +107,18 @@ jobs:
         with: { version: latest }
       - run: supabase start
       - run: pnpm install --frozen-lockfile
-      - name: Load env
+      - name: Load env (RLS only)
+        if: matrix.test-group == 'rls'
         run: |
           supabase status -o env | grep ^API_URL= | sed 's/API_URL=/NEXT_PUBLIC_SUPABASE_URL=/' | sed 's/"//g' >> $GITHUB_ENV
           supabase status -o env | grep ^ANON_KEY= | sed 's/ANON_KEY=/NEXT_PUBLIC_SUPABASE_ANON_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
           supabase status -o env | grep ^SERVICE_ROLE_KEY= | sed 's/SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
-      - run: pnpm test:rls
+      - name: Run tests
+        run: pnpm test:${{ matrix.test-group }}
 
-  e2e:
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+  playwright-tests:
     runs-on: ubuntu-latest
+    needs: [build, database-tests]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -55,10 +129,18 @@ jobs:
         with: { version: latest }
       - run: supabase start
       - run: pnpm install --frozen-lockfile
-      - name: Load env
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps
+      - name: Load local Supabase env
         run: |
           supabase status -o env | grep ^API_URL= | sed 's/API_URL=/NEXT_PUBLIC_SUPABASE_URL=/' | sed 's/"//g' >> $GITHUB_ENV
           supabase status -o env | grep ^ANON_KEY= | sed 's/ANON_KEY=/NEXT_PUBLIC_SUPABASE_ANON_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
           supabase status -o env | grep ^SERVICE_ROLE_KEY= | sed 's/SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' | sed 's/"//g' >> $GITHUB_ENV
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm e2e
+      - name: Run Playwright tests
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
