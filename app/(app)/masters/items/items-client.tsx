@@ -101,21 +101,6 @@ export function ItemsClient({ items, categories, units }: Props) {
     setEditing(null);
   };
 
-  // Event delegation: find the <tr> ancestor of the clicked element,
-  // then map its tbody row-index to the filtered data array.
-  const handleTableClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const tr = (e.target as HTMLElement).closest('tbody tr');
-    if (!tr) return;
-    const tbody = tr.closest('tbody');
-    if (!tbody) return;
-    const rowIndex = Array.from(tbody.querySelectorAll('tr')).indexOf(tr as HTMLTableRowElement);
-    const item = filtered[rowIndex];
-    if (item) {
-      setEditing(item);
-      setSheetOpen(true);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <header>
@@ -139,17 +124,18 @@ export function ItemsClient({ items, categories, units }: Props) {
             action={<Button onClick={openCreate}>+ New item</Button>}
           />
         ) : (
-          <div
-            onClick={handleTableClick}
-            className="[&_tbody_tr:hover]:bg-muted/50 [&_tbody_tr]:cursor-pointer"
-          >
-            <DataGrid
-              columns={columns}
-              data={filtered}
-              showRowNumbers
-              emptyMessage="No items match your search."
-            />
-          </div>
+          <DataGrid
+            columns={columns}
+            data={filtered}
+            showRowNumbers
+            pagination
+            pageSize={50}
+            onRowClick={(item) => {
+              setEditing(item);
+              setSheetOpen(true);
+            }}
+            emptyMessage="No items match your search."
+          />
         )}
       </MasterShell>
 
