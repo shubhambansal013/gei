@@ -17,6 +17,17 @@
  * reach it via `shared.ts`, which is itself `'server-only'`.
  */
 
+/**
+ * Throw this in server actions to signal that the message is safe to
+ * show to the user (e.g. domain validation failures).
+ */
+export class ActionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ActionError';
+  }
+}
+
 const MESSAGES: Record<string, string> = {
   // insufficient_privilege — raised by RLS WITH CHECK / USING denials.
   '42501': 'You do not have permission to perform this action.',
@@ -60,7 +71,7 @@ function extractCode(e: unknown): string | null {
   // Some pg wrappers stringify SQLSTATE into .message.
   if (typeof obj.message === 'string') {
     const msg = obj.message;
-    const match = msg.match(/SQLSTATE\s+(\d{5})/i);
+    const match = msg.match(/SQLSTATE\s+([A-Z0-9]{5})/i);
     if (match && match[1]) return match[1];
     for (const [re, code] of MESSAGE_PATTERNS) {
       if (re.test(msg)) return code;
@@ -72,6 +83,11 @@ function extractCode(e: unknown): string | null {
 export function safeErrorMessage(e: unknown): string {
   // Server-only log — keeps the debugging trail outside of client toasts.
   console.error('[safeErrorMessage]', e);
+
+  if (e instanceof ActionError) {
+    return e.message;
+  }
+
   const code = extractCode(e);
   if (code && code in MESSAGES) {
     const mapped = MESSAGES[code];

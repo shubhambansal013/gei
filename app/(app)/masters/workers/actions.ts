@@ -1,5 +1,6 @@
 'use server';
 import { runAction } from '@/lib/actions/shared';
+import { ActionError } from '@/lib/actions/errors';
 import {
   workerCreateSchema,
   workerUpdateSchema,
@@ -204,7 +205,7 @@ async function findOpenAssignment(sb: SupabaseClient, workerId: string) {
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  if (!data) throw new Error('No open assignment to transfer from');
+  if (!data) throw new ActionError('No open assignment to transfer from');
   return data;
 }
 
@@ -213,10 +214,10 @@ function validateTransfer(
   input: { to_site_id: string; effective_from: string },
 ) {
   if (open.site_id === input.to_site_id) {
-    throw new Error('Destination site is the same as the current site');
+    throw new ActionError('Destination site is the same as the current site');
   }
   if (input.effective_from <= open.effective_from) {
-    throw new Error('New effective_from must be after current placement start');
+    throw new ActionError('New effective_from must be after current placement start');
   }
 }
 
@@ -241,7 +242,7 @@ async function findOpenAffiliation(sb: SupabaseClient, workerId: string) {
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  if (!data) throw new Error('No open affiliation to change from');
+  if (!data) throw new ActionError('No open affiliation to change from');
   return data;
 }
 
@@ -254,13 +255,13 @@ function validateAffiliationChange(
   },
 ) {
   if (input.effective_from <= open.effective_from) {
-    throw new Error('New effective_from must be after current affiliation start');
+    throw new ActionError('New effective_from must be after current affiliation start');
   }
   if (
     open.employment_type === input.employment_type &&
     (open.contractor_party_id ?? null) === (input.contractor_party_id ?? null)
   ) {
-    throw new Error('New affiliation is identical to the current one');
+    throw new ActionError('New affiliation is identical to the current one');
   }
 }
 

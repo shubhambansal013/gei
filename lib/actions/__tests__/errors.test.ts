@@ -5,7 +5,7 @@
  * PostgrestError objects) into short, human-safe copy.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { safeErrorMessage } from '../errors';
+import { safeErrorMessage, ActionError } from '../errors';
 
 describe('safeErrorMessage', () => {
   const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -48,6 +48,11 @@ describe('safeErrorMessage', () => {
     expect(safeErrorMessage(raw)).toBe('One or more fields are invalid.');
   });
 
+  it('maps Postgres 23P01 (exclusion_violation) to overlapping dates copy', () => {
+    const raw = { code: '23P01', message: 'conflicting key value violates exclusion constraint' };
+    expect(safeErrorMessage(raw)).toBe('A record with overlapping dates already exists.');
+  });
+
   it('returns a generic message for unknown codes', () => {
     expect(safeErrorMessage({ code: '99999', message: 'weird internal thing' })).toBe(
       'Something went wrong. Please try again.',
@@ -66,10 +71,20 @@ describe('safeErrorMessage', () => {
     expect(safeErrorMessage('boom')).toBe('Something went wrong. Please try again.');
   });
 
+  it('returns the message directly for ActionError', () => {
+    const err = new ActionError('User-safe domain message');
+    expect(safeErrorMessage(err)).toBe('User-safe domain message');
+  });
+
   it('extracts the code when it appears embedded in an Error.message (SQLSTATE ...)', () => {
     // Some pg clients stringify errors as "... SQLSTATE 42501"
     const err = new Error('something something SQLSTATE 42501');
     expect(safeErrorMessage(err)).toBe('You do not have permission to perform this action.');
+  });
+
+  it('extracts alphanumeric SQLSTATE codes like 23P01 from Error.message', () => {
+    const err = new Error('something something SQLSTATE 23P01');
+    expect(safeErrorMessage(err)).toBe('A record with overlapping dates already exists.');
   });
 
   it('logs the full error to console.error for server-side debugging', () => {
@@ -108,5 +123,10 @@ describe('safeErrorMessage', () => {
   it('recovers invalid-fields copy from not-null text when code was dropped', () => {
     const err = new Error('null value in column "site_id" of relation "purchases" violates ...');
     expect(safeErrorMessage(err)).toBe('One or more fields are invalid.');
+  });
+
+  it('recovers overlapping dates copy from exclusion text when code was dropped', () => {
+    const err = new Error('conflicting key value violates exclusion constraint "overlap"');
+    expect(safeErrorMessage(err)).toBe('A record with overlapping dates already exists.');
   });
 });
