@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { MasterShell } from '@/components/master-shell';
 import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
+import { useOptimalPageSize } from '@/lib/hooks/use-optimal-page-size';
 import { SearchableSelect } from '@/components/searchable-select';
 import { WorkerForm } from './worker-form';
 import { transferWorker, changeAffiliation } from './actions';
@@ -99,6 +100,7 @@ export function WorkersClient({ workers, sites, parties }: Props) {
   const [editing, setEditing] = useState<Worker | null>(null);
   const [transferFor, setTransferFor] = useState<Worker | null>(null);
   const [affiliateFor, setAffiliateFor] = useState<Worker | null>(null);
+  const pageSize = useOptimalPageSize();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -184,6 +186,8 @@ export function WorkersClient({ workers, sites, parties }: Props) {
             columns={columns}
             data={filtered}
             showRowNumbers
+            pagination
+            pageSize={pageSize}
             emptyMessage="No workers match your search."
           />
         )}

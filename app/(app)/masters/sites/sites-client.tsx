@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { MasterShell } from '@/components/master-shell';
 import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
+import { useOptimalPageSize } from '@/lib/hooks/use-optimal-page-size';
 import type { Tables } from '@/lib/supabase/types';
 import { SiteForm } from './site-form';
 
@@ -58,6 +59,7 @@ export function SitesClient({ sites }: Props) {
   const [search, setSearch] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Site | null>(null);
+  const pageSize = useOptimalPageSize();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -128,7 +130,13 @@ export function SitesClient({ sites }: Props) {
             }
           />
         ) : (
-          <DataGrid columns={columns} data={filtered} showRowNumbers />
+          <DataGrid
+            columns={columns}
+            data={filtered}
+            showRowNumbers
+            pagination
+            pageSize={pageSize}
+          />
         )}
       </MasterShell>
 

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { MasterShell } from '@/components/master-shell';
 import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
+import { useOptimalPageSize } from '@/lib/hooks/use-optimal-page-size';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -39,6 +40,7 @@ export function UnitsClient({ units }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<UnitRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UnitRow | null>(null);
+  const pageSize = useOptimalPageSize();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return units;
@@ -95,20 +97,6 @@ export function UnitsClient({ units }: Props) {
     setEditing(null);
   };
 
-  // Event delegation — mirrors the pattern in items-client.tsx
-  const handleTableClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const tr = (e.target as HTMLElement).closest('tbody tr');
-    if (!tr) return;
-    const tbody = tr.closest('tbody');
-    if (!tbody) return;
-    const rowIndex = Array.from(tbody.querySelectorAll('tr')).indexOf(tr as HTMLTableRowElement);
-    const unit = filtered[rowIndex];
-    if (unit) {
-      setEditing(unit);
-      setSheetOpen(true);
-    }
-  };
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const res = await deleteUnit(deleteTarget.id);
@@ -146,17 +134,18 @@ export function UnitsClient({ units }: Props) {
             action={<Button onClick={openCreate}>+ New unit</Button>}
           />
         ) : (
-          <div
-            onClick={handleTableClick}
-            className="[&_tbody_tr:hover]:bg-muted/50 [&_tbody_tr]:cursor-pointer"
-          >
-            <DataGrid
-              columns={columns}
-              data={filtered}
-              showRowNumbers
-              emptyMessage="No units match your search."
-            />
-          </div>
+          <DataGrid
+            columns={columns}
+            data={filtered}
+            showRowNumbers
+            pagination
+            pageSize={pageSize}
+            onRowClick={(unit) => {
+              setEditing(unit);
+              setSheetOpen(true);
+            }}
+            emptyMessage="No units match your search."
+          />
         )}
       </MasterShell>
 

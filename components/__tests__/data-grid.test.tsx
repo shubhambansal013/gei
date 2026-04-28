@@ -64,4 +64,21 @@ describe('DataGrid', () => {
     expect(screen.queryByText('Item 0')).not.toBeInTheDocument();
     expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
   });
+
+  it('updates page size when pageSize prop changes', () => {
+    const manyRows = Array.from({ length: 20 }, (_, i) => ({ name: `Item ${i}`, qty: i }));
+    const { rerender } = render(<DataGrid columns={cols} data={manyRows} pagination pageSize={5} />);
+
+    // Initially should show 5 items
+    expect(screen.getByText('Item 0')).toBeInTheDocument();
+    expect(screen.getByText('Item 4')).toBeInTheDocument();
+    expect(screen.queryByText('Item 5')).not.toBeInTheDocument();
+
+    // Rerender with pageSize 10
+    rerender(<DataGrid columns={cols} data={manyRows} pagination pageSize={10} />);
+
+    // Should now show 10 items
+    expect(screen.getByText('Item 9')).toBeInTheDocument();
+    expect(screen.queryByText('Item 10')).not.toBeInTheDocument();
+  });
 });
