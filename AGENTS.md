@@ -43,4 +43,5 @@ This file provides context and guidelines for AI agents working on the GEI proje
 - `docs/architecture.md`: High-level system design.
 - `docs/permissions.md`: RBAC matrix and `can_user` details.
 - `docs/runbooks/deploy.md`: Deployment guide for GitHub Actions and Cloudflare.
+- `docs/readability.md`: Code readability guidelines (Clean Code principles).
 - `docs/archive/design-history/`: Historical design specs and plans.
