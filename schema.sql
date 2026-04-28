@@ -139,7 +139,7 @@ CREATE TABLE items (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name              TEXT NOT NULL,
   code              TEXT UNIQUE,
-  category_id       TEXT REFERENCES item_categories(id),
+  category_id       TEXT REFERENCES item_categories(id) DEFAULT 'ELECTRICAL',
   stock_unit        TEXT NOT NULL REFERENCES units(id),
   hsn_code          TEXT,
   created_at        TIMESTAMPTZ DEFAULT now()
