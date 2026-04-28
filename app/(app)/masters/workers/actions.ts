@@ -247,7 +247,11 @@ async function findOpenAffiliation(sb: SupabaseClient, workerId: string) {
 
 function validateAffiliationChange(
   open: { employment_type: string; contractor_party_id: string | null; effective_from: string },
-  input: { employment_type: string; contractor_party_id?: string | null; effective_from: string },
+  input: {
+    employment_type: string;
+    contractor_party_id?: string | null | undefined;
+    effective_from: string;
+  },
 ) {
   if (input.effective_from <= open.effective_from) {
     throw new Error('New effective_from must be after current affiliation start');
