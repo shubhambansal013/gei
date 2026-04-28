@@ -8,7 +8,7 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -73,6 +73,12 @@ export function DataGrid<T>({
       },
     },
   });
+
+  useEffect(() => {
+    if (pagination && pageSize) {
+      table.setPageSize(pageSize);
+    }
+  }, [table, pagination, pageSize]);
 
   if (!data.length) {
     return <div className="p-8 text-center text-sm text-gray-500">{emptyMessage}</div>;

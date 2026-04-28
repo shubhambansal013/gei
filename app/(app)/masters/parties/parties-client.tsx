@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { MasterShell } from '@/components/master-shell';
 import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
+import { useOptimalPageSize } from '@/lib/hooks/use-optimal-page-size';
 import { PartyForm } from './party-form';
 
 type Party = {
@@ -75,6 +76,7 @@ export function PartiesClient({ parties, partyTypes }: Props) {
   const [search, setSearch] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Party | null>(null);
+  const pageSize = useOptimalPageSize();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -148,7 +150,13 @@ export function PartiesClient({ parties, partyTypes }: Props) {
             }
           />
         ) : (
-          <DataGrid columns={columns} data={filtered} showRowNumbers />
+          <DataGrid
+            columns={columns}
+            data={filtered}
+            showRowNumbers
+            pagination
+            pageSize={pageSize}
+          />
         )}
       </MasterShell>
 

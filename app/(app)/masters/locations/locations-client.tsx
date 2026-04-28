@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { MasterShell } from '@/components/master-shell';
 import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
+import { useOptimalPageSize } from '@/lib/hooks/use-optimal-page-size';
 import { LocationForm } from './location-form';
 
 type Unit = {
@@ -58,6 +59,7 @@ export function LocationsClient({ units, sites, types }: Props) {
   const [search, setSearch] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
+  const pageSize = useOptimalPageSize();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -129,7 +131,13 @@ export function LocationsClient({ units, sites, types }: Props) {
             }
           />
         ) : (
-          <DataGrid columns={columns} data={filtered} showRowNumbers />
+          <DataGrid
+            columns={columns}
+            data={filtered}
+            showRowNumbers
+            pagination
+            pageSize={pageSize}
+          />
         )}
       </MasterShell>
 
