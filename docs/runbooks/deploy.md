@@ -46,11 +46,23 @@ Create environments for `prod` and `staging` to manage these values per-branch.
 
 The deployment is managed by `.github/workflows/deploy.yml` and triggers automatically on pushes to `main` (production) and `staging` branches.
 
-### Step 4a: Database Migrations (`migrate` job)
-The workflow uses the Supabase CLI to apply migrations:
-1. Links to the remote project using `SUPABASE_PROJECT_ID` and `SUPABASE_DB_PASSWORD`.
-2. Performs a dry run of the migrations.
-3. Applies all pending migrations in `supabase/migrations/` to the remote database using `supabase db push`.
+### Step 4a: Database Migrations
+
+The workflow implements a safety check to prevent automatic destructive schema changes.
+
+1.  **Safety Check (`check-migrations` job):**
+    -   Links to the remote project.
+    -   Scans pending migrations for destructive SQL keywords (`DROP`, `TRUNCATE`).
+    -   Sets a `destructive` output flag.
+
+2.  **Safe Migrations (`migrate-safe` job):**
+    -   Runs automatically if no destructive changes are detected.
+    -   Applies migrations using `supabase db push`.
+
+3.  **Destructive Migrations (`migrate-destructive` job):**
+    -   Triggered if destructive changes are detected.
+    -   Requires **manual approval** via GitHub Environment gates (`prod-destructive` or `staging-destructive`).
+    -   Once approved, applies migrations using `supabase db push`.
 
 ### Step 4b: Cloudflare Deployment (`deploy` job)
 Once migrations are successful, the app is built and deployed:
