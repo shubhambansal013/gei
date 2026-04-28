@@ -12,10 +12,12 @@ jobs:
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
-  migrate:
+  check-migrations:
     needs: ci
     runs-on: ubuntu-latest
-    name: Run Supabase Migrations
+    name: Check for Destructive Migrations
+    outputs:
+      destructive: ${{ steps.check.outputs.destructive }}
     environment: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -33,16 +35,62 @@ jobs:
       - name: Link Supabase project
         run: supabase link --project-ref $SUPABASE_PROJECT_ID --password $SUPABASE_DB_PASSWORD
 
-      - name: Dry run migrations
-        run: supabase db push --dry-run
+      - name: Run Safety Check
+        id: check
+        run: ./supabase/scripts/check-destructive.sh
 
+  migrate-safe:
+    needs: check-migrations
+    if: needs.check-migrations.outputs.destructive == 'false'
+    runs-on: ubuntu-latest
+    name: Run Safe Migrations
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link Supabase project
+        run: supabase link --project-ref $SUPABASE_PROJECT_ID --password $SUPABASE_DB_PASSWORD
       - name: Apply migrations
+        run: supabase db push
+
+  migrate-destructive:
+    needs: check-migrations
+    if: needs.check-migrations.outputs.destructive == 'true'
+    runs-on: ubuntu-latest
+    name: Run Destructive Migrations (Manual Approval)
+    # Using a separate environment to enforce manual approval gates
+    environment: ${{ github.ref_name == 'main' && 'prod-destructive' || 'staging-destructive' }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link Supabase project
+        run: supabase link --project-ref $SUPABASE_PROJECT_ID --password $SUPABASE_DB_PASSWORD
+      - name: Apply destructive migrations
         run: supabase db push
 
   deploy:
     runs-on: ubuntu-latest
     name: Deploy to Cloudflare
-    needs: migrate
+    needs: [migrate-safe, migrate-destructive]
+    if: |
+      always() &&
+      (needs.migrate-safe.result == 'success' || needs.migrate-destructive.result == 'success')
     environment: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
