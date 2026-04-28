@@ -5,6 +5,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { MasterShell } from '@/components/master-shell';
 import { DataGrid } from '@/components/data-grid';
 import { EmptyState } from '@/components/empty-state';
+import { useOptimalPageSize } from '@/lib/hooks/use-optimal-page-size';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ItemForm } from './item-form';
@@ -36,6 +37,7 @@ export function ItemsClient({ items, categories, units }: Props) {
   const [search, setSearch] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<ItemWithCategory | null>(null);
+  const optimalPageSize = useOptimalPageSize();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return items;
@@ -129,7 +131,7 @@ export function ItemsClient({ items, categories, units }: Props) {
             data={filtered}
             showRowNumbers
             pagination
-            pageSize={50}
+            pageSize={optimalPageSize}
             onRowClick={(item) => {
               setEditing(item);
               setSheetOpen(true);
