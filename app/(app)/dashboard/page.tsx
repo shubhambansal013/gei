@@ -16,13 +16,77 @@ export const dynamic = 'force-dynamic';
  * filtering yet; the dashboard aggregates across every accessible site.
  */
 export default async function DashboardPage() {
+  const data = await getDashboardData();
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Live across every site you have access to. Recent and this-month figures update on every
+          page load.
+        </p>
+      </header>
+
+      <KpiSection kpis={data.kpis} />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <LowStockAlerts items={data.lowStock} />
+        <TopConsumption items={data.topConsumption} maxQty={data.topMaxQty} />
+      </div>
+
+      <RecentTransactions transactions={data.recent} />
+    </div>
+  );
+}
+
+// --- Types ---
+
+interface DashboardKpis {
+  inwardValue: number;
+  skuCount: number;
+  inwardQty: number;
+  outwardQty: number;
+}
+
+interface LowStockItem {
+  id: string;
+  code: string | null;
+  name: string;
+  stock_unit: string;
+  reorder_level: number | null;
+  current: number;
+}
+
+interface ConsumptionItem {
+  id: string;
+  name: string;
+  code: string;
+  unit: string;
+  qty: number;
+  amount: number;
+}
+
+interface RecentTransaction {
+  id: string;
+  type: 'PURCHASE' | 'ISSUE';
+  date: string;
+  qty: number;
+  itemCode: string;
+  itemName: string;
+  unit: string;
+  amount: number | null;
+}
+
+// --- Data Fetching & Processing ---
+
+async function getDashboardData() {
   const sb = await supabaseServer();
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthStartStr = monthStart.toISOString().slice(0, 10);
   const today = now.toISOString().slice(0, 10);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
   const [
@@ -101,7 +165,7 @@ export default async function DashboardPage() {
     if (!s.item_id) continue;
     stockByItem.set(s.item_id, (stockByItem.get(s.item_id) ?? 0) + (s.current_stock ?? 0));
   }
-  const lowStock = (reorderItems ?? [])
+  const lowStock: LowStockItem[] = (reorderItems ?? [])
     .map((i) => ({ ...i, current: stockByItem.get(i.id) ?? 0 }))
     .filter((i) => i.reorder_level != null && i.current < i.reorder_level)
     .sort((a, b) => a.current / a.reorder_level! - b.current / b.reorder_level!)
@@ -129,10 +193,7 @@ export default async function DashboardPage() {
   }
 
   // Top 10 items by outward qty over last 30 days
-  const byItem = new Map<
-    string,
-    { name: string; code: string; unit: string; qty: number; id: string; amount: number }
-  >();
+  const byItem = new Map<string, ConsumptionItem>();
   for (const row of consumption ?? []) {
     const item = row.item;
     if (!item) continue;
@@ -154,229 +215,220 @@ export default async function DashboardPage() {
   const topMaxQty = topConsumption[0]?.qty ?? 0;
 
   // Recent 10 transactions (merge + sort)
-  type Recent = {
-    id: string;
-    type: 'PURCHASE' | 'ISSUE';
-    date: string;
-    qty: number;
-    itemCode: string;
-    itemName: string;
-    unit: string;
-    amount: number | null;
-  };
-  const recent: Recent[] = [
-    ...(recentIn ?? []).map(
-      (p): Recent => ({
-        id: p.id,
-        type: 'PURCHASE',
-        date: p.receipt_date,
-        qty: p.received_qty,
-        itemCode: p.item?.code ?? '',
-        itemName: p.item?.name ?? '—',
-        unit: p.item?.stock_unit ?? '',
-        amount: p.total_amount,
-      }),
-    ),
-    ...(recentOut ?? []).map(
-      (i): Recent => ({
-        id: i.id,
-        type: 'ISSUE',
-        date: i.issue_date,
-        qty: i.qty,
-        itemCode: i.item?.code ?? '',
-        itemName: i.item?.name ?? '—',
-        unit: i.item?.stock_unit ?? '',
-        // OUT rows show "—"; no costing method chosen yet.
-        // TODO(#17): once FIFO/WAC is decided, populate from cost-of-goods-issued.
-        amount: null,
-      }),
-    ),
+  const recent: RecentTransaction[] = [
+    ...(recentIn ?? []).map((p) => ({
+      id: p.id,
+      type: 'PURCHASE' as const,
+      date: p.receipt_date,
+      qty: p.received_qty,
+      itemCode: p.item?.code ?? '',
+      itemName: p.item?.name ?? '—',
+      unit: p.item?.stock_unit ?? '',
+      amount: p.total_amount,
+    })),
+    ...(recentOut ?? []).map((i) => ({
+      id: i.id,
+      type: 'ISSUE' as const,
+      date: i.issue_date,
+      qty: i.qty,
+      itemCode: i.item?.code ?? '',
+      itemName: i.item?.name ?? '—',
+      unit: i.item?.stock_unit ?? '',
+      // OUT rows show "—"; no costing method chosen yet.
+      // TODO(#17): once FIFO/WAC is decided, populate from cost-of-goods-issued.
+      amount: null,
+    })),
   ]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 10);
 
-  const fmtINR = (n: number) =>
-    n.toLocaleString('en-IN', { maximumFractionDigits: 0, style: 'currency', currency: 'INR' });
-  const fmtNum = (n: number) => n.toLocaleString('en-IN');
+  return {
+    kpis: { inwardValue, skuCount, inwardQty, outwardQty },
+    lowStock,
+    topConsumption,
+    recent,
+    topMaxQty,
+  };
+}
 
+// --- UI Components ---
+
+function KpiSection({ kpis }: { kpis: DashboardKpis }) {
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Live across every site you have access to. Recent and this-month figures update on every
-          page load.
+    <section
+      aria-label="Key metrics"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+    >
+      <Kpi label="Purchase value" value={fmtINR(kpis.inwardValue)} sub="this month" icon={Wallet} />
+      <Kpi
+        label="SKUs in stock"
+        value={fmtNum(kpis.skuCount)}
+        sub="site × item combos"
+        icon={Package}
+      />
+      <Kpi
+        label="Purchase qty"
+        value={fmtNum(Math.round(kpis.inwardQty))}
+        sub="this month"
+        icon={ArrowDownToLine}
+      />
+      <Kpi
+        label="Issue qty"
+        value={fmtNum(Math.round(kpis.outwardQty))}
+        sub="this month"
+        icon={ArrowUpFromLine}
+      />
+    </section>
+  );
+}
+
+function LowStockAlerts({ items }: { items: LowStockItem[] }) {
+  return (
+    <section className="bg-card rounded-md border p-5 shadow-sm">
+      <header className="mb-3 flex items-center justify-between">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+          <AlertTriangle className="text-destructive h-4 w-4" />
+          Low-stock alerts
+        </h2>
+        {items.length > 0 && (
+          <span className="text-muted-foreground text-xs">
+            {items.length} item{items.length === 1 ? '' : 's'}
+          </span>
+        )}
+      </header>
+      {items.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          Every item with a reorder level is above threshold. Set{' '}
+          <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">reorder_level</code> in
+          the item master to enable alerts.
+        </p>
+      ) : (
+        <ul className="divide-y">
+          {items.map((i) => (
+            <li key={i.id} className="flex items-baseline justify-between py-2 text-sm">
+              <Link
+                href={`/inventory/item/${i.id}`}
+                className="hover:text-primary truncate underline-offset-2 hover:underline"
+              >
+                <span className="font-mono text-xs">{i.code ?? ''}</span>{' '}
+                <span className="font-medium">{i.name}</span>
+              </Link>
+              <span className="ml-2 shrink-0 font-mono text-xs tabular-nums">
+                <span className="text-destructive font-semibold">{fmtNum(i.current)}</span>{' '}
+                <span className="text-muted-foreground">
+                  / {fmtNum(i.reorder_level ?? 0)} {i.stock_unit}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function TopConsumption({ items, maxQty }: { items: ConsumptionItem[]; maxQty: number }) {
+  return (
+    <section className="bg-card rounded-md border p-5 shadow-sm">
+      <header className="mb-3">
+        <h2 className="text-sm font-semibold">Top 10 consumption (last 30 days)</h2>
+        <p className="text-muted-foreground text-xs">
+          By issue qty · amount @ 90-day running avg purchase rate
         </p>
       </header>
+      {items.length === 0 ? (
+        <p className="text-muted-foreground text-sm">No issues recorded in the last 30 days.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {items.map((c) => (
+            <li key={c.id}>
+              <Link
+                href={`/inventory/item/${c.id}`}
+                className="grid grid-cols-[1fr_auto_auto] items-baseline gap-3 py-0.5 text-sm"
+              >
+                <div className="min-w-0 truncate">
+                  <span className="text-muted-foreground font-mono text-xs">{c.code}</span> {c.name}
+                </div>
+                <div className="text-right font-mono text-xs tabular-nums">
+                  {fmtNum(c.qty)} {c.unit}
+                </div>
+                <div className="text-muted-foreground w-24 text-right font-mono text-xs tabular-nums">
+                  {c.amount > 0 ? fmtINR(c.amount) : '—'}
+                </div>
+              </Link>
+              <div className="bg-primary/20 h-1 overflow-hidden rounded-full">
+                <div
+                  className="bg-primary h-full"
+                  style={{ width: `${maxQty > 0 ? (c.qty / maxQty) * 100 : 0}%` }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
-      <section
-        aria-label="Key metrics"
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        <Kpi label="Purchase value" value={fmtINR(inwardValue)} sub="this month" icon={Wallet} />
-        <Kpi
-          label="SKUs in stock"
-          value={fmtNum(skuCount)}
-          sub="site × item combos"
-          icon={Package}
+function RecentTransactions({ transactions }: { transactions: RecentTransaction[] }) {
+  return (
+    <section className="bg-card rounded-md border p-5 shadow-sm">
+      <header className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold">Recent transactions</h2>
+        <Link
+          href="/inventory/transactions"
+          className="text-primary text-xs underline-offset-2 hover:underline"
+        >
+          View all →
+        </Link>
+      </header>
+      {transactions.length === 0 ? (
+        <EmptyState
+          title="No transactions yet"
+          description="Record a purchase or issue to light this up."
         />
-        <Kpi
-          label="Purchase qty"
-          value={fmtNum(Math.round(inwardQty))}
-          sub="this month"
-          icon={ArrowDownToLine}
-        />
-        <Kpi
-          label="Issue qty"
-          value={fmtNum(Math.round(outwardQty))}
-          sub="this month"
-          icon={ArrowUpFromLine}
-        />
-      </section>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="bg-card rounded-md border p-5 shadow-sm">
-          <header className="mb-3 flex items-center justify-between">
-            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-              <AlertTriangle className="text-destructive h-4 w-4" />
-              Low-stock alerts
-            </h2>
-            {lowStock.length > 0 && (
-              <span className="text-muted-foreground text-xs">
-                {lowStock.length} item{lowStock.length === 1 ? '' : 's'}
-              </span>
-            )}
-          </header>
-          {lowStock.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              Every item with a reorder level is above threshold. Set{' '}
-              <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">
-                reorder_level
-              </code>{' '}
-              in the item master to enable alerts.
-            </p>
-          ) : (
-            <ul className="divide-y">
-              {lowStock.map((i) => (
-                <li key={i.id} className="flex items-baseline justify-between py-2 text-sm">
-                  <Link
-                    href={`/inventory/item/${i.id}`}
-                    className="hover:text-primary truncate underline-offset-2 hover:underline"
+      ) : (
+        <table className="w-full text-sm">
+          <thead className="text-muted-foreground text-xs tracking-wider uppercase">
+            <tr>
+              <th className="py-1.5 text-left font-medium">Date</th>
+              <th className="py-1.5 text-left font-medium">Type</th>
+              <th className="py-1.5 text-left font-medium">Item</th>
+              <th className="py-1.5 text-right font-medium">Qty</th>
+              <th className="py-1.5 text-right font-medium">Amount</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {transactions.map((r) => (
+              <tr key={`${r.type}-${r.id}`} className="hover:bg-muted/40">
+                <td className="py-1.5 font-mono text-xs">{r.date}</td>
+                <td className="py-1.5">
+                  <span
+                    className={
+                      r.type === 'PURCHASE'
+                        ? 'text-primary font-semibold'
+                        : 'font-semibold text-emerald-700'
+                    }
                   >
-                    <span className="font-mono text-xs">{i.code ?? ''}</span>{' '}
-                    <span className="font-medium">{i.name}</span>
-                  </Link>
-                  <span className="ml-2 shrink-0 font-mono text-xs tabular-nums">
-                    <span className="text-destructive font-semibold">{fmtNum(i.current)}</span>{' '}
-                    <span className="text-muted-foreground">
-                      / {fmtNum(i.reorder_level ?? 0)} {i.stock_unit}
-                    </span>
+                    {r.type}
                   </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="bg-card rounded-md border p-5 shadow-sm">
-          <header className="mb-3">
-            <h2 className="text-sm font-semibold">Top 10 consumption (last 30 days)</h2>
-            <p className="text-muted-foreground text-xs">
-              By issue qty · amount @ 90-day running avg purchase rate
-            </p>
-          </header>
-          {topConsumption.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No issues recorded in the last 30 days.</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {topConsumption.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    href={`/inventory/item/${c.id}`}
-                    className="grid grid-cols-[1fr_auto_auto] items-baseline gap-3 py-0.5 text-sm"
-                  >
-                    <div className="min-w-0 truncate">
-                      <span className="text-muted-foreground font-mono text-xs">{c.code}</span>{' '}
-                      {c.name}
-                    </div>
-                    <div className="text-right font-mono text-xs tabular-nums">
-                      {fmtNum(c.qty)} {c.unit}
-                    </div>
-                    <div className="text-muted-foreground w-24 text-right font-mono text-xs tabular-nums">
-                      {c.amount > 0 ? fmtINR(c.amount) : '—'}
-                    </div>
-                  </Link>
-                  <div className="bg-primary/20 h-1 overflow-hidden rounded-full">
-                    <div
-                      className="bg-primary h-full"
-                      style={{ width: `${topMaxQty > 0 ? (c.qty / topMaxQty) * 100 : 0}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-
-      <section className="bg-card rounded-md border p-5 shadow-sm">
-        <header className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Recent transactions</h2>
-          <Link
-            href="/inventory/transactions"
-            className="text-primary text-xs underline-offset-2 hover:underline"
-          >
-            View all →
-          </Link>
-        </header>
-        {recent.length === 0 ? (
-          <EmptyState
-            title="No transactions yet"
-            description="Record a purchase or issue to light this up."
-          />
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="text-muted-foreground text-xs tracking-wider uppercase">
-              <tr>
-                <th className="py-1.5 text-left font-medium">Date</th>
-                <th className="py-1.5 text-left font-medium">Type</th>
-                <th className="py-1.5 text-left font-medium">Item</th>
-                <th className="py-1.5 text-right font-medium">Qty</th>
-                <th className="py-1.5 text-right font-medium">Amount</th>
+                </td>
+                <td className="py-1.5">
+                  <span className="text-muted-foreground font-mono text-xs">{r.itemCode}</span>{' '}
+                  {r.itemName}
+                </td>
+                <td className="py-1.5 text-right font-mono tabular-nums">
+                  {fmtNum(r.qty)} {r.unit}
+                </td>
+                <td className="text-muted-foreground py-1.5 text-right font-mono tabular-nums">
+                  {r.amount != null ? fmtINR(r.amount) : '—'}
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y">
-              {recent.map((r) => (
-                <tr key={`${r.type}-${r.id}`} className="hover:bg-muted/40">
-                  <td className="py-1.5 font-mono text-xs">{r.date}</td>
-                  <td className="py-1.5">
-                    <span
-                      className={
-                        r.type === 'PURCHASE'
-                          ? 'text-primary font-semibold'
-                          : 'font-semibold text-emerald-700'
-                      }
-                    >
-                      {r.type}
-                    </span>
-                  </td>
-                  <td className="py-1.5">
-                    <span className="text-muted-foreground font-mono text-xs">{r.itemCode}</span>{' '}
-                    {r.itemName}
-                  </td>
-                  <td className="py-1.5 text-right font-mono tabular-nums">
-                    {fmtNum(r.qty)} {r.unit}
-                  </td>
-                  <td className="text-muted-foreground py-1.5 text-right font-mono tabular-nums">
-                    {r.amount != null ? fmtINR(r.amount) : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-    </div>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
   );
 }
 
@@ -402,3 +454,9 @@ function Kpi({
     </div>
   );
 }
+
+// --- Utils ---
+
+const fmtINR = (n: number) =>
+  n.toLocaleString('en-IN', { maximumFractionDigits: 0, style: 'currency', currency: 'INR' });
+const fmtNum = (n: number) => n.toLocaleString('en-IN');
