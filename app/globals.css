@@ -233,17 +233,38 @@
  */
 .cn-toast {
   @apply !bg-popover !text-popover-foreground !border-border !shadow-md !rounded-md font-sans !px-4 !py-3;
+  @apply border-l-4;
   --normal-bg: var(--popover);
   --normal-border: var(--border);
   --normal-text: var(--popover-foreground);
 }
 
 .cn-toast[data-type="success"] {
-  @apply !border-primary/50;
+  @apply !border-l-emerald-600 !bg-emerald-50/50 dark:!bg-emerald-950/30;
+}
+.cn-toast[data-type="success"] svg {
+  @apply text-emerald-600;
 }
 
 .cn-toast[data-type="error"] {
-  @apply !border-destructive/50;
+  @apply !border-l-destructive !bg-destructive/10;
+}
+.cn-toast[data-type="error"] svg {
+  @apply text-destructive;
+}
+
+.cn-toast[data-type="info"] {
+  @apply !border-l-sky-600 !bg-sky-50/50 dark:!bg-sky-950/30;
+}
+.cn-toast[data-type="info"] svg {
+  @apply text-sky-600;
+}
+
+.cn-toast[data-type="warning"] {
+  @apply !border-l-amber-600 !bg-amber-50/50 dark:!bg-amber-950/30;
+}
+.cn-toast[data-type="warning"] svg {
+  @apply text-amber-600;
 }
 
 @media (max-width: 640px) {

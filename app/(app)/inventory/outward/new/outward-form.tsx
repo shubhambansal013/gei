@@ -36,6 +36,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
   const [pending, startTransition] = useTransition();
 
   const [siteId, setSiteId] = useState<string | null>(sites[0]?.id ?? null);
+  const [issueDate, setIssueDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [itemId, setItemId] = useState<string | null>(null);
   const [qty, setQty] = useState('');
   const [locationId, setLocationId] = useState<string | null>(null);
@@ -88,6 +89,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
 
     const base = {
       site_id: siteId,
+      issue_date: issueDate,
       item_id: itemId,
       qty,
       unit: selectedItem?.stock_unit ?? '',
@@ -134,6 +136,17 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           value={siteId}
           onChange={setSiteId}
           placeholder="Select site"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="issueDate">Date *</Label>
+        <Input
+          id="issueDate"
+          type="date"
+          value={issueDate}
+          onChange={(e) => setIssueDate(e.target.value)}
+          required
         />
       </div>
 
