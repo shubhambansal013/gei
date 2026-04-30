@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { TransactionsClient, type PurchaseRow, type IssueRow } from '../transactions-client';
 import { type WorkerOption } from '@/components/worker-picker';
 
@@ -76,24 +76,56 @@ describe('TransactionsClient', () => {
     );
 
     // Verify headers
-    expect(screen.getByText('Date')).toBeDefined();
-    expect(screen.getByText('Type')).toBeDefined();
-    expect(screen.getByText('Item')).toBeDefined();
-    expect(screen.getByText('Qty')).toBeDefined();
-    expect(screen.getByText('Unit')).toBeDefined();
-    expect(screen.getByText('Party')).toBeDefined();
-    expect(screen.getByText('Location')).toBeDefined();
-    expect(screen.getByText('Issue to')).toBeDefined();
+    expect(screen.getByText('Date')).toBeInTheDocument();
+    expect(screen.getByText('Type')).toBeInTheDocument();
+    expect(screen.getByText('Item')).toBeInTheDocument();
+    expect(screen.getByText('Qty')).toBeInTheDocument();
+    expect(screen.getByText('Unit')).toBeInTheDocument();
+    expect(screen.getByText('Party')).toBeInTheDocument();
+    expect(screen.getByText('Location')).toBeInTheDocument();
+    expect(screen.getByText('Issue to')).toBeInTheDocument();
 
     // Verify old "Code" and "Amount" headers are NOT present
-    expect(screen.queryByText('Code')).toBeNull();
-    expect(screen.queryByText('Amount (₹)')).toBeNull();
+    expect(screen.queryByText('Code')).not.toBeInTheDocument();
+    expect(screen.queryByText('Amount (₹)')).not.toBeInTheDocument();
 
     // Verify data
-    expect(screen.getByText('ITEM001')).toBeDefined();
-    expect(screen.getByText('ITEM002')).toBeDefined();
-    expect(screen.getByText('Vendor 1')).toBeDefined();
-    expect(screen.getByText('Party 1')).toBeDefined();
-    expect(screen.getByText('Location 1')).toBeDefined();
+    expect(screen.getByText('ITEM001')).toBeInTheDocument();
+    expect(screen.getByText('ITEM002')).toBeInTheDocument();
+    expect(screen.getByText('Vendor 1')).toBeInTheDocument();
+    expect(screen.getByText('Party 1')).toBeInTheDocument();
+    expect(screen.getByText('Location 1')).toBeInTheDocument();
+  });
+
+  it('filters rows by date range', () => {
+    render(
+      <TransactionsClient
+        purchases={mockPurchases as unknown as PurchaseRow[]}
+        issues={mockIssues as unknown as IssueRow[]}
+        units={mockUnits}
+        workers={mockWorkers as unknown as WorkerOption[]}
+      />
+    );
+
+    // Both rows should be visible initially
+    expect(screen.getByText('ITEM001')).toBeInTheDocument();
+    expect(screen.getByText('ITEM002')).toBeInTheDocument();
+
+    // Set "From" date to 2023-01-02
+    const fromInput = screen.getByLabelText('From');
+    fireEvent.change(fromInput, { target: { value: '2023-01-02' } });
+
+    // Only ITEM002 should be visible (date is 2023-01-02)
+    expect(screen.queryByText('ITEM001')).not.toBeInTheDocument();
+    expect(screen.getByText('ITEM002')).toBeInTheDocument();
+
+    // Set "To" date to 2023-01-01
+    fireEvent.change(fromInput, { target: { value: '' } });
+    const toInput = screen.getByLabelText('To');
+    fireEvent.change(toInput, { target: { value: '2023-01-01' } });
+
+    // Only ITEM001 should be visible
+    expect(screen.getByText('ITEM001')).toBeInTheDocument();
+    expect(screen.queryByText('ITEM002')).not.toBeInTheDocument();
   });
 });
