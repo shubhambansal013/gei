@@ -46,6 +46,8 @@ interface DashboardKpis {
   skuCount: number;
   issueValue30d: number;
   issueValueMonth: number;
+  issuedToday: number;
+  issuedYesterday: number;
 }
 
 interface ConsumptionItem {
@@ -76,6 +78,7 @@ async function getDashboardData() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthStartStr = monthStart.toISOString().slice(0, 10);
   const today = now.toISOString().slice(0, 10);
+  const yesterday = new Date(now.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
@@ -87,6 +90,8 @@ async function getDashboardData() {
     { data: recentIn },
     { data: recentOut },
     { data: costBasis },
+    { data: issuesToday },
+    { data: issuesYesterday },
   ] = await Promise.all([
     sb.from('stock_balance').select('site_id, item_id, current_stock').limit(5000),
     sb
@@ -130,6 +135,13 @@ async function getDashboardData() {
       .gte('receipt_date', ninetyDaysAgo)
       .eq('is_deleted', false)
       .limit(10000),
+    sb.from('issues').select('item_id').eq('issue_date', today).eq('is_deleted', false).limit(1000),
+    sb
+      .from('issues')
+      .select('item_id')
+      .eq('issue_date', yesterday)
+      .eq('is_deleted', false)
+      .limit(1000),
   ]);
 
   // SKUs with positive stock
@@ -223,8 +235,18 @@ async function getDashboardData() {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 10);
 
+  const issuedToday = new Set((issuesToday ?? []).map((i) => i.item_id)).size;
+  const issuedYesterday = new Set((issuesYesterday ?? []).map((i) => i.item_id)).size;
+
   return {
-    kpis: { inwardValue, skuCount, issueValue30d, issueValueMonth },
+    kpis: {
+      inwardValue,
+      skuCount,
+      issueValue30d,
+      issueValueMonth,
+      issuedToday,
+      issuedYesterday,
+    },
     topConsumption,
     recent,
     topMaxQty,
@@ -237,7 +259,7 @@ function KpiSection({ kpis }: { kpis: DashboardKpis }) {
   return (
     <section
       aria-label="Key metrics"
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
     >
       <Kpi label="Purchase value" value={fmtINR(kpis.inwardValue)} sub="this month" icon={Wallet} />
       <Kpi
@@ -257,6 +279,18 @@ function KpiSection({ kpis }: { kpis: DashboardKpis }) {
         value={fmtNum(kpis.skuCount)}
         sub="site × item combos"
         icon={Package}
+      />
+      <Kpi
+        label="Items issued"
+        value={fmtNum(kpis.issuedToday)}
+        sub="today"
+        icon={ArrowUpFromLine}
+      />
+      <Kpi
+        label="Items issued"
+        value={fmtNum(kpis.issuedYesterday)}
+        sub="yesterday"
+        icon={ArrowUpFromLine}
       />
     </section>
   );
@@ -323,45 +357,80 @@ function RecentTransactions({ transactions }: { transactions: RecentTransaction[
           description="Record a purchase or issue to light this up."
         />
       ) : (
-        <table className="w-full text-sm">
-          <thead className="text-muted-foreground text-xs tracking-wider uppercase">
-            <tr>
-              <th className="py-1.5 text-left font-medium">Date</th>
-              <th className="py-1.5 text-left font-medium">Type</th>
-              <th className="py-1.5 text-left font-medium">Item</th>
-              <th className="py-1.5 text-right font-medium">Qty</th>
-              <th className="py-1.5 text-right font-medium">Amount</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
+        <>
+          {/* Mobile list view */}
+          <ul className="divide-y sm:hidden">
             {transactions.map((r) => (
-              <tr key={`${r.type}-${r.id}`} className="hover:bg-muted/40">
-                <td className="py-1.5 font-mono text-xs">{r.date}</td>
-                <td className="py-1.5">
+              <li key={`${r.type}-${r.id}`} className="py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground font-mono text-xs">{r.date}</span>
                   <span
                     className={
                       r.type === 'PURCHASE'
-                        ? 'text-primary font-semibold'
-                        : 'font-semibold text-emerald-700'
+                        ? 'text-primary text-xs font-semibold'
+                        : 'text-xs font-semibold text-emerald-700'
                     }
                   >
                     {r.type}
                   </span>
-                </td>
-                <td className="py-1.5">
+                </div>
+                <div className="mt-1">
                   <span className="text-muted-foreground font-mono text-xs">{r.itemCode}</span>{' '}
-                  {r.itemName}
-                </td>
-                <td className="py-1.5 text-right font-mono tabular-nums">
-                  {fmtNum(r.qty)} {r.unit}
-                </td>
-                <td className="text-muted-foreground py-1.5 text-right font-mono tabular-nums">
-                  {r.amount != null ? fmtINR(r.amount) : '—'}
-                </td>
-              </tr>
+                  <span className="text-sm">{r.itemName}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between">
+                  <div className="text-xs font-mono tabular-nums">
+                    {fmtNum(r.qty)} {r.unit}
+                  </div>
+                  <div className="text-muted-foreground text-xs font-mono tabular-nums">
+                    {r.amount != null ? fmtINR(r.amount) : '—'}
+                  </div>
+                </div>
+              </li>
             ))}
-          </tbody>
-        </table>
+          </ul>
+
+          {/* Desktop table view */}
+          <table className="hidden w-full text-sm sm:table">
+            <thead className="text-muted-foreground text-xs tracking-wider uppercase">
+              <tr>
+                <th className="py-1.5 text-left font-medium">Date</th>
+                <th className="py-1.5 text-left font-medium">Type</th>
+                <th className="py-1.5 text-left font-medium">Item</th>
+                <th className="py-1.5 text-right font-medium">Qty</th>
+                <th className="py-1.5 text-right font-medium">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {transactions.map((r) => (
+                <tr key={`${r.type}-${r.id}`} className="hover:bg-muted/40">
+                  <td className="py-1.5 font-mono text-xs">{r.date}</td>
+                  <td className="py-1.5">
+                    <span
+                      className={
+                        r.type === 'PURCHASE'
+                          ? 'text-primary font-semibold'
+                          : 'font-semibold text-emerald-700'
+                      }
+                    >
+                      {r.type}
+                    </span>
+                  </td>
+                  <td className="py-1.5">
+                    <span className="text-muted-foreground font-mono text-xs">{r.itemCode}</span>{' '}
+                    {r.itemName}
+                  </td>
+                  <td className="py-1.5 text-right font-mono tabular-nums">
+                    {fmtNum(r.qty)} {r.unit}
+                  </td>
+                  <td className="text-muted-foreground py-1.5 text-right font-mono tabular-nums">
+                    {r.amount != null ? fmtINR(r.amount) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </section>
   );
