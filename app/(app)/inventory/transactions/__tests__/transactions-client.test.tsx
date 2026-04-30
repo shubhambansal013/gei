@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { TransactionsClient, type PurchaseRow, type IssueRow } from '../transactions-client';
 import { type WorkerOption } from '@/components/worker-picker';
 
@@ -95,5 +95,37 @@ describe('TransactionsClient', () => {
     expect(screen.getByText('Vendor 1')).toBeDefined();
     expect(screen.getByText('Party 1')).toBeDefined();
     expect(screen.getByText('Location 1')).toBeDefined();
+  });
+
+  it('filters rows by date range', () => {
+    render(
+      <TransactionsClient
+        purchases={mockPurchases as unknown as PurchaseRow[]}
+        issues={mockIssues as unknown as IssueRow[]}
+        units={mockUnits}
+        workers={mockWorkers as unknown as WorkerOption[]}
+      />
+    );
+
+    // Both rows should be visible initially
+    expect(screen.getByText('ITEM001')).toBeDefined();
+    expect(screen.getByText('ITEM002')).toBeDefined();
+
+    // Set "From" date to 2023-01-02
+    const fromInput = screen.getByLabelText('From');
+    fireEvent.change(fromInput, { target: { value: '2023-01-02' } });
+
+    // Only ITEM002 should be visible (date is 2023-01-02)
+    expect(screen.queryByText('ITEM001')).toBeNull();
+    expect(screen.getByText('ITEM002')).toBeDefined();
+
+    // Set "To" date to 2023-01-01
+    fireEvent.change(fromInput, { target: { value: '' } });
+    const toInput = screen.getByLabelText('To');
+    fireEvent.change(toInput, { target: { value: '2023-01-01' } });
+
+    // Only ITEM001 should be visible
+    expect(screen.getByText('ITEM001')).toBeDefined();
+    expect(screen.queryByText('ITEM002')).toBeNull();
   });
 });

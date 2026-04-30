@@ -29,7 +29,7 @@ export default async function TransactionsPage() {
         )
         .eq('is_deleted', false)
         .order('receipt_date', { ascending: false })
-        .limit(500),
+        .limit(2000),
       sb
         .from('issues')
         .select(
@@ -42,7 +42,7 @@ export default async function TransactionsPage() {
         )
         .eq('is_deleted', false)
         .order('issue_date', { ascending: false })
-        .limit(500),
+        .limit(2000),
       sb.from('units').select('id, label, category').order('label'),
       sb
         .from('workers')
