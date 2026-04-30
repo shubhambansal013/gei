@@ -136,9 +136,10 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
   const filtered = useMemo(() => {
     const lower = search.toLowerCase();
     return rows.filter((r) => {
+      const rowDate = r.date.slice(0, 10);
       if (typeFilter !== 'ALL' && r.type !== typeFilter) return false;
-      if (from && r.date < from) return false;
-      if (to && r.date > to) return false;
+      if (from && rowDate < from) return false;
+      if (to && rowDate > to) return false;
       if (!search.trim()) return true;
       return (
         r.itemCode.toLowerCase().includes(lower) ||
