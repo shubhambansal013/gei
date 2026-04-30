@@ -73,8 +73,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build (OpenNext)
         env:
+          # Use dummy values for build to satisfy Supabase client initialization
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy_anon_key
+          SUPABASE_SERVICE_ROLE_KEY: dummy_service_role_key
         run: pnpm opennextjs-cloudflare build
       - name: Check Worker Size
         run: |
@@ -139,7 +141,7 @@ jobs:
           name: next-build
           path: .next/
       - name: Get Playwright version
-        run: echo "PLAYWRIGHT_VERSION=$(pnpm list --depth 0 @playwright/test --json | jq -r '.[0].devDependencies[\"@playwright/test\"].version')" >> $GITHUB_ENV
+        run: echo "PLAYWRIGHT_VERSION=$(jq -r '.devDependencies["@playwright/test"]' package.json | sed 's/\^//')" >> $GITHUB_ENV
       - name: Cache Playwright Browsers
         uses: actions/cache@v4
         id: playwright-cache
