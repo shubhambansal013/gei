@@ -451,12 +451,7 @@ CREATE TABLE purchases (
 -- party_id and location_unit_id can both be filled (contractor at a location).
 -- dest_site_id is mutually exclusive with the other two.
 --
--- worker_id        = structured FK to the worker who received the material
---                    (post-workforce cutover).
--- issued_to_legacy = pre-workforce free-text name of receiver. Kept so
---                    historical rows remain readable + exportable. New
---                    rows route through `worker_id` instead.
--- chk_issue_recipient: at least one of the two must be set.
+-- worker_id        = structured FK to the worker who received the material.
 -- =============================================================================
 
 CREATE TABLE issues (
@@ -471,8 +466,7 @@ CREATE TABLE issues (
   party_id          UUID REFERENCES parties(id),
   dest_site_id      UUID REFERENCES sites(id),
 
-  worker_id         UUID REFERENCES workers(id),
-  issued_to_legacy  TEXT,
+  worker_id         UUID NOT NULL REFERENCES workers(id),
   issue_date        DATE NOT NULL DEFAULT CURRENT_DATE,
   remarks           TEXT,
   created_at        TIMESTAMPTZ DEFAULT now(),
@@ -496,11 +490,6 @@ CREATE TABLE issues (
       AND location_unit_id IS NULL
       AND party_id IS NULL
     )
-  ),
-
-  -- at least one recipient pointer (structured or legacy text) must exist
-  CONSTRAINT chk_issue_recipient CHECK (
-    worker_id IS NOT NULL OR issued_to_legacy IS NOT NULL
   )
 );
 

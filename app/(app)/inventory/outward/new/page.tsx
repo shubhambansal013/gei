@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { supabaseServer } from '@/lib/supabase/server';
 import { IssueForm } from './outward-form';
 import { EmptyState } from '@/components/empty-state';

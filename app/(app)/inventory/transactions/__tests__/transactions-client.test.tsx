@@ -54,7 +54,6 @@ const mockIssues = [
     issue_date: '2023-01-02',
     qty: 5,
     unit: 'NOS',
-    issued_to_legacy: 'Old Worker',
     worker_id: 'w1',
     item: { id: 'i2', code: 'ITEM002', name: 'Item 2', stock_unit: 'NOS' },
     party: { id: 'p1', name: 'Party 1' },

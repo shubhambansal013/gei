@@ -33,7 +33,7 @@ export default async function TransactionsPage() {
       sb
         .from('issues')
         .select(
-          `id, site_id, item_id, qty, unit, issue_date, issued_to_legacy, worker_id,
+          `id, site_id, item_id, qty, unit, issue_date, worker_id,
          item:items(id, code, name, stock_unit),
          party:parties(id, name),
          location:location_units(id, name, code),

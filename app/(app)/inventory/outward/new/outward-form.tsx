@@ -28,9 +28,8 @@ type Props = {
  * contractor, or to a contractor AT a location (the most common
  * case on a large site).
  *
- * Issued-to: a WorkerPicker (with inline "+ New worker") replaces
- * the free-text field. Sites with no workers registered fall back
- * to a plain Input that flows into issued_to_legacy.
+ * Issued-to: a WorkerPicker (with inline "+ New worker") is used
+ * for selecting the recipient worker.
  */
 export function IssueForm({ sites, items, parties, locations, workers }: Props) {
   const [pending, startTransition] = useTransition();
@@ -42,13 +41,6 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
   const [locationId, setLocationId] = useState<string | null>(null);
   const [partyId, setPartyId] = useState<string | null>(null);
   const [workerId, setWorkerId] = useState<string | null>(null);
-  const [issuedTo, setIssuedTo] = useState('');
-
-  const siteWorkers = useMemo(
-    () => workers.filter((w) => w.current_site_id === siteId),
-    [workers, siteId],
-  );
-  const useLegacyInput = siteWorkers.length === 0;
 
   const selectedItem = items.find((i) => i.id === itemId);
 
@@ -77,12 +69,7 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       toast.error('Pick at least one of Location or Party.');
       return;
     }
-    if (useLegacyInput) {
-      if (!issuedTo.trim()) {
-        toast.error('Issued-to name is required.');
-        return;
-      }
-    } else if (!workerId) {
+    if (!workerId) {
       toast.error('Pick the worker who received the material.');
       return;
     }
@@ -94,7 +81,6 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       qty,
       unit: selectedItem?.stock_unit ?? '',
       worker_id: workerId,
-      issued_to_legacy: useLegacyInput ? issuedTo.trim() || null : null,
     };
 
     const payload = locationId
@@ -116,7 +102,6 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
           setLocationId(null);
           setPartyId(null);
           setWorkerId(null);
-          setIssuedTo('');
         } else {
           toast.error(res.error);
         }
@@ -209,22 +194,13 @@ export function IssueForm({ sites, items, parties, locations, workers }: Props) 
       </p>
 
       <div className="space-y-1.5">
-        <Label>Issued to {useLegacyInput ? '' : '*'}</Label>
-        {useLegacyInput ? (
-          <Input
-            id="issuedTo"
-            value={issuedTo}
-            onChange={(e) => setIssuedTo(e.target.value)}
-            placeholder="Name of person who received (no workers registered)"
-          />
-        ) : (
-          <WorkerPicker
-            workers={workers}
-            siteId={siteId ?? ''}
-            value={workerId}
-            onChange={setWorkerId}
-          />
-        )}
+        <Label>Issued to *</Label>
+        <WorkerPicker
+          workers={workers}
+          siteId={siteId ?? ''}
+          value={workerId}
+          onChange={setWorkerId}
+        />
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
