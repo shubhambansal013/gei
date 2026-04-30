@@ -62,7 +62,7 @@ jobs:
           name: coverage-report
           path: coverage/
 
-  build-app:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +73,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build (OpenNext)
         env:
-          # Use dummy values for build to satisfy Supabase client initialization
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy_anon_key
           SUPABASE_SERVICE_ROLE_KEY: dummy_service_role_key
@@ -81,7 +80,6 @@ jobs:
       - name: Check Worker Size
         run: |
           # Cloudflare free plan limit is 3MB (gzipped)
-          # We check the handler size as it's the main contributor
           SIZE=$(gzip -c .open-next/server-functions/default/handler.mjs | wc -c)
           LIMIT=3145728 # 3 MiB
           echo "Worker handler gzipped size: $SIZE bytes"
@@ -89,17 +87,6 @@ jobs:
             echo "Error: Worker size exceeds 3MB limit!"
             exit 1
           fi
-      - name: Verify Build Output
-        run: |
-          ls -la .next
-          ls -la .open-next
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: next-build-artifact
-          path: .next
-          if-no-files-found: error
-          retention-days: 1
 
   database-tests:
     runs-on: ubuntu-latest
@@ -129,7 +116,7 @@ jobs:
 
   playwright-tests:
     runs-on: ubuntu-latest
-    needs: [build-app, database-tests]
+    needs: [build, database-tests]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -140,11 +127,6 @@ jobs:
         with: { version: latest }
       - run: supabase start
       - run: pnpm install --frozen-lockfile
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: next-build-artifact
-          path: .next
       - name: Get Playwright version
         run: echo "PLAYWRIGHT_VERSION=$(jq -r '.devDependencies["@playwright/test"]' package.json | sed 's/\^//')" >> $GITHUB_ENV
       - name: Cache Playwright Browsers
