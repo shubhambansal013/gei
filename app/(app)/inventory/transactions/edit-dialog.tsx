@@ -88,7 +88,6 @@ export function EditDialog({ target, units, workers, onOpenChange, onSuccess }: 
               reason: reason.trim(),
               ...(qtyChanged ? { qty } : {}),
               ...(workerChanged ? { worker_id: workerId } : {}),
-              ...(refChanged ? { issued_to_legacy: ref || null } : {}),
             };
         const res = isPurchase ? await editPurchase(payload) : await editIssue(payload);
         if (res.ok) {

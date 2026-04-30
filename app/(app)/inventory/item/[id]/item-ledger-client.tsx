@@ -29,8 +29,7 @@ type IssueRow = {
   unit: string;
   rate: number | null;
   remarks: string | null;
-  issued_to_legacy: string | null;
-  worker_id: string | null;
+  worker_id: string;
   party: { id: string; name: string } | null;
   location: { id: string; name: string; code: string } | null;
   dest: { id: string; code: string; name: string } | null;
@@ -88,9 +87,7 @@ export function ItemLedgerClient({ item, purchases, issues }: Props) {
       rate: i.rate,
       remarks: i.worker
         ? `To ${i.worker.full_name} (${i.worker.code})`
-        : i.issued_to_legacy
-          ? `To ${i.issued_to_legacy}`
-          : (i.remarks ?? ''),
+        : (i.remarks ?? ''),
     }));
     const combined = [...ins, ...outs].sort((a, b) => a.date.localeCompare(b.date));
 

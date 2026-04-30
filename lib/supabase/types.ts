@@ -95,7 +95,6 @@ export type Database = {
           id: string;
           is_deleted: boolean | null;
           issue_date: string;
-          issued_to_legacy: string | null;
           item_id: string;
           location_unit_id: string | null;
           party_id: string | null;
@@ -105,7 +104,7 @@ export type Database = {
           site_id: string;
           unit: string;
           updated_at: string | null;
-          worker_id: string | null;
+          worker_id: string;
         };
         Insert: {
           created_at?: string | null;
@@ -117,7 +116,6 @@ export type Database = {
           id?: string;
           is_deleted?: boolean | null;
           issue_date?: string;
-          issued_to_legacy?: string | null;
           item_id: string;
           location_unit_id?: string | null;
           party_id?: string | null;
@@ -127,7 +125,7 @@ export type Database = {
           site_id: string;
           unit: string;
           updated_at?: string | null;
-          worker_id?: string | null;
+          worker_id?: string;
         };
         Update: {
           created_at?: string | null;
@@ -139,7 +137,6 @@ export type Database = {
           id?: string;
           is_deleted?: boolean | null;
           issue_date?: string;
-          issued_to_legacy?: string | null;
           item_id?: string;
           location_unit_id?: string | null;
           party_id?: string | null;
@@ -149,7 +146,7 @@ export type Database = {
           site_id?: string;
           unit?: string;
           updated_at?: string | null;
-          worker_id?: string | null;
+          worker_id?: string;
         };
         Relationships: [
           {

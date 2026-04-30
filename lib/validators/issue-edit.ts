@@ -12,11 +12,8 @@ export const issueEditSchema = z.object({
     .number()
     .refine((v) => v !== 0, 'Qty cannot be 0')
     .optional(),
-  // Post-workforce: structured pointer to the recipient worker.
+  // Structured pointer to the recipient worker.
   worker_id: z.string().uuid().nullable().optional(),
-  // Pre-workforce rows stored the name in free-text; renamed from
-  // `issued_to` in migration 20260423000006.
-  issued_to_legacy: z.string().max(120).nullable().optional(),
   remarks: z.string().max(500).nullable().optional(),
   rate: z.coerce.number().nonnegative().nullable().optional(),
 });

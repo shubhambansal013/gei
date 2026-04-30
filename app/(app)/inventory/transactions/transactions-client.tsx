@@ -61,8 +61,7 @@ export type IssueRow = {
   issue_date: string;
   qty: number;
   unit: string;
-  issued_to_legacy: string | null;
-  worker_id: string | null;
+  worker_id: string;
   item: { id: string; code: string | null; name: string; stock_unit: string } | null;
   party: { id: string; name: string } | null;
   location: { id: string; name: string; code: string } | null;
@@ -120,7 +119,7 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
         unit: i.unit,
         party: i.party?.name ?? '',
         location: i.location?.name ?? (i.dest ? `→ ${i.dest.code}` : ''),
-        ref: i.issued_to_legacy ?? '',
+        ref: '',
         siteId: i.site_id,
         workerId: i.worker_id,
       };
@@ -208,12 +207,9 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
       cell: ({ row }) => {
         const r = row.original;
         if (r.type === 'PURCHASE') return r.ref;
-        // For issues, if we have a worker record, show that. Otherwise show the legacy text.
-        if (r.workerId) {
-          const w = workers.find((w) => w.id === r.workerId);
-          if (w) return `${w.full_name} (${w.code})`;
-        }
-        return r.ref;
+        const w = workers.find((w) => w.id === r.workerId);
+        if (w) return `${w.full_name} (${w.code})`;
+        return '';
       },
     },
     {

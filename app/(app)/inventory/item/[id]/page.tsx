@@ -29,7 +29,7 @@ export default async function ItemLedgerPage({ params }: { params: Promise<{ id:
     sb
       .from('issues')
       .select(
-        `id, issue_date, qty, unit, rate, remarks, issued_to_legacy, worker_id,
+        `id, issue_date, qty, unit, rate, remarks, worker_id,
          party:parties(id, name),
          location:location_units(id, name, code),
          dest:sites!issues_dest_site_id_fkey(id, code, name),
