@@ -2,7 +2,9 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useOptimalPageSize } from '@/lib/hooks/use-optimal-page-size';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/data-grid';
 import { ExportButton } from '@/components/export-button';
@@ -81,8 +83,11 @@ type Props = {
 
 export function TransactionsClient({ purchases, issues, units, workers }: Props) {
   const router = useRouter();
+  const pageSize = useOptimalPageSize();
   const [, startTransition] = useTransition();
   const [search, setSearch] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'PURCHASE' | 'ISSUE'>('ALL');
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string;
@@ -131,7 +136,10 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
   const filtered = useMemo(() => {
     const lower = search.toLowerCase();
     return rows.filter((r) => {
+      const rowDate = r.date.slice(0, 10);
       if (typeFilter !== 'ALL' && r.type !== typeFilter) return false;
+      if (from && rowDate < from) return false;
+      if (to && rowDate > to) return false;
       if (!search.trim()) return true;
       return (
         r.itemCode.toLowerCase().includes(lower) ||
@@ -141,7 +149,7 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
         r.ref.toLowerCase().includes(lower)
       );
     });
-  }, [rows, search, typeFilter]);
+  }, [rows, search, typeFilter, from, to]);
 
   const columns: ColumnDef<UnifiedRow, unknown>[] = [
     { accessorKey: 'date', header: 'Date' },
@@ -279,13 +287,46 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
         </div>
       </header>
 
-      <div className="print:hide flex flex-wrap items-center gap-2">
-        <Input
-          placeholder="Search item, code, destination, ref…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
-        />
+      <div className="print:hide flex flex-wrap items-end gap-2">
+        <div className="space-y-1">
+          <Label htmlFor="search" className="text-xs">
+            Search
+          </Label>
+          <Input
+            id="search"
+            placeholder="Search item, code, destination, ref…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-64"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="from" className="text-xs">
+            From
+          </Label>
+          <Input
+            id="from"
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="w-40"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="to" className="text-xs">
+            To
+          </Label>
+          <Input
+            id="to"
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="w-40"
+          />
+        </div>
+
         <div className="flex gap-1 rounded-sm border p-0.5">
           {(['ALL', 'PURCHASE', 'ISSUE'] as const).map((t) => (
             <button
@@ -384,7 +425,13 @@ export function TransactionsClient({ purchases, issues, units, workers }: Props)
           }
         />
       ) : (
-        <DataGrid columns={columns} data={filtered} showRowNumbers />
+        <DataGrid
+          columns={columns}
+          data={filtered}
+          showRowNumbers
+          pagination
+          pageSize={pageSize}
+        />
       )}
     </div>
   );

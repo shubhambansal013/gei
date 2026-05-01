@@ -1,19 +1,33 @@
-name: Deploy
+name: CI/CD
 
 on:
   push:
     branches:
       - main
       - staging
+  pull_request:
+    branches: [main, staging]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.gitignore'
+      - '.prettierignore'
+      - 'LICENSE'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:
+    if: github.event_name != 'pull_request' || (github.head_ref != 'main' && github.head_ref != 'staging')
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
   check-migrations:
     needs: ci
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     name: Check for Destructive Migrations
     outputs:
@@ -89,6 +103,7 @@ jobs:
     name: Deploy to Cloudflare
     needs: [migrate-safe, migrate-destructive]
     if: |
+      github.event_name != 'pull_request' &&
       always() &&
       (needs.migrate-safe.result == 'success' || needs.migrate-destructive.result == 'success')
     environment: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
@@ -107,7 +122,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile

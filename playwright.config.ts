@@ -12,8 +12,14 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    ...(process.env.CI &&
+    (process.env.GITHUB_EVENT_NAME === 'pull_request' ||
+      process.env.GITHUB_EVENT_NAME === 'workflow_dispatch')
+      ? []
+      : [
+          { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+          { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+        ]),
   ],
   webServer: {
     command: 'pnpm build && pnpm start',

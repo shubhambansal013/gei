@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { supabaseServer } from '@/lib/supabase/server';
 import { EmptyState } from '@/components/empty-state';
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Package, Wallet } from 'lucide-react';
+import { ArrowUpFromLine, Package, Wallet } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +30,7 @@ export default async function DashboardPage() {
 
       <KpiSection kpis={data.kpis} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <LowStockAlerts items={data.lowStock} />
+      <div className="grid gap-4">
         <TopConsumption items={data.topConsumption} maxQty={data.topMaxQty} />
       </div>
 
@@ -45,17 +44,10 @@ export default async function DashboardPage() {
 interface DashboardKpis {
   inwardValue: number;
   skuCount: number;
-  inwardQty: number;
-  outwardQty: number;
-}
-
-interface LowStockItem {
-  id: string;
-  code: string | null;
-  name: string;
-  stock_unit: string;
-  reorder_level: number | null;
-  current: number;
+  issueValue30d: number;
+  issueValueMonth: number;
+  issuedToday: number;
+  issuedYesterday: number;
 }
 
 interface ConsumptionItem {
@@ -86,6 +78,7 @@ async function getDashboardData() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthStartStr = monthStart.toISOString().slice(0, 10);
   const today = now.toISOString().slice(0, 10);
+  const yesterday = new Date(now.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
@@ -93,11 +86,12 @@ async function getDashboardData() {
     { data: stock },
     { data: inwardMonth },
     { data: outwardMonth },
-    { data: reorderItems },
     { data: consumption },
     { data: recentIn },
     { data: recentOut },
     { data: costBasis },
+    { data: issuesToday },
+    { data: issuesYesterday },
   ] = await Promise.all([
     sb.from('stock_balance').select('site_id, item_id, current_stock').limit(5000),
     sb
@@ -108,14 +102,10 @@ async function getDashboardData() {
       .eq('is_deleted', false),
     sb
       .from('issues')
-      .select('qty')
+      .select('item_id, qty')
       .gte('issue_date', monthStartStr)
       .lte('issue_date', today)
       .eq('is_deleted', false),
-    sb
-      .from('items')
-      .select('id, name, code, stock_unit, reorder_level')
-      .not('reorder_level', 'is', null),
     sb
       .from('issues')
       .select('qty, item:items(id, code, name, stock_unit)')
@@ -145,6 +135,13 @@ async function getDashboardData() {
       .gte('receipt_date', ninetyDaysAgo)
       .eq('is_deleted', false)
       .limit(10000),
+    sb.from('issues').select('item_id').eq('issue_date', today).eq('is_deleted', false).limit(1000),
+    sb
+      .from('issues')
+      .select('item_id')
+      .eq('issue_date', yesterday)
+      .eq('is_deleted', false)
+      .limit(1000),
   ]);
 
   // SKUs with positive stock
@@ -156,20 +153,6 @@ async function getDashboardData() {
   const skuCount = activeSkuIds.size;
 
   const inwardValue = (inwardMonth ?? []).reduce((sum, p) => sum + (p.total_amount ?? 0), 0);
-  const outwardQty = (outwardMonth ?? []).reduce((sum, i) => sum + (i.qty ?? 0), 0);
-  const inwardQty = (inwardMonth ?? []).reduce((sum, p) => sum + (p.stock_qty ?? 0), 0);
-
-  // Low-stock alert: join reorder items with current stock
-  const stockByItem = new Map<string, number>();
-  for (const s of stock ?? []) {
-    if (!s.item_id) continue;
-    stockByItem.set(s.item_id, (stockByItem.get(s.item_id) ?? 0) + (s.current_stock ?? 0));
-  }
-  const lowStock: LowStockItem[] = (reorderItems ?? [])
-    .map((i) => ({ ...i, current: stockByItem.get(i.id) ?? 0 }))
-    .filter((i) => i.reorder_level != null && i.current < i.reorder_level)
-    .sort((a, b) => a.current / a.reorder_level! - b.current / b.reorder_level!)
-    .slice(0, 8);
 
   // Running-average purchase rate per item over the last 90 days.
   // avg = Σ total_amount / Σ stock_qty. Used as a read-only heuristic for
@@ -192,7 +175,13 @@ async function getDashboardData() {
     if (v.qty > 0) avgCostByItem.set(id, v.amount / v.qty);
   }
 
+  const issueValueMonth = (outwardMonth ?? []).reduce((sum, i) => {
+    const rate = avgCostByItem.get(i.item_id) ?? 0;
+    return sum + (i.qty ?? 0) * rate;
+  }, 0);
+
   // Top 10 items by outward qty over last 30 days
+  let issueValue30d = 0;
   const byItem = new Map<string, ConsumptionItem>();
   for (const row of consumption ?? []) {
     const item = row.item;
@@ -208,7 +197,11 @@ async function getDashboardData() {
     const q = row.qty ?? 0;
     prev.qty += q;
     const rate = avgCostByItem.get(item.id);
-    if (rate != null) prev.amount += q * rate;
+    if (rate != null) {
+      const val = q * rate;
+      prev.amount += val;
+      issueValue30d += val;
+    }
     byItem.set(item.id, prev);
   }
   const topConsumption = [...byItem.values()].sort((a, b) => b.qty - a.qty).slice(0, 10);
@@ -242,9 +235,18 @@ async function getDashboardData() {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 10);
 
+  const issuedToday = new Set((issuesToday ?? []).map((i) => i.item_id)).size;
+  const issuedYesterday = new Set((issuesYesterday ?? []).map((i) => i.item_id)).size;
+
   return {
-    kpis: { inwardValue, skuCount, inwardQty, outwardQty },
-    lowStock,
+    kpis: {
+      inwardValue,
+      skuCount,
+      issueValue30d,
+      issueValueMonth,
+      issuedToday,
+      issuedYesterday,
+    },
     topConsumption,
     recent,
     topMaxQty,
@@ -257,9 +259,21 @@ function KpiSection({ kpis }: { kpis: DashboardKpis }) {
   return (
     <section
       aria-label="Key metrics"
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
     >
       <Kpi label="Purchase value" value={fmtINR(kpis.inwardValue)} sub="this month" icon={Wallet} />
+      <Kpi
+        label="Issue value"
+        value={fmtINR(kpis.issueValue30d)}
+        sub="last 30 days"
+        icon={ArrowUpFromLine}
+      />
+      <Kpi
+        label="Issue value"
+        value={fmtINR(kpis.issueValueMonth)}
+        sub="this month"
+        icon={ArrowUpFromLine}
+      />
       <Kpi
         label="SKUs in stock"
         value={fmtNum(kpis.skuCount)}
@@ -267,62 +281,17 @@ function KpiSection({ kpis }: { kpis: DashboardKpis }) {
         icon={Package}
       />
       <Kpi
-        label="Purchase qty"
-        value={fmtNum(Math.round(kpis.inwardQty))}
-        sub="this month"
-        icon={ArrowDownToLine}
-      />
-      <Kpi
-        label="Issue qty"
-        value={fmtNum(Math.round(kpis.outwardQty))}
-        sub="this month"
+        label="Items issued"
+        value={fmtNum(kpis.issuedToday)}
+        sub="today"
         icon={ArrowUpFromLine}
       />
-    </section>
-  );
-}
-
-function LowStockAlerts({ items }: { items: LowStockItem[] }) {
-  return (
-    <section className="bg-card rounded-md border p-5 shadow-sm">
-      <header className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-          <AlertTriangle className="text-destructive h-4 w-4" />
-          Low-stock alerts
-        </h2>
-        {items.length > 0 && (
-          <span className="text-muted-foreground text-xs">
-            {items.length} item{items.length === 1 ? '' : 's'}
-          </span>
-        )}
-      </header>
-      {items.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Every item with a reorder level is above threshold. Set{' '}
-          <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">reorder_level</code> in
-          the item master to enable alerts.
-        </p>
-      ) : (
-        <ul className="divide-y">
-          {items.map((i) => (
-            <li key={i.id} className="flex items-baseline justify-between py-2 text-sm">
-              <Link
-                href={`/inventory/item/${i.id}`}
-                className="hover:text-primary truncate underline-offset-2 hover:underline"
-              >
-                <span className="font-mono text-xs">{i.code ?? ''}</span>{' '}
-                <span className="font-medium">{i.name}</span>
-              </Link>
-              <span className="ml-2 shrink-0 font-mono text-xs tabular-nums">
-                <span className="text-destructive font-semibold">{fmtNum(i.current)}</span>{' '}
-                <span className="text-muted-foreground">
-                  / {fmtNum(i.reorder_level ?? 0)} {i.stock_unit}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <Kpi
+        label="Items issued"
+        value={fmtNum(kpis.issuedYesterday)}
+        sub="yesterday"
+        icon={ArrowUpFromLine}
+      />
     </section>
   );
 }
@@ -388,45 +357,80 @@ function RecentTransactions({ transactions }: { transactions: RecentTransaction[
           description="Record a purchase or issue to light this up."
         />
       ) : (
-        <table className="w-full text-sm">
-          <thead className="text-muted-foreground text-xs tracking-wider uppercase">
-            <tr>
-              <th className="py-1.5 text-left font-medium">Date</th>
-              <th className="py-1.5 text-left font-medium">Type</th>
-              <th className="py-1.5 text-left font-medium">Item</th>
-              <th className="py-1.5 text-right font-medium">Qty</th>
-              <th className="py-1.5 text-right font-medium">Amount</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
+        <>
+          {/* Mobile list view */}
+          <ul className="divide-y sm:hidden">
             {transactions.map((r) => (
-              <tr key={`${r.type}-${r.id}`} className="hover:bg-muted/40">
-                <td className="py-1.5 font-mono text-xs">{r.date}</td>
-                <td className="py-1.5">
+              <li key={`${r.type}-${r.id}`} className="py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground font-mono text-xs">{r.date}</span>
                   <span
                     className={
                       r.type === 'PURCHASE'
-                        ? 'text-primary font-semibold'
-                        : 'font-semibold text-emerald-700'
+                        ? 'text-primary text-xs font-semibold'
+                        : 'text-xs font-semibold text-emerald-700'
                     }
                   >
                     {r.type}
                   </span>
-                </td>
-                <td className="py-1.5">
+                </div>
+                <div className="mt-1">
                   <span className="text-muted-foreground font-mono text-xs">{r.itemCode}</span>{' '}
-                  {r.itemName}
-                </td>
-                <td className="py-1.5 text-right font-mono tabular-nums">
-                  {fmtNum(r.qty)} {r.unit}
-                </td>
-                <td className="text-muted-foreground py-1.5 text-right font-mono tabular-nums">
-                  {r.amount != null ? fmtINR(r.amount) : '—'}
-                </td>
-              </tr>
+                  <span className="text-sm">{r.itemName}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between">
+                  <div className="text-xs font-mono tabular-nums">
+                    {fmtNum(r.qty)} {r.unit}
+                  </div>
+                  <div className="text-muted-foreground text-xs font-mono tabular-nums">
+                    {r.amount != null ? fmtINR(r.amount) : '—'}
+                  </div>
+                </div>
+              </li>
             ))}
-          </tbody>
-        </table>
+          </ul>
+
+          {/* Desktop table view */}
+          <table className="hidden w-full text-sm sm:table">
+            <thead className="text-muted-foreground text-xs tracking-wider uppercase">
+              <tr>
+                <th className="py-1.5 text-left font-medium">Date</th>
+                <th className="py-1.5 text-left font-medium">Type</th>
+                <th className="py-1.5 text-left font-medium">Item</th>
+                <th className="py-1.5 text-right font-medium">Qty</th>
+                <th className="py-1.5 text-right font-medium">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {transactions.map((r) => (
+                <tr key={`${r.type}-${r.id}`} className="hover:bg-muted/40">
+                  <td className="py-1.5 font-mono text-xs">{r.date}</td>
+                  <td className="py-1.5">
+                    <span
+                      className={
+                        r.type === 'PURCHASE'
+                          ? 'text-primary font-semibold'
+                          : 'font-semibold text-emerald-700'
+                      }
+                    >
+                      {r.type}
+                    </span>
+                  </td>
+                  <td className="py-1.5">
+                    <span className="text-muted-foreground font-mono text-xs">{r.itemCode}</span>{' '}
+                    {r.itemName}
+                  </td>
+                  <td className="py-1.5 text-right font-mono tabular-nums">
+                    {fmtNum(r.qty)} {r.unit}
+                  </td>
+                  <td className="text-muted-foreground py-1.5 text-right font-mono tabular-nums">
+                    {r.amount != null ? fmtINR(r.amount) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </section>
   );
