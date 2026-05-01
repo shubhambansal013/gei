@@ -149,17 +149,17 @@ export function PivotClient({ issues }: Props) {
           description="Record an issue first; the pivot fills in as you issue material."
         />
       ) : (
-        <div className="overflow-auto">
+        <div className="max-h-[calc(100vh-12rem)] overflow-auto">
           <table className="excel-grid w-full border-collapse">
             <thead>
               <tr>
-                <th className="bg-muted sticky left-0 z-30 text-left">Item</th>
+                <th className="bg-muted sticky top-0 left-0 z-30 text-left">Item</th>
                 {colKeys.map((ck) => (
-                  <th key={ck} className="text-right">
+                  <th key={ck} className="sticky top-0 z-10 text-right">
                     {colLabels.get(ck)}
                   </th>
                 ))}
-                <th className="bg-primary/10 text-right font-bold">Total</th>
+                <th className="bg-primary/10 sticky top-0 z-10 text-right font-bold">Total</th>
               </tr>
             </thead>
             <tbody>
