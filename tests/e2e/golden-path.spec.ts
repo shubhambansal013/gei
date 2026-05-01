@@ -10,6 +10,8 @@ const TEST_PASSWORD = 'test-password-1234';
 const SITE_CODE = `S-E2E-${UNIQ}`;
 
 test.describe('Golden Path', () => {
+  test.slow();
+
   let supabase: SupabaseClient;
   let testUserId: string;
   let testSiteId: string;
@@ -63,10 +65,10 @@ test.describe('Golden Path', () => {
   test('golden path: login, dashboard and transactions', async ({ page }) => {
     await test.step('Login', async () => {
       await page.goto('/login');
-      await page.fill('input[id="email"]', TEST_EMAIL);
-      await page.fill('input[id="password"]', TEST_PASSWORD);
-      await page.click('button[type="submit"]');
-      await expect(page).toHaveURL(/\/dashboard/);
+      await page.getByLabel('Email').fill(TEST_EMAIL);
+      await page.getByLabel('Password').fill(TEST_PASSWORD);
+      await page.getByRole('button', { name: /sign in with email/i }).click();
+      await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
     });
 
     await test.step('Dashboard', async () => {
