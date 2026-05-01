@@ -42,6 +42,7 @@ export default async function WorkersPage() {
         )
         `,
       )
+      .is('worker_affiliations.effective_to', null)
       .order('code'),
     sb.from('sites').select('id, name, code').order('code'),
     sb
@@ -54,7 +55,7 @@ export default async function WorkersPage() {
   if (workersResult.error) throw new Error(workersResult.error.message);
 
   const flattened = ((workersResult.data ?? []) as unknown as WorkerJoin[]).map((w) => {
-    const open = w.worker_affiliations.find((a) => a.effective_to === null);
+    const open = w.worker_affiliations[0];
     return {
       id: w.id,
       code: w.code,
