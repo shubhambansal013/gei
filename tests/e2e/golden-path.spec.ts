@@ -60,31 +60,24 @@ test.describe('Golden Path', () => {
     }
   });
 
-  test('should login and show dashboard', async ({ page }) => {
-    await page.goto('/login');
+  test('golden path: login, dashboard and transactions', async ({ page }) => {
+    await test.step('Login', async () => {
+      await page.goto('/login');
+      await page.fill('input[id="email"]', TEST_EMAIL);
+      await page.fill('input[id="password"]', TEST_PASSWORD);
+      await page.click('button[type="submit"]');
+      await expect(page).toHaveURL(/\/dashboard/);
+    });
 
-    await page.fill('input[id="email"]', TEST_EMAIL);
-    await page.fill('input[id="password"]', TEST_PASSWORD);
-    await page.click('button[type="submit"]');
+    await test.step('Dashboard', async () => {
+      await expect(page.locator('h1')).toHaveText('Dashboard');
+      await expect(page.getByText('Live across every site')).toBeVisible();
+    });
 
-    await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.locator('h1')).toHaveText('Dashboard');
-    // Verify our test site name is visible in the description or somewhere if applicable
-    await expect(page.getByText('Live across every site')).toBeVisible();
-  });
-
-  test('should navigate to transactions', async ({ page }) => {
-    // Login
-    await page.goto('/login');
-    await page.fill('input[id="email"]', TEST_EMAIL);
-    await page.fill('input[id="password"]', TEST_PASSWORD);
-    await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/dashboard/);
-
-    // Click Transactions in sidebar
-    await page.getByRole('link', { name: 'Transactions' }).click();
-
-    await expect(page).toHaveURL(/\/inventory\/transactions/);
-    await expect(page.locator('h1')).toHaveText('Transactions');
+    await test.step('Navigate to Transactions', async () => {
+      await page.getByRole('link', { name: 'Transactions' }).click();
+      await expect(page).toHaveURL(/\/inventory\/transactions/);
+      await expect(page.locator('h1')).toHaveText('Transactions');
+    });
   });
 });
