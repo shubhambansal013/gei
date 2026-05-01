@@ -3,6 +3,7 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
+import { safeErrorMessage } from '@/lib/actions/errors';
 import { upsertPermissionOverride, deletePermissionOverride } from './actions';
 
 const MODULES = ['INVENTORY', 'WORKERS', 'LOCATION', 'REPORTS'] as const;
@@ -41,43 +42,39 @@ export function OverridesPanel({ accessId, overrides }: Props) {
     const existing = byKey.get(`${module_id}:${action_id}`);
     startTransition(async () => {
       try {
+        let res;
+        let successMessage = '';
+
         // State machine: none → grant(true) → deny(false) → none
         if (!existing) {
-          const res = await upsertPermissionOverride({
+          res = await upsertPermissionOverride({
             access_id: accessId,
             module_id,
             action_id,
             granted: true,
           });
-          if (res.ok) {
-            toast.success('Override granted.');
-          } else {
-            toast.error(res.error);
-          }
+          successMessage = 'Override granted.';
         } else if (existing.granted) {
-          const res = await upsertPermissionOverride({
+          res = await upsertPermissionOverride({
             access_id: accessId,
             module_id,
             action_id,
             granted: false,
           });
-          if (res.ok) {
-            toast.success('Override denied.');
-          } else {
-            toast.error(res.error);
-          }
+          successMessage = 'Override denied.';
         } else {
-          const res = await deletePermissionOverride({ override_id: existing.id });
-          if (res.ok) {
-            toast.success('Override removed.');
-          } else {
-            toast.error(res.error);
-          }
+          res = await deletePermissionOverride({ override_id: existing.id });
+          successMessage = 'Override removed.';
         }
-        router.refresh();
+
+        if (res.ok) {
+          toast.success(successMessage);
+          router.refresh();
+        } else {
+          toast.error(res.error);
+        }
       } catch (e) {
-        console.error(e);
-        toast.error('Failed to update override.');
+        toast.error(safeErrorMessage(e));
       }
     });
   };
