@@ -1,7 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useMemo } from 'react';
 import { PrintButton } from '@/components/print-button';
 import { ExportButton } from '@/components/export-button';
 import { EmptyState } from '@/components/empty-state';
@@ -31,17 +29,6 @@ function destKey(i: IssueRow): { key: string; label: string } {
  * render instantly for a few thousand issue rows. Totals row + col.
  */
 export function PivotClient({ issues }: Props) {
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-
-  const filtered = useMemo(() => {
-    return issues.filter((i) => {
-      if (from && i.issue_date < from) return false;
-      if (to && i.issue_date > to) return false;
-      return true;
-    });
-  }, [issues, from, to]);
-
   const { rowKeys, rowLabels, colKeys, colLabels, colUnit, cells, rowTotals, colTotals, grand } =
     useMemo(() => {
       const rowLabels = new Map<string, string>();
@@ -52,7 +39,7 @@ export function PivotClient({ issues }: Props) {
       const colTotals = new Map<string, number>();
       let grand = 0;
 
-      for (const i of filtered) {
+      for (const i of issues) {
         const r = destKey(i);
         const itemId = i.item?.id ?? 'unknown';
         const itemLabel = i.item?.name ?? '—';
@@ -84,7 +71,7 @@ export function PivotClient({ issues }: Props) {
         colTotals,
         grand,
       };
-    }, [filtered]);
+    }, [issues]);
 
   // Export as wide rows — one entry per destination with every item column.
   const exportRows = useMemo(() => {
@@ -116,36 +103,11 @@ export function PivotClient({ issues }: Props) {
       <header className="print:hide">
         <h1 className="text-xl font-semibold tracking-tight">Consumption Pivot</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Sum of issue qty by destination (rows) and item (columns). Date-range filter applies to
-          `issue_date`.
+          Sum of issue qty by destination (rows) and item (columns).
         </p>
       </header>
 
       <div className="print:hide flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="from" className="text-xs">
-            From
-          </Label>
-          <Input
-            id="from"
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="w-40"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="to" className="text-xs">
-            To
-          </Label>
-          <Input
-            id="to"
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="w-40"
-          />
-        </div>
         <div className="ml-auto flex items-center gap-2">
           <ExportButton
             filename="pivot"
@@ -160,18 +122,14 @@ export function PivotClient({ issues }: Props) {
       {rowKeys.length === 0 || colKeys.length === 0 ? (
         <EmptyState
           title="No issues yet"
-          description={
-            issues.length === 0
-              ? 'Record an issue first; the pivot fills in as you issue material.'
-              : 'Try widening the date range.'
-          }
+          description="Record an issue first; the pivot fills in as you issue material."
         />
       ) : (
         <div className="overflow-auto">
           <table className="excel-grid w-full border-collapse">
             <thead>
               <tr>
-                <th className="bg-muted sticky left-0 z-20 text-left">Destination</th>
+                <th className="bg-muted sticky left-0 z-30 text-left">Destination</th>
                 {colKeys.map((ck) => (
                   <th key={ck} className="text-right">
                     <div>{colLabels.get(ck)}</div>
@@ -186,7 +144,7 @@ export function PivotClient({ issues }: Props) {
             <tbody>
               {rowKeys.map((rk) => (
                 <tr key={rk}>
-                  <td className="bg-card sticky left-0 z-10 font-medium">{rowLabels.get(rk)}</td>
+                  <td className="bg-card sticky left-0 z-20 font-medium">{rowLabels.get(rk)}</td>
                   {colKeys.map((ck) => {
                     const cell = cells.get(`${rk}|${ck}`);
                     return (
@@ -201,7 +159,7 @@ export function PivotClient({ issues }: Props) {
                 </tr>
               ))}
               <tr className="bg-muted/60 font-semibold">
-                <td className="bg-muted sticky left-0 z-10">Total</td>
+                <td className="bg-muted sticky left-0 z-20">Total</td>
                 {colKeys.map((ck) => (
                   <td key={ck} className="text-right tabular-nums">
                     {(colTotals.get(ck) ?? 0).toLocaleString('en-IN')}
