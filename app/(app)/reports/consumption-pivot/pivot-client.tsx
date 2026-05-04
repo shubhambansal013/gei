@@ -17,66 +17,89 @@ type IssueRow = {
 type Props = { issues: IssueRow[] };
 
 function destKey(i: IssueRow): { key: string; label: string } {
+  if (i.dest) return { key: `S:${i.dest.id}`, label: `Site ${i.dest.code}` };
+  if (i.location && i.party) {
+    return {
+      key: `L:${i.location.id}|P:${i.party.id}`,
+      label: `${i.location.name} (${i.party.name})`,
+    };
+  }
   if (i.location) return { key: `L:${i.location.id}`, label: i.location.name };
   if (i.party) return { key: `P:${i.party.id}`, label: i.party.name };
-  if (i.dest) return { key: `S:${i.dest.id}`, label: `Site ${i.dest.code}` };
   return { key: 'U', label: '—' };
 }
 
 /**
- * In-browser aggregation: rows = unique destinations, cols = unique
- * items, cells = Σ qty over the current date range. Small enough to
- * render instantly for a few thousand issue rows. Totals row + col.
+ * In-browser aggregation: rows = Items, cols = Destinations.
+ * Transposed from original (Dest × Item) per user feedback.
  */
 export function PivotClient({ issues }: Props) {
-  const { rowKeys, rowLabels, colKeys, colLabels, colUnit, cells, rowTotals, colTotals, grand } =
-    useMemo(() => {
-      const rowLabels = new Map<string, string>();
-      const colLabels = new Map<string, string>();
-      const colUnit = new Map<string, string>();
-      const cells = new Map<string, number>(); // `${rowKey}|${colKey}` → qty
-      const rowTotals = new Map<string, number>();
-      const colTotals = new Map<string, number>();
-      let grand = 0;
+  const {
+    rowKeys,
+    rowLabels,
+    rowCodes,
+    rowUnits,
+    colKeys,
+    colLabels,
+    cells,
+    rowTotals,
+    colTotals,
+    grand,
+  } = useMemo(() => {
+    const rowLabels = new Map<string, string>(); // item id -> name
+    const rowCodes = new Map<string, string>(); // item id -> code
+    const rowUnits = new Map<string, string>(); // item id -> unit
+    const colLabels = new Map<string, string>(); // dest key -> label
+    const cells = new Map<string, number>(); // `${itemId}|${destKey}` → qty
+    const rowTotals = new Map<string, number>();
+    const colTotals = new Map<string, number>();
+    let grand = 0;
 
-      for (const i of issues) {
-        const r = destKey(i);
-        const itemId = i.item?.id ?? 'unknown';
-        const itemLabel = i.item?.name ?? '—';
-        rowLabels.set(r.key, r.label);
-        colLabels.set(itemId, itemLabel);
-        if (i.item?.stock_unit) colUnit.set(itemId, i.item.stock_unit);
-        const cellKey = `${r.key}|${itemId}`;
-        cells.set(cellKey, (cells.get(cellKey) ?? 0) + i.qty);
-        rowTotals.set(r.key, (rowTotals.get(r.key) ?? 0) + i.qty);
-        colTotals.set(itemId, (colTotals.get(itemId) ?? 0) + i.qty);
-        grand += i.qty;
-      }
+    for (const i of issues) {
+      const d = destKey(i);
+      const itemId = i.item?.id ?? 'unknown';
+      const itemName = i.item?.name ?? '—';
 
-      const rowKeys = [...rowLabels.keys()].sort((a, b) =>
-        (rowLabels.get(a) ?? '').localeCompare(rowLabels.get(b) ?? ''),
-      );
-      const colKeys = [...colLabels.keys()].sort((a, b) =>
-        (colLabels.get(a) ?? '').localeCompare(colLabels.get(b) ?? ''),
-      );
+      rowLabels.set(itemId, itemName);
+      if (i.item?.code) rowCodes.set(itemId, i.item.code);
+      if (i.item?.stock_unit) rowUnits.set(itemId, i.item.stock_unit);
 
-      return {
-        rowKeys,
-        rowLabels,
-        colKeys,
-        colLabels,
-        colUnit,
-        cells,
-        rowTotals,
-        colTotals,
-        grand,
-      };
-    }, [issues]);
+      colLabels.set(d.key, d.label);
 
-  // Export as wide rows — one entry per destination with every item column.
+      const cellKey = `${itemId}|${d.key}`;
+      cells.set(cellKey, (cells.get(cellKey) ?? 0) + i.qty);
+      rowTotals.set(itemId, (rowTotals.get(itemId) ?? 0) + i.qty);
+      colTotals.set(d.key, (colTotals.get(d.key) ?? 0) + i.qty);
+      grand += i.qty;
+    }
+
+    const rowKeys = [...rowLabels.keys()].sort((a, b) =>
+      (rowLabels.get(a) ?? '').localeCompare(rowLabels.get(b) ?? ''),
+    );
+    const colKeys = [...colLabels.keys()].sort((a, b) =>
+      (colLabels.get(a) ?? '').localeCompare(colLabels.get(b) ?? ''),
+    );
+
+    return {
+      rowKeys,
+      rowLabels,
+      rowCodes,
+      rowUnits,
+      colKeys,
+      colLabels,
+      cells,
+      rowTotals,
+      colTotals,
+      grand,
+    };
+  }, [issues]);
+
   const exportRows = useMemo(() => {
     return rowKeys.map((rk) => {
-      const row: Record<string, string | number> = { destination: rowLabels.get(rk) ?? '' };
+      const row: Record<string, string | number> = {
+        item: `${rowCodes.get(rk) ? rowCodes.get(rk) + ' ' : ''}${rowLabels.get(rk) ?? ''}`,
+        unit: rowUnits.get(rk) ?? '',
+      };
       for (const ck of colKeys) {
         const cell = cells.get(`${rk}|${ck}`);
         row[colLabels.get(ck) ?? ck] = cell ?? 0;
@@ -84,11 +107,12 @@ export function PivotClient({ issues }: Props) {
       row.total = rowTotals.get(rk) ?? 0;
       return row;
     });
-  }, [rowKeys, rowLabels, colKeys, colLabels, cells, rowTotals]);
+  }, [rowKeys, rowLabels, rowCodes, rowUnits, colKeys, colLabels, cells, rowTotals]);
 
   const exportCols = useMemo(() => {
     return [
-      { key: 'destination' as const, header: 'Destination' },
+      { key: 'item' as const, header: 'Item' },
+      { key: 'unit' as const, header: 'Unit' },
       ...colKeys.map((ck) => ({
         key: (colLabels.get(ck) ?? ck) as keyof (typeof exportRows)[number],
         header: colLabels.get(ck) ?? ck,
@@ -103,7 +127,7 @@ export function PivotClient({ issues }: Props) {
       <header className="print:hide">
         <h1 className="text-xl font-semibold tracking-tight">Consumption Pivot</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Sum of issue qty by destination (rows) and item (columns).
+          Sum of issue qty by item (rows) and destination (columns).
         </p>
       </header>
 
@@ -111,7 +135,7 @@ export function PivotClient({ issues }: Props) {
         <div className="ml-auto flex items-center gap-2">
           <ExportButton
             filename="pivot"
-            sheetName="Destination × Item"
+            sheetName="Item × Destination"
             columns={exportCols}
             rows={exportRows}
           />
@@ -125,26 +149,29 @@ export function PivotClient({ issues }: Props) {
           description="Record an issue first; the pivot fills in as you issue material."
         />
       ) : (
-        <div className="overflow-auto">
+        <div className="max-h-[calc(100vh-12rem)] overflow-auto">
           <table className="excel-grid w-full border-collapse">
             <thead>
               <tr>
-                <th className="bg-muted sticky left-0 z-30 text-left">Destination</th>
+                <th className="bg-muted sticky top-0 left-0 z-30 text-left">Item</th>
                 {colKeys.map((ck) => (
-                  <th key={ck} className="text-right">
-                    <div>{colLabels.get(ck)}</div>
-                    <div className="text-muted-foreground text-[10px] font-normal">
-                      {colUnit.get(ck) ?? ''}
-                    </div>
+                  <th key={ck} className="sticky top-0 z-10 text-right">
+                    {colLabels.get(ck)}
                   </th>
                 ))}
-                <th className="bg-primary/10 text-right font-bold">Total</th>
+                <th className="bg-primary/10 sticky top-0 z-10 text-right font-bold">Total</th>
               </tr>
             </thead>
             <tbody>
               {rowKeys.map((rk) => (
                 <tr key={rk}>
-                  <td className="bg-card sticky left-0 z-20 font-medium">{rowLabels.get(rk)}</td>
+                  <td className="bg-card sticky left-0 z-20">
+                    <div className="font-medium">{rowLabels.get(rk)}</div>
+                    <div className="text-muted-foreground flex gap-2 text-[10px] font-normal uppercase">
+                      {rowCodes.get(rk) && <span>{rowCodes.get(rk)}</span>}
+                      <span>{rowUnits.get(rk)}</span>
+                    </div>
+                  </td>
                   {colKeys.map((ck) => {
                     const cell = cells.get(`${rk}|${ck}`);
                     return (
